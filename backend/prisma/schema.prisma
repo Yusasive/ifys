@@ -101,7 +101,7 @@ model TicketProduct {
 model Attendee {
   id            String         @id @default(uuid())
   fullName      String         @map("full_name")
-  email         String
+  email         String         @unique
   phone         String
   registrations Registration[]
 
