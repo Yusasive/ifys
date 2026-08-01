@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPaidCheckoutFixture } from '../testing/fixtures';
 import { TicketsService } from '../tickets/tickets.service';
@@ -7,7 +8,8 @@ import { CheckInsService } from './check-ins.service';
 describe('CheckInsService.scan (integration)', () => {
   const prisma = new PrismaService();
   const tickets = new TicketsService(prisma);
-  const checkIns = new CheckInsService(prisma);
+  const auditLog = new AuditLogService(prisma);
+  const checkIns = new CheckInsService(prisma, auditLog);
 
   afterAll(async () => {
     await prisma.$disconnect();

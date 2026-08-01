@@ -7,6 +7,7 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CheckInsService } from './check-ins.service';
 import { ScanDto } from './dto/scan.dto';
+import { SyncDto } from './dto/sync.dto';
 
 @Controller('checkin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -26,5 +27,18 @@ export class CheckInsController {
   @Get('status')
   getStatus() {
     return this.checkIns.getStatus();
+  }
+
+  // TRD §8: downloaded once a station comes online, then relied on while
+  // offline. Not throttled like /scan — this is a full snapshot fetched
+  // occasionally, not a per-guess request.
+  @Get('offline-index')
+  getOfflineIndex() {
+    return this.checkIns.getOfflineIndex();
+  }
+
+  @Post('sync')
+  sync(@Body() dto: SyncDto, @CurrentUser() user: JwtPayload) {
+    return this.checkIns.sync(dto.scans, user.sub);
   }
 }

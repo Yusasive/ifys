@@ -166,6 +166,11 @@ model CheckIn {
   checkedInAt   DateTime      @default(now()) @map("checked_in_at")
   checkedInBy   String        @map("checked_in_by")
   method        CheckInMethod
+  // Client-generated id for offline-queued scans (TRD §8) — lets a
+  // retried sync of the same queued item be recognized as a replay
+  // instead of re-racing for the ticket (which it would otherwise lose
+  // against its own prior win, since the ticket is already `used`).
+  clientScanId  String?       @unique @map("client_scan_id")
 
   ticket Ticket @relation(fields: [ticketId], references: [id])
 

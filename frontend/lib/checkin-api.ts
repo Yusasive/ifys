@@ -59,3 +59,42 @@ export function scan(
 export function fetchCheckInStatus(token: string) {
   return checkinRequest<CheckInStatus>("/checkin/status", token);
 }
+
+export interface OfflineIndexEntry {
+  codeHash: string;
+  qrHash: string;
+  status: string;
+  attendee: AttendeeSummary;
+}
+
+export function fetchOfflineIndex(token: string) {
+  return checkinRequest<OfflineIndexEntry[]>("/checkin/offline-index", token);
+}
+
+export interface QueuedScanPayload {
+  clientScanId: string;
+  qrToken?: string;
+  shortCode?: string;
+  stationId: string;
+  scannedAt: string;
+}
+
+export type SyncScanResult =
+  | { clientScanId: string; result: "already_synced" }
+  | { clientScanId: string; result: "not_found" }
+  | { clientScanId: string; result: "void"; attendee: AttendeeSummary }
+  | {
+      clientScanId: string;
+      result: "sync_conflict";
+      attendee: AttendeeSummary;
+      firstUsedAt: string;
+      firstUsedStation: string;
+    }
+  | { clientScanId: string; result: "valid_first_use"; attendee: AttendeeSummary };
+
+export function syncScans(token: string, scans: QueuedScanPayload[]) {
+  return checkinRequest<SyncScanResult[]>("/checkin/sync", token, {
+    method: "POST",
+    body: JSON.stringify({ scans }),
+  });
+}
