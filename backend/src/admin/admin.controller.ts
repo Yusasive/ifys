@@ -13,6 +13,7 @@ import type { JwtPayload } from '../auth/jwt-payload';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AdminService } from './admin.service';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
 import { VoidTicketDto } from './dto/void-ticket.dto';
 
@@ -64,5 +65,18 @@ export class AdminController {
   @Get('export/:jobId')
   getExportStatus(@Param('jobId') jobId: string) {
     return this.admin.getExportStatus(jobId);
+  }
+
+  @Get('users')
+  listAdminUsers() {
+    return this.admin.listAdminUsers();
+  }
+
+  @Post('users')
+  createAdminUser(
+    @Body() dto: CreateAdminUserDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.createAdminUser(dto, user.sub);
   }
 }

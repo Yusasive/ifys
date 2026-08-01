@@ -81,8 +81,9 @@ export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
         startsAt: registration.event.startsAt,
         ticketCode: ticket.ticketCode,
         ticketId: ticket.id,
-        supportEmail:
-          this.config.get<string>('SUPPORT_EMAIL') ?? 'support@ifysummit.ng',
+        // No fallback: an event-day ticket must carry a real support
+        // contact, not a placeholder nobody reads (M6 exit criteria).
+        supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
       },
       ticket.qrSecret,
     );

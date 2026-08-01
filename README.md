@@ -29,3 +29,7 @@ Backend env vars: `backend/.env.example` documents the local docker-compose defa
 ## Open decisions
 
 See "Open items to raise with the user" at the bottom of [`milestone.md`](./milestone.md) — Premium tier perks, refund policy, short-code character set, and data retention period are still unresolved business decisions, not technical ones.
+
+## Event-day readiness
+
+Before 5 Nov 2026, work through [`EVENT_DAY_READINESS.md`](./EVENT_DAY_READINESS.md) — the M6 go/no-go checklist (rate limits, HTTPS, real door-staff accounts, venue dry run).

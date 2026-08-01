@@ -15,9 +15,16 @@ export function AdminHeader() {
 
   return (
     <header className="border-b border-line px-6 py-4 flex items-center justify-between bg-white">
-      <Link href="/admin" className="font-display text-lg">
-        IFY Summit — Operations
-      </Link>
+      <div className="flex items-center gap-6">
+        <Link href="/admin" className="font-display text-lg">
+          IFY Summit — Operations
+        </Link>
+        {session?.user.role === "organizer" && (
+          <Link href="/admin/users" className="text-sm text-muted underline">
+            Staff accounts
+          </Link>
+        )}
+      </div>
       {session && (
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted">

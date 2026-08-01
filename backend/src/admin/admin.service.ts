@@ -5,12 +5,14 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuthService } from '../auth/auth.service';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { TicketsService } from '../tickets/tickets.service';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
 import { ExportQueue } from './export.queue';
 
@@ -108,6 +110,9 @@ export class AdminService {
       select: { id: true, category: true, tier: true },
     });
     const ticketsIssued = await this.prisma.ticket.count();
+    const checkedIn = await this.prisma.ticket.count({
+      where: { status: 'used' },
+    });
 
     const productById = new Map(allProducts.map((p) => [p.id, p]));
     const categoryCounts: Record<string, number> = {};
@@ -129,7 +134,7 @@ export class AdminService {
       byCategory: categoryCounts,
       byTier: tierCounts,
       ticketsIssued,
-      checkedIn: 0, // wired up once check-ins exist (M4)
+      checkedIn,
     };
   }
 
@@ -242,5 +247,57 @@ export class AdminService {
 
   getExportStatus(jobId: string) {
     return this.exportQueue.getStatus(jobId);
+  }
+
+  // M6: door staff need real accounts provisioned before event day —
+  // this replaces "edit the seed script and redeploy" with an actual
+  // organizer-facing action, audit-logged like every other admin action
+  // that changes who can do what.
+  async createAdminUser(dto: CreateAdminUserDto, actorId: string) {
+    const existing = await this.prisma.adminUser.findUnique({
+      where: { email: dto.email },
+    });
+    if (existing) {
+      throw new ConflictException('An account with this email already exists.');
+    }
+
+    const user = await this.prisma.adminUser.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        passwordHash: await bcrypt.hash(dto.password, 10),
+        role: dto.role,
+      },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'create_admin_user',
+      targetType: 'admin_user',
+      targetId: user.id,
+      metadata: { email: user.email, role: user.role },
+    });
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+    };
+  }
+
+  async listAdminUsers() {
+    const users = await this.prisma.adminUser.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { users };
   }
 }

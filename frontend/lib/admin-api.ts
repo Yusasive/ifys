@@ -132,3 +132,21 @@ export function getExportStatus(token: string, jobId: string) {
     token,
   );
 }
+
+export interface AdminUserListItem extends AdminUser {
+  createdAt: string;
+}
+
+export function listAdminUsers(token: string) {
+  return adminRequest<{ users: AdminUserListItem[] }>("/admin/users", token);
+}
+
+export function createAdminUser(
+  token: string,
+  input: { name: string; email: string; password: string; role: AdminRole },
+) {
+  return adminRequest<AdminUserListItem>("/admin/users", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
