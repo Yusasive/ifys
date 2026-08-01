@@ -101,3 +101,10 @@ export function createRegistration(payload: CreateRegistrationPayload) {
 export function fetchRegistration(id: string) {
   return request<Registration>(`/registrations/${id}`);
 }
+
+export function createCheckout(registrationId: string) {
+  return request<{ authorizationUrl: string; reference: string }>(
+    `/registrations/${registrationId}/checkout`,
+    { method: "POST" },
+  );
+}

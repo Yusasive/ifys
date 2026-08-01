@@ -40,6 +40,15 @@ jobs:
       S3_ACCESS_KEY_ID: ify_minio
       S3_SECRET_ACCESS_KEY: ify_minio_password
       S3_FORCE_PATH_STYLE: "true"
+      CORS_ORIGIN: http://localhost:3001
+      FRONTEND_ORIGIN: http://localhost:3001
+      EVENT_SLUG: ify-summit-2026
+      # CI-only fake secret — tests only sign/verify locally, never call the real Paystack API.
+      PAYSTACK_SECRET_KEY: sk_test_ci_fake_secret_not_a_real_key
+      PAYSTACK_PUBLIC_KEY: pk_test_ci_fake_key_not_a_real_key
+      SMTP_HOST: localhost
+      SMTP_PORT: "1025"
+      SMTP_FROM: tickets@ifysummit.ng
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

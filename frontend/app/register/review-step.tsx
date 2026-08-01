@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ApiError, createRegistration, TicketProduct } from "@/lib/api";
+import { ApiError, createCheckout, createRegistration, TicketProduct } from "@/lib/api";
 import { formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setStep } from "@/lib/registration-slice";
@@ -9,11 +9,9 @@ import { setStep } from "@/lib/registration-slice";
 export function ReviewStep({
   eventSlug,
   ticketProducts,
-  onSubmitted,
 }: {
   eventSlug: string;
   ticketProducts: TicketProduct[];
-  onSubmitted: (registrationId: string) => void;
 }) {
   const dispatch = useAppDispatch();
   const registration = useAppSelector((s) => s.registration);
@@ -42,14 +40,18 @@ export function ReviewStep({
         phone: registration.phone,
         formData,
       });
-      onSubmitted(created.id);
+      // Server owns payment initialization end-to-end: it derives the
+      // amount from the ticket product and builds the callback URL, so
+      // the client only ever redirects — it never assembles anything
+      // payment-related itself.
+      const { authorizationUrl } = await createCheckout(created.id);
+      window.location.href = authorizationUrl;
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.body.message);
       } else {
         setError("Something went wrong — please try again.");
       }
-    } finally {
       setSubmitting(false);
     }
   }
@@ -95,7 +97,7 @@ export function ReviewStep({
           disabled={submitting}
           className="bg-gold text-ink font-medium px-6 py-2 rounded-sm disabled:opacity-40"
         >
-          {submitting ? "Submitting…" : "Confirm registration"}
+          {submitting ? "Redirecting to payment…" : "Proceed to payment"}
         </button>
       </div>
     </div>
