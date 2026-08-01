@@ -46,4 +46,21 @@ export class StorageService {
       expiresIn: SIGNED_URL_TTL_SECONDS,
     });
   }
+
+  // Server-side direct write (background jobs, e.g. the CSV export) —
+  // distinct from getUploadUrl, which hands a signed PUT to the browser.
+  async putObject(
+    key: string,
+    body: Buffer | string,
+    contentType: string,
+  ): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+      }),
+    );
+  }
 }

@@ -1,6 +1,14 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as bcrypt from 'bcryptjs';
 import { PrismaClient } from '../src/generated/prisma/client';
+
+// DEV-ONLY credentials, never for production use — printed to the
+// console below so a fresh `prisma db seed` is self-documenting.
+const DEV_ADMIN_USERS = [
+  { name: 'Dev Organizer', email: 'organizer@ifysummit.ng', password: 'dev-organizer-pw', role: 'organizer' as const },
+  { name: 'Dev Door Staff', email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw', role: 'door_staff' as const },
+];
 
 // PLACEHOLDER pricing — PRD §9: NextIF owns final pricing per category+tier
 // and exact Premium perks before build sign-off. Values below unblock M1
@@ -53,8 +61,25 @@ async function main() {
     }
   }
 
+  for (const admin of DEV_ADMIN_USERS) {
+    await prisma.adminUser.upsert({
+      where: { email: admin.email },
+      update: {},
+      create: {
+        name: admin.name,
+        email: admin.email,
+        passwordHash: await bcrypt.hash(admin.password, 10),
+        role: admin.role,
+      },
+    });
+  }
+
   await prisma.$disconnect();
   console.log(`Seeded event "${event.slug}" with 6 ticket products.`);
+  console.log('Seeded dev admin users (DEV ONLY, not real credentials):');
+  for (const admin of DEV_ADMIN_USERS) {
+    console.log(`  ${admin.role}: ${admin.email} / ${admin.password}`);
+  }
 }
 
 main().catch((err: unknown) => {

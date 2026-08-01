@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AdminModule } from './admin/admin.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 import { AuthModule } from './auth/auth.module';
 import { RegistrationsModule } from './registrations/registrations.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -17,11 +19,13 @@ import { StorageModule } from './storage/storage.module';
     PrismaModule,
     RedisModule,
     StorageModule,
+    AuditLogModule,
     AuthModule,
     RegistrationsModule,
     PaymentsModule,
     TicketsModule,
     CheckInsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
