@@ -1,0 +1,196 @@
+// Prisma schema — IFY Summit Registration, Ticketing & Check-In System
+// Source of truth: TRD.md §3. Keep in sync; document any deviation here.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Category {
+  student
+  founder
+  professional
+}
+
+enum Tier {
+  standard
+  premium
+}
+
+enum RegistrationStatus {
+  draft
+  pending_payment
+  paid
+  failed
+  refunded
+  cancelled
+}
+
+enum OrderProvider {
+  paystack
+}
+
+enum OrderStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum TicketStatus {
+  unused
+  used
+  void
+}
+
+enum CheckInMethod {
+  qr
+  manual_code
+}
+
+enum AdminRole {
+  organizer
+  door_staff
+}
+
+// Future-proofing if NextIF runs more than one event later (PRD §3, TRD §3).
+model Organization {
+  id     String  @id @default(uuid())
+  name   String
+  events Event[]
+
+  @@map("organizations")
+}
+
+model Event {
+  id             String          @id @default(uuid())
+  orgId          String          @map("org_id")
+  name           String
+  venue          String
+  startsAt       DateTime        @map("starts_at")
+  slug           String          @unique
+  organization   Organization    @relation(fields: [orgId], references: [id])
+  ticketProducts TicketProduct[]
+  registrations  Registration[]
+
+  @@map("events")
+}
+
+// The sellable combination of category x tier (PRD §5, TRD §3).
+model TicketProduct {
+  id            String         @id @default(uuid())
+  eventId       String         @map("event_id")
+  category      Category
+  tier          Tier
+  priceKobo     Int            @map("price_kobo")
+  currency      String         @default("NGN")
+  perksJson     Json           @default("{}") @map("perks_json")
+  isActive      Boolean        @default(true) @map("is_active")
+  event         Event          @relation(fields: [eventId], references: [id])
+  registrations Registration[]
+
+  @@unique([eventId, category, tier])
+  @@map("ticket_products")
+}
+
+model Attendee {
+  id            String         @id @default(uuid())
+  fullName      String         @map("full_name")
+  email         String
+  phone         String
+  registrations Registration[]
+
+  @@map("attendees")
+}
+
+// One per attendee per event; holds category-specific answers (TRD §3).
+model Registration {
+  id               String              @id @default(uuid())
+  eventId          String              @map("event_id")
+  attendeeId       String              @map("attendee_id")
+  ticketProductId  String              @map("ticket_product_id")
+  formDataJson     Json                @map("form_data_json")
+  studentIdFileUrl String?             @map("student_id_file_url")
+  status           RegistrationStatus  @default(draft)
+  createdAt        DateTime            @default(now()) @map("created_at")
+
+  event         Event         @relation(fields: [eventId], references: [id])
+  attendee      Attendee      @relation(fields: [attendeeId], references: [id])
+  ticketProduct TicketProduct @relation(fields: [ticketProductId], references: [id])
+  order         Order?
+  ticket        Ticket?
+
+  @@unique([eventId, attendeeId])
+  @@map("registrations")
+}
+
+model Order {
+  id                String        @id @default(uuid())
+  registrationId    String        @unique @map("registration_id")
+  amountKobo        Int           @map("amount_kobo")
+  currency          String        @default("NGN")
+  provider          OrderProvider @default(paystack)
+  providerReference String        @unique @map("provider_reference")
+  status            OrderStatus   @default(pending)
+  paidAt            DateTime?     @map("paid_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id])
+
+  @@map("orders")
+}
+
+// Issued only once an order is confirmed paid (TRD §3, §6).
+model Ticket {
+  id             String       @id @default(uuid())
+  registrationId String       @unique @map("registration_id")
+  ticketCode     String       @unique @map("ticket_code")
+  qrSecret       String       @unique @map("qr_secret")
+  status         TicketStatus @default(unused)
+  issuedAt       DateTime     @default(now()) @map("issued_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id])
+  checkIns     CheckIn[]
+
+  @@map("tickets")
+}
+
+model CheckIn {
+  id            String        @id @default(uuid())
+  ticketId      String        @map("ticket_id")
+  stationId     String        @map("station_id")
+  checkedInAt   DateTime      @default(now()) @map("checked_in_at")
+  checkedInBy   String        @map("checked_in_by")
+  method        CheckInMethod
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  @@map("check_ins")
+}
+
+model AdminUser {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         AdminRole
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("admin_users")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorId      String   @map("actor_id")
+  action       String
+  targetType   String   @map("target_type")
+  targetId     String   @map("target_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  metadataJson Json     @default("{}") @map("metadata_json")
+
+  @@map("audit_log")
+}

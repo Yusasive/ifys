@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ify
+          POSTGRES_PASSWORD: ify_dev_password
+          POSTGRES_DB: ify_summit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ify -d ify_summit"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ify:ify_dev_password@localhost:5432/ify_summit?schema=public
+      REDIS_URL: redis://localhost:6379
+      S3_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: ify-summit-uploads
+      S3_ACCESS_KEY_ID: ify_minio
+      S3_SECRET_ACCESS_KEY: ify_minio_password
+      S3_FORCE_PATH_STYLE: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma migrate deploy
+        working-directory: backend
+      - run: npm run typecheck --workspace backend
+      - run: npm run lint --workspace backend
+      - run: npm run test --workspace backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck --workspace frontend
+      - run: npm run lint --workspace frontend
+      - run: npm run build --workspace frontend
