@@ -21,7 +21,7 @@ export default function AdminLoginPage() {
     try {
       const { accessToken, user } = await login(email, password);
       setSession({ token: accessToken, user });
-      router.replace("/admin");
+      router.replace(user.role === "door_staff" ? "/checkin" : "/admin");
     } catch (err) {
       setError(err instanceof ApiError ? err.body.message : "Login failed");
     } finally {

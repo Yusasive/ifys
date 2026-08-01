@@ -60,6 +60,12 @@ export async function createPaidCheckoutFixture(
   });
 
   async function teardown() {
+    const ticket = await prisma.ticket.findUnique({
+      where: { registrationId: registration.id },
+    });
+    if (ticket) {
+      await prisma.checkIn.deleteMany({ where: { ticketId: ticket.id } });
+    }
     await prisma.ticket.deleteMany({
       where: { registrationId: registration.id },
     });
