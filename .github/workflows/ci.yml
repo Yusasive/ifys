@@ -66,6 +66,8 @@ jobs:
         working-directory: backend
       - run: npx prisma migrate deploy
         working-directory: backend
+      - run: npx prisma db seed
+        working-directory: backend
       - run: npm run typecheck --workspace backend
       - run: npm run lint --workspace backend
       - run: npm run test --workspace backend
