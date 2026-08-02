@@ -52,7 +52,7 @@ describe('Check-in role scoping and rate limiting (integration)', () => {
 
   afterAll(async () => {
     await app.close();
-  });
+  }, 15000);
 
   it('allows door staff to scan', async () => {
     const fixture = await createPaidCheckoutFixture(prisma);

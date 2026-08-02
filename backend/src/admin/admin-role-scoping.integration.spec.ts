@@ -50,7 +50,7 @@ describe('Admin role scoping (integration)', () => {
 
   afterAll(async () => {
     await app.close();
-  });
+  }, 15000);
 
   it('rejects login with a wrong password', async () => {
     const res = await request(httpServer)

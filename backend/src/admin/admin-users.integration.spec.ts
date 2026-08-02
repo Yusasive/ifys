@@ -50,7 +50,7 @@ describe('Admin user management (integration)', () => {
 
   afterAll(async () => {
     await app.close();
-  });
+  }, 15000);
 
   it('lets an organizer create a new door-staff account, which can then log in', async () => {
     const email = `door-${randomUUID()}@example.com`;
