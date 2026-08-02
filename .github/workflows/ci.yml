@@ -57,6 +57,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
+        working-directory: backend
       - run: npx prisma migrate deploy
         working-directory: backend
       - run: npm run typecheck --workspace backend
