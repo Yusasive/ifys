@@ -43,13 +43,18 @@ jobs:
       CORS_ORIGIN: http://localhost:3001
       FRONTEND_ORIGIN: http://localhost:3001
       EVENT_SLUG: ify-summit-2026
-      # CI-only fake secret — tests only sign/verify locally, never call the real Paystack API.
-      PAYSTACK_SECRET_KEY: sk_test_ci_fake_secret_not_a_real_key
-      PAYSTACK_PUBLIC_KEY: pk_test_ci_fake_key_not_a_real_key
+      # CI-only fake secrets — the webhook tests stub the Flutterwave verify
+      # call rather than hitting the real API.
+      FLUTTERWAVE_SECRET_KEY: FLWSECK_TEST-ci_fake_secret_not_a_real_key-X
+      FLUTTERWAVE_PUBLIC_KEY: FLWPUBK_TEST-ci_fake_key_not_a_real_key-X
+      FLUTTERWAVE_WEBHOOK_HASH: ci_fake_webhook_hash_not_a_real_secret
       SMTP_HOST: localhost
       SMTP_PORT: "1025"
       SMTP_FROM: tickets@ifysummit.ng
       SUPPORT_EMAIL: support@ifysummit.ng
+      # CI-only fake secret — not used to sign anything real.
+      JWT_SECRET: ci_fake_jwt_secret_not_a_real_secret_0123456789abcdef
+      JWT_EXPIRES_IN: "28800"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

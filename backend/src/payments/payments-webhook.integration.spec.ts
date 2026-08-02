@@ -1,26 +1,26 @@
 import 'dotenv/config';
-import { createHmac } from 'node:crypto';
 import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPaidCheckoutFixture } from '../testing/fixtures';
 import { TicketsService } from '../tickets/tickets.service';
+import { FlutterwaveProvider } from './flutterwave.provider';
 import { PaymentsService } from './payments.service';
-import { PaystackProvider } from './paystack.provider';
 
-function signBody(body: string): string {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret) {
-    throw new Error('PAYSTACK_SECRET_KEY not set — check backend/.env');
-  }
-  return createHmac('sha512', secret).update(body).digest('hex');
+const WEBHOOK_HASH = process.env.FLUTTERWAVE_WEBHOOK_HASH;
+if (!WEBHOOK_HASH) {
+  throw new Error('FLUTTERWAVE_WEBHOOK_HASH not set — check backend/.env');
 }
 
-function chargeSuccessBody(reference: string, amountKobo: number): string {
+function chargeCompletedBody(
+  transactionId: number,
+  reference: string,
+  status: string,
+): string {
   return JSON.stringify({
-    event: 'charge.success',
-    data: { reference, amount: amountKobo },
+    event: 'charge.completed',
+    data: { id: transactionId, tx_ref: reference, status },
   });
 }
 
@@ -30,11 +30,38 @@ function makeEmailQueueSpy() {
   return { emailQueue, enqueueMock };
 }
 
-describe('PaymentsService.handlePaystackWebhook (integration)', () => {
+// Flutterwave's recommended integration re-verifies every webhook against
+// their API rather than trusting the payload — so these tests stub
+// `fetch` to stand in for that call instead of hitting the real API.
+function stubVerifyFetch(response: {
+  status: string;
+  tx_ref: string;
+  amount: number;
+  currency: string;
+}) {
+  const mock = jest.fn().mockResolvedValue({
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        status: 'success',
+        message: 'ok',
+        data: response,
+      }),
+  });
+  global.fetch = mock;
+  return mock;
+}
+
+describe('PaymentsService.handleFlutterwaveWebhook (integration)', () => {
   const prisma = new PrismaService();
   const config = new ConfigService(process.env);
-  const paystack = new PaystackProvider(config);
+  const flutterwave = new FlutterwaveProvider(config);
   const tickets = new TicketsService(prisma);
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
 
   afterAll(async () => {
     await prisma.$disconnect();
@@ -47,18 +74,19 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
       const payments = new PaymentsService(
         prisma,
         config,
-        paystack,
+        flutterwave,
         tickets,
         emailQueue,
       );
 
-      const body = chargeSuccessBody(
+      const body = chargeCompletedBody(
+        1,
         fixture.order.providerReference,
-        fixture.order.amountKobo,
+        'successful',
       );
 
       await expect(
-        payments.handlePaystackWebhook(
+        payments.handleFlutterwaveWebhook(
           Buffer.from(body),
           'not-a-real-signature',
         ),
@@ -77,23 +105,29 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
   it('is idempotent across duplicate deliveries of the same event', async () => {
     const fixture = await createPaidCheckoutFixture(prisma);
     try {
+      stubVerifyFetch({
+        status: 'successful',
+        tx_ref: fixture.order.providerReference,
+        amount: fixture.order.amountMinor / 100,
+        currency: fixture.order.currency,
+      });
       const { emailQueue, enqueueMock } = makeEmailQueueSpy();
       const payments = new PaymentsService(
         prisma,
         config,
-        paystack,
+        flutterwave,
         tickets,
         emailQueue,
       );
 
-      const body = chargeSuccessBody(
+      const body = chargeCompletedBody(
+        1,
         fixture.order.providerReference,
-        fixture.order.amountKobo,
+        'successful',
       );
-      const signature = signBody(body);
 
-      await payments.handlePaystackWebhook(Buffer.from(body), signature);
-      await payments.handlePaystackWebhook(Buffer.from(body), signature);
+      await payments.handleFlutterwaveWebhook(Buffer.from(body), WEBHOOK_HASH);
+      await payments.handleFlutterwaveWebhook(Buffer.from(body), WEBHOOK_HASH);
 
       const order = await prisma.order.findUniqueOrThrow({
         where: { id: fixture.order.id },
@@ -116,25 +150,31 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
   it('resolves concurrent duplicate deliveries to exactly one ticket and one email', async () => {
     const fixture = await createPaidCheckoutFixture(prisma);
     try {
+      stubVerifyFetch({
+        status: 'successful',
+        tx_ref: fixture.order.providerReference,
+        amount: fixture.order.amountMinor / 100,
+        currency: fixture.order.currency,
+      });
       const { emailQueue, enqueueMock } = makeEmailQueueSpy();
       const payments = new PaymentsService(
         prisma,
         config,
-        paystack,
+        flutterwave,
         tickets,
         emailQueue,
       );
 
-      const body = chargeSuccessBody(
+      const body = chargeCompletedBody(
+        1,
         fixture.order.providerReference,
-        fixture.order.amountKobo,
+        'successful',
       );
-      const signature = signBody(body);
 
       await Promise.all([
-        payments.handlePaystackWebhook(Buffer.from(body), signature),
-        payments.handlePaystackWebhook(Buffer.from(body), signature),
-        payments.handlePaystackWebhook(Buffer.from(body), signature),
+        payments.handleFlutterwaveWebhook(Buffer.from(body), WEBHOOK_HASH),
+        payments.handleFlutterwaveWebhook(Buffer.from(body), WEBHOOK_HASH),
+        payments.handleFlutterwaveWebhook(Buffer.from(body), WEBHOOK_HASH),
       ]);
 
       const ticketCount = await prisma.ticket.count({
@@ -147,28 +187,61 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
     }
   });
 
-  it('ignores events other than charge.success without side effects', async () => {
+  it('ignores events other than a successful charge.completed without side effects', async () => {
     const fixture = await createPaidCheckoutFixture(prisma);
     try {
       const { emailQueue, enqueueMock } = makeEmailQueueSpy();
       const payments = new PaymentsService(
         prisma,
         config,
-        paystack,
+        flutterwave,
         tickets,
         emailQueue,
       );
 
-      const body = JSON.stringify({
-        event: 'charge.failed',
-        data: {
-          reference: fixture.order.providerReference,
-          amount: fixture.order.amountKobo,
-        },
-      });
-      const signature = signBody(body);
+      const body = chargeCompletedBody(
+        1,
+        fixture.order.providerReference,
+        'failed',
+      );
 
-      await payments.handlePaystackWebhook(Buffer.from(body), signature);
+      await payments.handleFlutterwaveWebhook(Buffer.from(body), WEBHOOK_HASH);
+
+      const order = await prisma.order.findUniqueOrThrow({
+        where: { id: fixture.order.id },
+      });
+      expect(order.status).toBe('pending');
+      expect(enqueueMock).not.toHaveBeenCalled();
+    } finally {
+      await fixture.teardown();
+    }
+  });
+
+  it('does not claim the order when server-side verification fails to confirm success', async () => {
+    const fixture = await createPaidCheckoutFixture(prisma);
+    try {
+      stubVerifyFetch({
+        status: 'failed',
+        tx_ref: fixture.order.providerReference,
+        amount: fixture.order.amountMinor / 100,
+        currency: fixture.order.currency,
+      });
+      const { emailQueue, enqueueMock } = makeEmailQueueSpy();
+      const payments = new PaymentsService(
+        prisma,
+        config,
+        flutterwave,
+        tickets,
+        emailQueue,
+      );
+
+      const body = chargeCompletedBody(
+        1,
+        fixture.order.providerReference,
+        'successful',
+      );
+
+      await payments.handleFlutterwaveWebhook(Buffer.from(body), WEBHOOK_HASH);
 
       const order = await prisma.order.findUniqueOrThrow({
         where: { id: fixture.order.id },
