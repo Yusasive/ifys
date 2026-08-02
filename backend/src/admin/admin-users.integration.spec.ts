@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import { App } from 'supertest/types';
 import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -11,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 // "door staff accounts provisioned" in the event-day readiness checklist.
 describe('Admin user management (integration)', () => {
   let app: INestApplication;
+  let httpServer: App;
   let prisma: PrismaService;
   let organizerToken: string;
   let doorStaffToken: string;
@@ -30,15 +32,16 @@ describe('Admin user management (integration)', () => {
     );
     await app.init();
 
+    httpServer = app.getHttpServer() as App;
     prisma = app.get(PrismaService);
 
-    const organizerLogin = await request(app.getHttpServer())
+    const organizerLogin = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'organizer@ifysummit.ng', password: 'dev-organizer-pw' });
     organizerToken = (organizerLogin.body as { accessToken: string })
       .accessToken;
 
-    const doorStaffLogin = await request(app.getHttpServer())
+    const doorStaffLogin = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw' });
     doorStaffToken = (doorStaffLogin.body as { accessToken: string })
@@ -53,7 +56,7 @@ describe('Admin user management (integration)', () => {
     const email = `door-${randomUUID()}@example.com`;
     const password = 'a-strong-test-password';
 
-    const createRes = await request(app.getHttpServer())
+    const createRes = await request(httpServer)
       .post('/admin/users')
       .set('Authorization', `Bearer ${organizerToken}`)
       .send({
@@ -67,7 +70,7 @@ describe('Admin user management (integration)', () => {
     expect(createRes.body).not.toHaveProperty('passwordHash');
     expect(createRes.body).not.toHaveProperty('password');
 
-    const loginRes = await request(app.getHttpServer())
+    const loginRes = await request(httpServer)
       .post('/auth/login')
       .send({ email, password });
     expect(loginRes.status).toBe(201);
@@ -85,7 +88,7 @@ describe('Admin user management (integration)', () => {
   });
 
   it('rejects a duplicate email with 409', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(httpServer)
       .post('/admin/users')
       .set('Authorization', `Bearer ${organizerToken}`)
       .send({
@@ -98,7 +101,7 @@ describe('Admin user management (integration)', () => {
   });
 
   it('rejects a short password', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(httpServer)
       .post('/admin/users')
       .set('Authorization', `Bearer ${organizerToken}`)
       .send({
@@ -111,7 +114,7 @@ describe('Admin user management (integration)', () => {
   });
 
   it('rejects door staff from creating or listing admin users', async () => {
-    const createRes = await request(app.getHttpServer())
+    const createRes = await request(httpServer)
       .post('/admin/users')
       .set('Authorization', `Bearer ${doorStaffToken}`)
       .send({
@@ -122,14 +125,14 @@ describe('Admin user management (integration)', () => {
       });
     expect(createRes.status).toBe(403);
 
-    const listRes = await request(app.getHttpServer())
+    const listRes = await request(httpServer)
       .get('/admin/users')
       .set('Authorization', `Bearer ${doorStaffToken}`);
     expect(listRes.status).toBe(403);
   });
 
   it('lists admin users without exposing password hashes', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(httpServer)
       .get('/admin/users')
       .set('Authorization', `Bearer ${organizerToken}`);
     expect(res.status).toBe(200);

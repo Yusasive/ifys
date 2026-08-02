@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import { App } from 'supertest/types';
 import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPaidCheckoutFixture } from '../testing/fixtures';
@@ -11,6 +12,7 @@ import { createPaidCheckoutFixture } from '../testing/fixtures';
 // the full guard chain (JwtAuthGuard -> RolesGuard), not a mocked one.
 describe('Admin role scoping (integration)', () => {
   let app: INestApplication;
+  let httpServer: App;
   let prisma: PrismaService;
   let organizerToken: string;
   let doorStaffToken: string;
@@ -30,15 +32,16 @@ describe('Admin role scoping (integration)', () => {
     );
     await app.init();
 
+    httpServer = app.getHttpServer() as App;
     prisma = app.get(PrismaService);
 
-    const organizerLogin = await request(app.getHttpServer())
+    const organizerLogin = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'organizer@ifysummit.ng', password: 'dev-organizer-pw' });
     organizerToken = (organizerLogin.body as { accessToken: string })
       .accessToken;
 
-    const doorStaffLogin = await request(app.getHttpServer())
+    const doorStaffLogin = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw' });
     doorStaffToken = (doorStaffLogin.body as { accessToken: string })
@@ -50,40 +53,40 @@ describe('Admin role scoping (integration)', () => {
   });
 
   it('rejects login with a wrong password', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'organizer@ifysummit.ng', password: 'wrong-password' });
     expect(res.status).toBe(401);
   });
 
   it('allows an organizer to list registrations', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(httpServer)
       .get('/admin/registrations')
       .set('Authorization', `Bearer ${organizerToken}`);
     expect(res.status).toBe(200);
   });
 
   it('rejects door staff from the registrations list with 403', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(httpServer)
       .get('/admin/registrations')
       .set('Authorization', `Bearer ${doorStaffToken}`);
     expect(res.status).toBe(403);
   });
 
   it('rejects door staff from the stats endpoint with 403', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(httpServer)
       .get('/admin/stats')
       .set('Authorization', `Bearer ${doorStaffToken}`);
     expect(res.status).toBe(403);
   });
 
   it('rejects an unauthenticated request with 401', async () => {
-    const res = await request(app.getHttpServer()).get('/admin/registrations');
+    const res = await request(httpServer).get('/admin/registrations');
     expect(res.status).toBe(401);
   });
 
   it('rejects a request with a tampered token with 401', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(httpServer)
       .get('/admin/registrations')
       .set('Authorization', `Bearer ${organizerToken}tampered`);
     expect(res.status).toBe(401);
@@ -94,7 +97,7 @@ describe('Admin role scoping (integration)', () => {
       orderStatus: 'pending',
     });
     try {
-      const res = await request(app.getHttpServer())
+      const res = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/mark-paid`)
         .set('Authorization', `Bearer ${organizerToken}`);
       expect(res.status).toBe(201);
@@ -125,17 +128,17 @@ describe('Admin role scoping (integration)', () => {
       orderStatus: 'pending',
     });
     try {
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/mark-paid`)
         .set('Authorization', `Bearer ${organizerToken}`);
 
-      const wrongPassword = await request(app.getHttpServer())
+      const wrongPassword = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/void`)
         .set('Authorization', `Bearer ${organizerToken}`)
         .send({ password: 'not-the-right-password' });
       expect(wrongPassword.status).toBe(401);
 
-      const correctPassword = await request(app.getHttpServer())
+      const correctPassword = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/void`)
         .set('Authorization', `Bearer ${organizerToken}`)
         .send({ password: 'dev-organizer-pw' });
