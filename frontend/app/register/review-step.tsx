@@ -156,7 +156,7 @@ export function ReviewStep({
       )}
 
       <p className="text-sm text-muted text-center">
-        You&apos;ll be redirected to Paystack to complete a secure payment
+        You&apos;ll be redirected to Flutterwave to complete a secure payment
         {product && ` of ${formatKobo(product.priceKobo, product.currency)}`}.
       </p>
 

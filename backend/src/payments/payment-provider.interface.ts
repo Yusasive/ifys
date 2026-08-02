@@ -1,18 +1,24 @@
 export interface InitializeTransactionParams {
   email: string;
-  amountKobo: number;
+  amountMinor: number;
   reference: string;
   callbackUrl: string;
 }
 
 export interface InitializeTransactionResult {
   authorizationUrl: string;
-  accessCode: string;
   reference: string;
 }
 
-// TRD §2: keep the payment integration behind an interface so a second
-// provider (Flutterwave) can be added later without touching callers.
+export interface VerifyTransactionResult {
+  successful: boolean;
+  reference: string;
+  amountMinor: number;
+  currency: string;
+}
+
+// TRD §2: keep the payment integration behind an interface so a different
+// provider can be swapped in later without touching callers.
 export interface PaymentProvider {
   initializeTransaction(
     params: InitializeTransactionParams,
@@ -22,6 +28,8 @@ export interface PaymentProvider {
     rawBody: Buffer,
     signatureHeader: string | undefined,
   ): boolean;
+
+  verifyTransaction(transactionId: string): Promise<VerifyTransactionResult>;
 }
 
 export const PAYMENT_PROVIDER = Symbol('PAYMENT_PROVIDER');

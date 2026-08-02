@@ -51,9 +51,9 @@ export async function createPaidCheckoutFixture(
   const order = await prisma.order.create({
     data: {
       registrationId: registration.id,
-      amountKobo: ticketProduct.priceKobo,
+      amountMinor: ticketProduct.priceKobo,
       currency: ticketProduct.currency,
-      provider: 'paystack',
+      provider: 'flutterwave',
       providerReference: opts.providerReference ?? `test-ref-${suffix}`,
       status: opts.orderStatus ?? 'pending',
     },

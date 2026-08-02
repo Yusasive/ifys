@@ -19,17 +19,17 @@ export class PaymentsController {
     return this.payments.createCheckout(id);
   }
 
-  @Post('webhooks/paystack')
+  @Post('webhooks/flutterwave')
   @HttpCode(200)
-  paystackWebhook(
+  flutterwaveWebhook(
     @Req() req: RawBodyRequest<Request>,
-    @Headers('x-paystack-signature') signature: string | undefined,
+    @Headers('verif-hash') signature: string | undefined,
   ) {
     if (!req.rawBody) {
       throw new Error(
         'Raw body not captured — is `rawBody: true` set in main.ts?',
       );
     }
-    return this.payments.handlePaystackWebhook(req.rawBody, signature);
+    return this.payments.handleFlutterwaveWebhook(req.rawBody, signature);
   }
 }

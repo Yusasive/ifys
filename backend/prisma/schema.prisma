@@ -32,7 +32,7 @@ enum RegistrationStatus {
 }
 
 enum OrderProvider {
-  paystack
+  flutterwave
 }
 
 enum OrderStatus {
@@ -132,9 +132,9 @@ model Registration {
 model Order {
   id                String        @id @default(uuid())
   registrationId    String        @unique @map("registration_id")
-  amountKobo        Int           @map("amount_kobo")
+  amountMinor       Int           @map("amount_minor")
   currency          String        @default("NGN")
-  provider          OrderProvider @default(paystack)
+  provider          OrderProvider @default(flutterwave)
   providerReference String        @unique @map("provider_reference")
   status            OrderStatus   @default(pending)
   paidAt            DateTime?     @map("paid_at")

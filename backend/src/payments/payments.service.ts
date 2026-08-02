@@ -10,12 +10,14 @@ import { randomUUID } from 'node:crypto';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketsService } from '../tickets/tickets.service';
-import { PaystackProvider } from './paystack.provider';
+import { FlutterwaveProvider } from './flutterwave.provider';
 
-interface PaystackChargeEvent {
+interface FlutterwaveChargeEvent {
   event: string;
   data?: {
-    reference?: string;
+    id?: number | string;
+    tx_ref?: string;
+    status?: string;
     amount?: number;
   };
 }
@@ -27,7 +29,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    private readonly paystack: PaystackProvider,
+    private readonly flutterwave: FlutterwaveProvider,
     private readonly tickets: TicketsService,
     private readonly emailQueue: TicketEmailQueue,
   ) {}
@@ -52,9 +54,9 @@ export class PaymentsService {
     const reference = `ify-${registration.id.slice(0, 8)}-${randomUUID().slice(0, 8)}`;
     const callbackUrl = `${this.config.getOrThrow<string>('FRONTEND_ORIGIN')}/register/confirmation?registration=${registration.id}`;
 
-    const { authorizationUrl } = await this.paystack.initializeTransaction({
+    const { authorizationUrl } = await this.flutterwave.initializeTransaction({
       email: registration.attendee.email,
-      amountKobo: registration.ticketProduct.priceKobo,
+      amountMinor: registration.ticketProduct.priceKobo,
       reference,
       callbackUrl,
     });
@@ -67,14 +69,14 @@ export class PaymentsService {
       update: {
         providerReference: reference,
         status: 'pending',
-        amountKobo: registration.ticketProduct.priceKobo,
+        amountMinor: registration.ticketProduct.priceKobo,
         currency: registration.ticketProduct.currency,
       },
       create: {
         registrationId: registration.id,
-        amountKobo: registration.ticketProduct.priceKobo,
+        amountMinor: registration.ticketProduct.priceKobo,
         currency: registration.ticketProduct.currency,
-        provider: 'paystack',
+        provider: 'flutterwave',
         providerReference: reference,
         status: 'pending',
       },
@@ -83,21 +85,42 @@ export class PaymentsService {
     return { authorizationUrl, reference };
   }
 
-  async handlePaystackWebhook(
+  async handleFlutterwaveWebhook(
     rawBody: Buffer,
     signatureHeader: string | undefined,
   ) {
-    if (!this.paystack.verifyWebhookSignature(rawBody, signatureHeader)) {
+    if (!this.flutterwave.verifyWebhookSignature(rawBody, signatureHeader)) {
       throw new BadRequestException('Invalid webhook signature');
     }
 
-    const event = JSON.parse(rawBody.toString('utf8')) as PaystackChargeEvent;
+    const event = JSON.parse(
+      rawBody.toString('utf8'),
+    ) as FlutterwaveChargeEvent;
 
-    if (event.event !== 'charge.success' || !event.data?.reference) {
+    if (
+      event.event !== 'charge.completed' ||
+      event.data?.status !== 'successful' ||
+      !event.data?.tx_ref ||
+      event.data?.id === undefined
+    ) {
       return { received: true };
     }
 
-    const reference = event.data.reference;
+    const reference = event.data.tx_ref;
+
+    // The webhook hash only proves the request came from Flutterwave, not
+    // that the transaction really succeeded for the expected amount — so
+    // re-verify server-side before claiming the order (Flutterwave's
+    // recommended integration pattern).
+    const verified = await this.flutterwave.verifyTransaction(
+      String(event.data.id),
+    );
+    if (!verified.successful || verified.reference !== reference) {
+      this.logger.warn(
+        `Flutterwave verify failed or mismatched for reference ${reference}`,
+      );
+      return { received: true };
+    }
 
     // Atomic claim: this UPDATE only affects a row still in `pending`
     // status. A duplicate delivery of the same webhook event — or a
@@ -121,12 +144,9 @@ export class PaymentsService {
       where: { providerReference: reference },
     });
 
-    if (
-      event.data.amount !== undefined &&
-      event.data.amount !== order.amountKobo
-    ) {
+    if (verified.amountMinor !== order.amountMinor) {
       this.logger.warn(
-        `Webhook amount mismatch for order ${order.id}: expected ${order.amountKobo}, got ${event.data.amount}`,
+        `Webhook amount mismatch for order ${order.id}: expected ${order.amountMinor}, got ${verified.amountMinor}`,
       );
     }
 
