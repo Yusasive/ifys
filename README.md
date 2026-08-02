@@ -33,3 +33,8 @@ See "Open items to raise with the user" at the bottom of [`milestone.md`](./mile
 ## Event-day readiness
 
 Before 5 Nov 2026, work through [`EVENT_DAY_READINESS.md`](./EVENT_DAY_READINESS.md) — the M6 go/no-go checklist (rate limits, HTTPS, real door-staff accounts, venue dry run).
+
+
+
+Organizer (full dashboard access): organizer@ifysummit.ng / dev-organizer-pw
+Door staff (check-in only, redirects to /checkin): doorstaff@ifysummit.ng / dev-doorstaff-pw
