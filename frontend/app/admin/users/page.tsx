@@ -10,7 +10,8 @@ import {
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
-import { AdminHeader } from "../admin-header";
+import { useToast } from "@/lib/toast-context";
+import { TableRowsSkeleton } from "../skeleton";
 
 export default function AdminUsersPage() {
   const { session, loading: authLoading } = useRequireAdminAuth();
@@ -19,9 +20,10 @@ export default function AdminUsersPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<AdminRole>("door_staff");
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const toast = useToast();
 
   useEffect(() => {
     if (!session) return;
@@ -30,10 +32,13 @@ export default function AdminUsersPage() {
       if (!session) return;
       try {
         const { users: list } = await listAdminUsers(session.token);
-        if (!cancelled) setUsers(list);
+        if (!cancelled) {
+          setUsers(list);
+          setUsersLoaded(true);
+        }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof ApiError ? err.body.message : "Failed to load users.");
+          toast.error(err instanceof ApiError ? err.body.message : "Failed to load users.");
         }
       }
     }
@@ -41,23 +46,23 @@ export default function AdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [session, message]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, reloadKey]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!session) return;
     setSubmitting(true);
-    setError(null);
-    setMessage(null);
     try {
       await createAdminUser(session.token, { name, email, password, role });
-      setMessage(`Account created for ${email}.`);
+      toast.success(`Account created for ${email}.`);
       setName("");
       setEmail("");
       setPassword("");
       setRole("door_staff");
+      setReloadKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.body.message : "Failed to create account.");
+      toast.error(err instanceof ApiError ? err.body.message : "Failed to create account.");
     } finally {
       setSubmitting(false);
     }
@@ -66,14 +71,15 @@ export default function AdminUsersPage() {
   if (authLoading || !session) return null;
 
   return (
-    <div>
-      <AdminHeader />
-      <main className="max-w-3xl mx-auto px-6 py-8">
-        <Link href="/admin" className="text-sm text-muted underline mb-6 inline-block">
-          ← Back to registrations
-        </Link>
+    <main className="max-w-3xl mx-auto px-6 py-8">
+      <Link
+        href="/admin/registrations"
+        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+      >
+        ← Back to registrations
+      </Link>
 
-        <h1 className="font-display text-2xl mb-6">Admin & door staff accounts</h1>
+      <h1 className="font-display text-2xl mb-6">Admin & door staff accounts</h1>
 
         <form
           onSubmit={(e) => void handleSubmit(e)}
@@ -123,9 +129,6 @@ export default function AdminUsersPage() {
             </label>
           </div>
 
-          {error && <p className="text-sm text-red-700">{error}</p>}
-          {message && <p className="text-sm text-emerald">{message}</p>}
-
           <button
             type="submit"
             disabled={submitting}
@@ -145,6 +148,7 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
+              {!usersLoaded && <TableRowsSkeleton rows={3} cols={3} />}
               {users.map((u) => (
                 <tr key={u.id} className="border-b border-line last:border-0">
                   <td className="px-4 py-2">{u.name}</td>
@@ -155,7 +159,6 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }

@@ -15,10 +15,17 @@ export class EmailService {
 
   constructor(config: ConfigService) {
     this.from = config.getOrThrow<string>('SMTP_FROM');
+    const port = Number(config.getOrThrow<string>('SMTP_PORT'));
+    const user = config.get<string>('SMTP_USER');
+    const password = config.get<string>('SMTP_PASSWORD');
+
     this.transporter = createTransport({
       host: config.getOrThrow<string>('SMTP_HOST'),
-      port: Number(config.getOrThrow<string>('SMTP_PORT')),
-      secure: false,
+      port,
+      // 465 is SMTPS (implicit TLS); everything else (587, Mailpit's 1025)
+      // negotiates TLS via STARTTLS or runs unencrypted for local dev.
+      secure: port === 465,
+      auth: user && password ? { user, pass: password } : undefined,
     });
   }
 

@@ -32,6 +32,7 @@ export default function CheckInPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<CheckInStatus | null>(null);
   const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [conflictCount, setConflictCount] = useState(0);
   const [stationId] = useState(() =>
@@ -175,15 +176,15 @@ export default function CheckInPage() {
 
   return (
     <main className="min-h-screen flex flex-col px-4 py-6">
-      <div className="flex items-center justify-between mb-4 text-sm gap-3">
-        <div className="flex items-center gap-3 font-mono text-neutral-400">
+      <div className="flex items-center justify-between mb-4 text-sm gap-3 border-b border-line pb-4">
+        <div className="flex items-center gap-3 font-mono text-muted">
           <span>{status ? `${status.checkedIn} / ${status.totalTickets} checked in` : "…"}</span>
           <span className={online ? "text-emerald" : "text-gold"}>
             {online ? "online" : "offline"}
           </span>
           {pendingCount > 0 && <span className="text-gold">{pendingCount} queued</span>}
           {conflictCount > 0 && (
-            <span className="text-red-400">{conflictCount} sync conflict{conflictCount > 1 ? "s" : ""}</span>
+            <span className="text-red-600">{conflictCount} sync conflict{conflictCount > 1 ? "s" : ""}</span>
           )}
         </div>
         <button
@@ -191,13 +192,30 @@ export default function CheckInPage() {
             logout();
             router.replace("/admin/login");
           }}
-          className="text-neutral-400 underline shrink-0"
+          className="text-muted underline shrink-0"
         >
           Sign out
         </button>
       </div>
 
-      <ScannerCamera paused={busy} onDetect={(text) => void runScan({ qrToken: text })} />
+      {scanning ? (
+        <div className="max-w-md mx-auto w-full">
+          <ScannerCamera paused={busy} onDetect={(text) => void runScan({ qrToken: text })} />
+          <button
+            onClick={() => setScanning(false)}
+            className="mt-3 w-full text-muted underline text-sm"
+          >
+            Stop camera
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setScanning(true)}
+          className="max-w-md mx-auto w-full aspect-[3/1] bg-white border border-line rounded-sm flex items-center justify-center text-lg font-medium text-emerald hover:bg-paper-2"
+        >
+          Start scanning
+        </button>
+      )}
 
       <form onSubmit={handleManualSubmit} className="mt-6 flex gap-2 max-w-md mx-auto w-full">
         <input
@@ -205,18 +223,18 @@ export default function CheckInPage() {
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="Enter short code"
           autoCapitalize="characters"
-          className="flex-1 bg-neutral-900 border border-neutral-700 rounded-sm px-4 py-3 text-lg font-mono tracking-widest text-center focus:outline-none focus:border-gold-light"
+          className="flex-1 bg-white border border-line rounded-sm px-4 py-3 text-lg font-mono tracking-widest text-center text-ink focus:outline-none focus:border-gold"
         />
         <button
           type="submit"
-          className="bg-gold text-black font-medium px-6 rounded-sm"
+          className="bg-gold text-ink font-medium px-6 rounded-sm"
         >
           Check in
         </button>
       </form>
 
       {error && (
-        <p className="mt-4 text-center text-sm text-red-400 max-w-md mx-auto">{error}</p>
+        <p className="mt-4 text-center text-sm text-red-600 max-w-md mx-auto">{error}</p>
       )}
     </main>
   );

@@ -11,6 +11,8 @@ const STATUSES = [
 ] as const;
 const CATEGORIES = ['student', 'founder', 'professional'] as const;
 const TIERS = ['standard', 'premium'] as const;
+const SORT_FIELDS = ['createdAt', 'fullName', 'status'] as const;
+const SORT_ORDERS = ['asc', 'desc'] as const;
 
 export class ListRegistrationsQueryDto {
   @IsOptional()
@@ -41,4 +43,12 @@ export class ListRegistrationsQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @IsIn(SORT_FIELDS)
+  sortBy?: (typeof SORT_FIELDS)[number];
+
+  @IsOptional()
+  @IsIn(SORT_ORDERS)
+  order?: (typeof SORT_ORDERS)[number];
 }

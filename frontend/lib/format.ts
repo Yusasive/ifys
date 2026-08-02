@@ -1,3 +1,10 @@
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-NG", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export function formatKobo(priceKobo: number, currency: string): string {
   const amount = priceKobo / 100;
   return new Intl.NumberFormat("en-NG", {

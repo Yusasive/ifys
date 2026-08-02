@@ -11,20 +11,20 @@ import {
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
-import { formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
-import { AdminHeader } from "../../admin-header";
+import { formatDateTime, formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
+import { DetailCardSkeleton } from "../../skeleton";
 import { StatusBadge } from "../../status-badge";
+import { useToast } from "@/lib/toast-context";
 
 export default function RegistrationDetailPage() {
   const { session, loading: authLoading } = useRequireAdminAuth();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [registration, setRegistration] = useState<RegistrationDetail | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [voidPassword, setVoidPassword] = useState("");
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
+  const toast = useToast();
 
   async function load() {
     if (!session) return;
@@ -50,34 +50,43 @@ export default function RegistrationDetailPage() {
 
   async function runAction(fn: () => Promise<unknown>, successMessage: string) {
     setBusy(true);
-    setActionError(null);
-    setActionMessage(null);
     try {
       await fn();
-      setActionMessage(successMessage);
+      toast.success(successMessage);
       await load();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.body.message : "Action failed");
+      toast.error(err instanceof ApiError ? err.body.message : "Action failed");
     } finally {
       setBusy(false);
     }
   }
 
-  if (authLoading || !session || !registration) {
+  if (authLoading || !session) {
+    return null;
+  }
+
+  if (!registration) {
     return (
-      <div>
-        <AdminHeader />
-      </div>
+      <main className="max-w-3xl mx-auto px-6 py-8">
+        <button
+          onClick={() => router.push("/admin/registrations")}
+          className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+        >
+          ← Back to registrations
+        </button>
+        <DetailCardSkeleton />
+      </main>
     );
   }
 
   return (
-    <div>
-      <AdminHeader />
-      <main className="max-w-3xl mx-auto px-6 py-8">
-        <button onClick={() => router.push("/admin")} className="text-sm text-muted underline mb-6">
-          ← Back to registrations
-        </button>
+    <main className="max-w-3xl mx-auto px-6 py-8">
+      <button
+        onClick={() => router.push("/admin/registrations")}
+        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+      >
+        ← Back to registrations
+      </button>
 
         <div className="border border-line rounded-sm bg-white p-6 mb-6">
           <div className="flex items-start justify-between mb-4">
@@ -101,12 +110,20 @@ export default function RegistrationDetailPage() {
             <dd className="text-right font-mono">
               {formatKobo(registration.ticketProduct.priceKobo, registration.ticketProduct.currency)}
             </dd>
+            <dt className="text-muted">Registered at</dt>
+            <dd className="text-right">{formatDateTime(registration.createdAt)}</dd>
             {registration.order && (
               <>
                 <dt className="text-muted">Payment status</dt>
                 <dd className="text-right">
                   <StatusBadge status={registration.order.status} />
                 </dd>
+                {registration.order.paidAt && (
+                  <>
+                    <dt className="text-muted">Paid at</dt>
+                    <dd className="text-right">{formatDateTime(registration.order.paidAt)}</dd>
+                  </>
+                )}
               </>
             )}
           </dl>
@@ -145,21 +162,28 @@ export default function RegistrationDetailPage() {
                 <dd className="text-right">
                   <StatusBadge status={registration.ticket.status} />
                 </dd>
+                <dt className="text-muted">Issued at</dt>
+                <dd className="text-right">{formatDateTime(registration.ticket.issuedAt)}</dd>
               </dl>
+
+              {registration.ticket.checkIns.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-xs uppercase tracking-wide text-muted mb-2">
+                    Check-in history
+                  </h3>
+                  <dl className="grid grid-cols-2 gap-y-1 text-sm">
+                    {registration.ticket.checkIns.map((c) => (
+                      <div key={c.id} className="contents">
+                        <dt className="text-muted">{c.stationId}</dt>
+                        <dd className="text-right">{formatDateTime(c.checkedInAt)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
             </div>
           )}
         </div>
-
-        {actionError && (
-          <p className="text-sm text-red-700 border border-red-300 rounded-sm px-3 py-2 mb-4">
-            {actionError}
-          </p>
-        )}
-        {actionMessage && (
-          <p className="text-sm text-emerald border border-emerald/30 rounded-sm px-3 py-2 mb-4">
-            {actionMessage}
-          </p>
-        )}
 
         <div className="flex flex-wrap gap-3">
           {registration.status !== "paid" && (
@@ -239,7 +263,6 @@ export default function RegistrationDetailPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

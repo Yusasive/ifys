@@ -14,9 +14,9 @@ const DEV_ADMIN_USERS = [
 // and exact Premium perks before build sign-off. Values below unblock M1
 // development only; do not treat as real prices.
 const PLACEHOLDER_PRICING_KOBO = {
-  student: { standard: 500000, premium: 800000 }, // NGN 5,000 / 8,000
-  founder: { standard: 1500000, premium: 2500000 }, // NGN 15,000 / 25,000
-  professional: { standard: 2000000, premium: 3500000 }, // NGN 20,000 / 35,000
+  student: { standard: 500000, premium: 500000 }, // NGN 5,000
+  founder: { standard: 1000000, premium: 1000000 }, // NGN 10,000
+  professional: { standard: 5000000, premium: 5000000 }, // NGN 50,000
 } as const;
 
 async function main() {

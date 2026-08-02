@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import * as QRCode from 'qrcode';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -135,11 +136,32 @@ export class RegistrationsService {
   async findById(id: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id },
-      include: { ticketProduct: true, attendee: true },
+      include: { ticketProduct: true, attendee: true, ticket: true },
     });
     if (!registration) {
       throw new NotFoundException('Registration not found');
     }
-    return registration;
+
+    const { ticket, ...rest } = registration;
+    if (!ticket) {
+      return { ...rest, ticket: null };
+    }
+
+    // Encode the same qrSecret payload the emailed ticket and the
+    // check-in scanner already use (see check-ins.service's qrSecret
+    // lookup) — never expose the raw secret itself to the client, only
+    // the rendered image.
+    const qrDataUrl = await QRCode.toDataURL(ticket.qrSecret, {
+      margin: 1,
+      width: 320,
+    });
+    return {
+      ...rest,
+      ticket: {
+        ticketCode: ticket.ticketCode,
+        status: ticket.status,
+        qrDataUrl,
+      },
+    };
   }
 }

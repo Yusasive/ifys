@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/admin-api";
 import { useAdminAuth } from "@/lib/admin-auth-context";
@@ -35,9 +36,17 @@ export default function AdminLoginPage() {
         onSubmit={(e) => void handleSubmit(e)}
         className="w-full max-w-sm border border-line rounded-sm p-8 bg-white"
       >
+        <Image
+          src="/logo1.png"
+          alt="IFY Summit"
+          width={949}
+          height={290}
+          className="h-10 w-auto mb-6"
+          priority
+        />
         <h1 className="font-display text-2xl mb-1">Admin sign in</h1>
         <p className="text-sm text-muted mb-6">
-          Islamic Finance Youth Summit 2026 — operations
+          Islamic Finance Youth Summit 2026 operations
         </p>
 
         <label className="flex flex-col gap-1 mb-4">

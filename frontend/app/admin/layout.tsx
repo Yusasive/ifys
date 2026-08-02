@@ -1,9 +1,15 @@
 import { AdminAuthProvider } from "@/lib/admin-auth-context";
+import { ToastProvider } from "@/lib/toast-context";
+import { AdminShell } from "./admin-shell";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminAuthProvider>
-      <div className="min-h-screen bg-paper text-ink font-sans">{children}</div>
+      <ToastProvider>
+        <div className="min-h-screen bg-paper text-ink font-sans">
+          <AdminShell>{children}</AdminShell>
+        </div>
+      </ToastProvider>
     </AdminAuthProvider>
   );
 }

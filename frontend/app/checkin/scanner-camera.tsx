@@ -41,7 +41,7 @@ export function ScannerCamera({
       } catch {
         if (!cancelled) {
           setCameraError(
-            "Camera unavailable — use the code field below instead.",
+            "Camera unavailable. Use the code field below instead.",
           );
         }
       }
@@ -78,11 +78,11 @@ export function ScannerCamera({
   }, []);
 
   return (
-    <div className="relative w-full aspect-square max-w-md mx-auto bg-neutral-900 rounded-sm overflow-hidden">
+    <div className="relative w-full aspect-square max-w-md mx-auto bg-ink rounded-sm overflow-hidden border border-line">
       <video ref={videoRef} muted playsInline className="w-full h-full object-cover" />
       <canvas ref={canvasRef} className="hidden" />
       {cameraError && (
-        <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-neutral-300 bg-neutral-900">
+        <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-paper bg-ink">
           {cameraError}
         </div>
       )}

@@ -52,12 +52,18 @@ export class AdminService {
       }),
     };
 
+    const order = query.order ?? 'desc';
+    const orderBy =
+      query.sortBy === 'fullName'
+        ? { attendee: { fullName: order } }
+        : { [query.sortBy ?? 'createdAt']: order };
+
     const [total, registrations] = await this.prisma.$transaction([
       this.prisma.registration.count({ where }),
       this.prisma.registration.findMany({
         where,
         include: { attendee: true, ticketProduct: true, ticket: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
       }),

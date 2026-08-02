@@ -3,7 +3,6 @@
 import type { TicketProduct } from "@/lib/api";
 import { useAppSelector } from "@/lib/hooks";
 import { CategoryStep } from "./category-step";
-import { TierStep } from "./tier-step";
 import { DetailsStep } from "./details-step";
 import { ReviewStep } from "./review-step";
 import { StepIndicator } from "./step-indicator";
@@ -20,8 +19,7 @@ export function RegistrationWizard({
   return (
     <div>
       <StepIndicator current={step} />
-      {step === "category" && <CategoryStep />}
-      {step === "tier" && <TierStep ticketProducts={ticketProducts} />}
+      {step === "category" && <CategoryStep ticketProducts={ticketProducts} />}
       {step === "details" && <DetailsStep />}
       {step === "review" && (
         <ReviewStep eventSlug={eventSlug} ticketProducts={ticketProducts} />

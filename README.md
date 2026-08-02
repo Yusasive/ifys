@@ -1,7 +1,5 @@
 # IFY Summit — Registration, Ticketing & Check-In System
 
-Spec lives in [`PRD.md`](./PRD.md), [`TRD.md`](./TRD.md), [`design.md`](./design.md), [`prompt.md`](./prompt.md); build order and checkpoints in [`milestone.md`](./milestone.md).
-
 ## Stack
 
 - `backend/` — NestJS + TypeScript, modules: `auth`, `registrations`, `payments`, `tickets`, `check-ins`. Prisma ORM against PostgreSQL, Redis for cache/queue, S3-compatible object storage for uploads.
@@ -30,9 +28,6 @@ Backend env vars: `backend/.env.example` documents the local docker-compose defa
 
 See "Open items to raise with the user" at the bottom of [`milestone.md`](./milestone.md) — Premium tier perks, refund policy, short-code character set, and data retention period are still unresolved business decisions, not technical ones.
 
-## Event-day readiness
-
-Before 5 Nov 2026, work through [`EVENT_DAY_READINESS.md`](./EVENT_DAY_READINESS.md) — the M6 go/no-go checklist (rate limits, HTTPS, real door-staff accounts, venue dry run).
 
 
 

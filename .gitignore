@@ -1,10 +1,47 @@
+# dependencies
 node_modules/
-dist/
-.next/
+.pnp
+.pnp.*
+
+# env files
 .env
 .env.*
 !.env.example
-*.log
-.DS_Store
+!.env.*.example
+
+# build output
+dist/
+build/
+out/
+.next/
+.vercel/
+backend/src/generated/
+
+# testing / coverage
 coverage/
+.nyc_output/
+
+# turbo / cache
 .turbo/
+*.tsbuildinfo
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# husky (local overrides only, hooks themselves are tracked)
+.husky/_/
+.claude
+

@@ -59,6 +59,8 @@ export interface RegistrationsListParams {
   category?: string;
   tier?: string;
   search?: string;
+  sortBy?: "createdAt" | "fullName" | "status";
+  order?: "asc" | "desc";
 }
 
 export function fetchRegistrations(token: string, params: RegistrationsListParams) {
@@ -74,15 +76,26 @@ export function fetchRegistrations(token: string, params: RegistrationsListParam
   }>(`/admin/registrations?${query.toString()}`, token);
 }
 
+export interface CheckInRecord {
+  id: string;
+  stationId: string;
+  checkedInAt: string;
+  method: string;
+}
+
 export interface RegistrationDetail extends RegistrationListItem {
   formDataJson: Record<string, unknown>;
   studentIdFileUrl: string | null;
   studentIdSignedUrl: string | null;
   order: { status: string; amountKobo: number; paidAt: string | null } | null;
   ticket:
-    | ({ ticketCode: string; status: string; qrSecret: string; issuedAt: string } & {
-        checkIns?: unknown[];
-      })
+    | {
+        ticketCode: string;
+        status: string;
+        qrSecret: string;
+        issuedAt: string;
+        checkIns: CheckInRecord[];
+      }
     | null;
 }
 

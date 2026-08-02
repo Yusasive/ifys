@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { Category, Tier } from "./api";
 
-export type WizardStep = "category" | "tier" | "details" | "review";
+export type WizardStep = "category" | "details" | "review";
 
 interface RegistrationState {
   step: WizardStep;
@@ -36,6 +36,7 @@ const registrationSlice = createSlice({
     },
     setCategory(state, action: PayloadAction<Category>) {
       state.category = action.payload;
+      state.tier = null;
       state.formData = {};
       state.studentIdFileKey = null;
       state.studentIdFileName = null;

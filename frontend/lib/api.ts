@@ -89,6 +89,7 @@ export interface Registration {
   createdAt: string;
   ticketProduct: TicketProduct;
   attendee: { id: string; fullName: string; email: string; phone: string };
+  ticket: { ticketCode: string; status: string; qrDataUrl: string } | null;
 }
 
 export function createRegistration(payload: CreateRegistrationPayload) {
