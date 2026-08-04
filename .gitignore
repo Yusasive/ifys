@@ -45,3 +45,19 @@ Thumbs.db
 .husky/_/
 .claude
 
+# Terraform — provider binaries, local state cache, and saved plans
+# (plans can contain sensitive variable values in their binary form,
+# even when Terraform redacts them from CLI output). .terraform.lock.hcl
+# lives next to these, not inside .terraform/, so it stays tracked.
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+

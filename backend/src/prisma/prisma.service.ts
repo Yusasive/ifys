@@ -8,8 +8,18 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
+    const connectionString = process.env.DATABASE_URL;
+    // RDS's cert chain isn't in Node's default trust store, and passing
+    // sslmode query params alone doesn't reliably disable verification
+    // through this adapter — set it directly instead. Only kicks in when
+    // the URL opts into SSL, so local/Docker Postgres (no sslmode) is
+    // unaffected.
+    const useSsl = connectionString?.includes('sslmode=require') ?? false;
     super({
-      adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+      adapter: new PrismaPg({
+        connectionString,
+        ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+      }),
     });
   }
 

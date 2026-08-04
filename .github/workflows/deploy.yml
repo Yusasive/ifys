@@ -1,0 +1,81 @@
+name: Deploy backend to ECS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch: {}
+
+# Required GitHub Actions secrets — set under repo Settings → Environments →
+# production (see infra/README.md for how to get each value):
+#
+#   AWS_ACCESS_KEY_ID       — terraform output deploy_user_access_key_id
+#   AWS_SECRET_ACCESS_KEY   — terraform output -raw deploy_user_secret_access_key
+#   AWS_REGION              — e.g. us-east-1
+#   ECR_REPOSITORY_URL      — terraform output ecr_repository_url
+#   ECS_CLUSTER             — terraform output ecs_cluster_name
+#   ECS_SERVICE             — terraform output ecs_service_name
+#   ECS_TASK_DEFINITION     — terraform output ecs_task_definition_family
+
+jobs:
+  deploy:
+    name: Build, push, and deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        id: push
+        env:
+          IMAGE_URI: ${{ secrets.ECR_REPOSITORY_URL }}:${{ github.sha }}
+        run: |
+          # Explicit --platform: Fargate needs linux/amd64. GitHub-hosted
+          # runners already build amd64 by default, but this makes it
+          # unambiguous — building from an Apple Silicon Mac without this
+          # flag produces an arm64 image ECS Fargate can't pull.
+          docker build --platform linux/amd64 -f backend/Dockerfile -t "$IMAGE_URI" .
+          docker push "$IMAGE_URI"
+          echo "image=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
+            --query taskDefinition \
+            > task-def.json
+
+      - name: Inject new image into task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def.json
+          # Container name equals the task definition family (both are
+          # "${local.prefix}-api" in infra/terraform/ecs.tf).
+          container-name: ${{ secrets.ECS_TASK_DEFINITION }}
+          image: ${{ steps.push.outputs.image }}
+
+      # Migrations run automatically on container startup (see backend/Dockerfile
+      # CMD: `prisma migrate deploy && node dist/main.js`) — desired_count is 1,
+      # so there's no race between replicas racing to apply the same migration.
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE }}
+          cluster: ${{ secrets.ECS_CLUSTER }}
+          wait-for-service-stability: true
