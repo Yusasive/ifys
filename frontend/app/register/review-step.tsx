@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ApiError, createCheckout, createRegistration, TicketProduct } from "@/lib/api";
+import {
+  ApiError,
+  CouponValidation,
+  createCheckout,
+  createRegistration,
+  TicketProduct,
+  validateCoupon,
+} from "@/lib/api";
 import { formatKobo, CATEGORY_LABELS } from "@/lib/format";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setStep } from "@/lib/registration-slice";
@@ -31,9 +38,40 @@ export function ReviewStep({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [couponInput, setCouponInput] = useState("");
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
+
   const product = ticketProducts.find(
     (p) => p.category === registration.category && p.tier === registration.tier,
   );
+
+  async function handleApplyCoupon() {
+    if (!couponInput.trim() || !registration.category || !registration.tier) return;
+    setCouponChecking(true);
+    setCouponError(null);
+    try {
+      const result = await validateCoupon({
+        eventSlug,
+        code: couponInput.trim(),
+        category: registration.category,
+        tier: registration.tier,
+      });
+      setAppliedCoupon(result);
+    } catch (err) {
+      setAppliedCoupon(null);
+      setCouponError(err instanceof ApiError ? err.body.message : "Couldn't validate that code.");
+    } finally {
+      setCouponChecking(false);
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  }
 
   async function handleSubmit() {
     if (!registration.category || !registration.tier) return;
@@ -52,12 +90,16 @@ export function ReviewStep({
         email: registration.email,
         phone: registration.phone,
         formData,
+        ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
       });
       // Server owns payment initialization end-to-end: it derives the
       // amount from the ticket product and builds the callback URL, so
       // the client only ever redirects — it never assembles anything
       // payment-related itself.
-      const { authorizationUrl } = await createCheckout(created.id);
+      const { authorizationUrl } = await createCheckout(
+        created.id,
+        created.lookupToken,
+      );
       window.location.href = authorizationUrl;
     } catch (err) {
       if (err instanceof ApiError) {
@@ -141,10 +183,50 @@ export function ReviewStep({
           </ul>
         )}
 
-        <div className="border-t border-line pt-3 flex items-baseline justify-between">
+        <div className="border-t border-line pt-3 flex flex-col gap-2">
+          <span className="text-sm font-medium text-emerald/70">Coupon code (optional)</span>
+          {appliedCoupon ? (
+            <div className="flex items-center justify-between bg-gold/10 border border-gold/40 rounded-sm px-3 py-2">
+              <span className="text-sm font-semibold text-gold-deep">
+                {appliedCoupon.code} applied — {formatKobo(appliedCoupon.discountKobo, product?.currency ?? "NGN")} off
+              </span>
+              <button
+                type="button"
+                onClick={handleRemoveCoupon}
+                className="text-sm text-emerald/60 underline shrink-0"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value)}
+                placeholder="Enter code"
+                className="flex-1 border border-line rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-gold"
+              />
+              <button
+                type="button"
+                onClick={() => void handleApplyCoupon()}
+                disabled={couponChecking || !couponInput.trim()}
+                className="border border-line rounded-sm px-4 py-2 text-sm font-semibold text-emerald disabled:opacity-40"
+              >
+                {couponChecking ? "Checking…" : "Apply"}
+              </button>
+            </div>
+          )}
+          {couponError && <p className="text-sm text-red-600">{couponError}</p>}
+        </div>
+
+        <div className="border-t border-line mt-3 pt-3 flex items-baseline justify-between">
           <span className="text-base font-medium text-emerald/70">Total</span>
           <span className="font-mono text-2xl font-semibold text-gold-deep">
-            {product && formatKobo(product.priceKobo, product.currency)}
+            {product &&
+              formatKobo(
+                appliedCoupon ? appliedCoupon.finalPriceKobo : product.priceKobo,
+                product.currency,
+              )}
           </span>
         </div>
       </div>
@@ -156,8 +238,13 @@ export function ReviewStep({
       )}
 
       <p className="text-sm text-muted text-center">
-        You&apos;ll be redirected to Flutterwave to complete a secure payment
-        {product && ` of ${formatKobo(product.priceKobo, product.currency)}`}.
+        You&apos;ll be redirected to Paystack to complete a secure payment
+        {product &&
+          ` of ${formatKobo(
+            appliedCoupon ? appliedCoupon.finalPriceKobo : product.priceKobo,
+            product.currency,
+          )}`}
+        .
       </p>
 
       <div className="flex justify-between items-center">

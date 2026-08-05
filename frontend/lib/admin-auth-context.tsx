@@ -2,12 +2,10 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AdminUser } from "./admin-api";
-
-const STORAGE_KEY = "ify-admin-session";
+import { AdminUser, fetchCurrentUser, logout as logoutRequest } from "./admin-api";
+import { ApiError } from "./api";
 
 interface AdminSession {
-  token: string;
   user: AdminUser;
 }
 
@@ -20,28 +18,26 @@ interface AdminAuthContextValue {
 
 const AdminAuthContext = createContext<AdminAuthContextValue | null>(null);
 
-function readStoredSession(): AdminSession | null {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as AdminSession;
-  } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
-    return null;
-  }
-}
-
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSessionState] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    // The session lives in an httpOnly cookie the frontend can't read
+    // directly — hydrate on load by asking the backend who (if anyone)
+    // the current cookie belongs to.
     async function init() {
-      const stored = readStoredSession();
-      if (!cancelled) {
-        setSessionState(stored);
-        setLoading(false);
+      try {
+        const { user } = await fetchCurrentUser();
+        if (!cancelled) setSessionState({ user });
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 401)) {
+          console.error("Failed to load admin session", err);
+        }
+        if (!cancelled) setSessionState(null);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
     void init();
@@ -51,13 +47,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   function setSession(next: AdminSession) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setSessionState(next);
   }
 
   function logout() {
-    window.localStorage.removeItem(STORAGE_KEY);
     setSessionState(null);
+    void logoutRequest().catch((err) => {
+      console.error("Failed to revoke session on the server", err);
+    });
   }
 
   return (
@@ -74,8 +71,8 @@ export function useAdminAuth() {
 }
 
 // Redirects to /admin/login when there's no session once the initial
-// localStorage read has finished — avoids a flash-redirect before we've
-// even checked whether a session exists.
+// /auth/me check has finished — avoids a flash-redirect before we've even
+// checked whether a session exists.
 export function useRequireAdminAuth() {
   const { session, loading } = useAdminAuth();
   const router = useRouter();

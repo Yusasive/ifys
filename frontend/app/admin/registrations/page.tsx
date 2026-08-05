@@ -77,7 +77,7 @@ export default function AdminRegistrationsPage() {
       if (!session) return;
       setLoading(true);
       try {
-        const listRes = await fetchRegistrations(session.token, {
+        const listRes = await fetchRegistrations({
           page,
           pageSize: PAGE_SIZE,
           status: status || undefined,
@@ -123,9 +123,9 @@ export default function AdminRegistrationsPage() {
     if (!session) return;
     setExportState("queued");
     setExportUrl(null);
-    const { jobId } = await requestExport(session.token);
+    const { jobId } = await requestExport();
     const poll = async () => {
-      const result = await getExportStatus(session.token, jobId);
+      const result = await getExportStatus(jobId);
       if (result.state === "completed" && result.downloadUrl) {
         setExportState("completed");
         setExportUrl(result.downloadUrl);
@@ -155,13 +155,13 @@ export default function AdminRegistrationsPage() {
   }
 
   async function runBulk(
-    fn: (token: string, id: string) => Promise<unknown>,
+    fn: (id: string) => Promise<unknown>,
     verb: string,
   ) {
     if (!session) return;
     setBulkBusy(true);
     const ids = Array.from(selectedIds);
-    const results = await Promise.allSettled(ids.map((id) => fn(session.token, id)));
+    const results = await Promise.allSettled(ids.map((id) => fn(id)));
     const succeeded = results.filter((r) => r.status === "fulfilled").length;
     const failed = results.length - succeeded;
     if (succeeded > 0) toast.success(`${succeeded} ${verb}.`);

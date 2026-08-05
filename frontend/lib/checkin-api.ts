@@ -24,16 +24,14 @@ export interface CheckInStatus {
   totalTickets: number;
 }
 
-async function checkinRequest<T>(
-  path: string,
-  token: string,
-  init?: RequestInit,
-): Promise<T> {
+async function checkinRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    // Sends the httpOnly session cookie — the door-staff device authorizes
+    // the same way an admin browser tab does, no bearer token in JS.
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
       ...init?.headers,
     },
   });
@@ -46,18 +44,19 @@ async function checkinRequest<T>(
   return res.json() as Promise<T>;
 }
 
-export function scan(
-  token: string,
-  params: { qrToken?: string; shortCode?: string; stationId: string },
-) {
-  return checkinRequest<ScanResult>("/checkin/scan", token, {
+export function scan(params: {
+  qrToken?: string;
+  shortCode?: string;
+  stationId: string;
+}) {
+  return checkinRequest<ScanResult>("/checkin/scan", {
     method: "POST",
     body: JSON.stringify(params),
   });
 }
 
-export function fetchCheckInStatus(token: string) {
-  return checkinRequest<CheckInStatus>("/checkin/status", token);
+export function fetchCheckInStatus() {
+  return checkinRequest<CheckInStatus>("/checkin/status");
 }
 
 export interface OfflineIndexEntry {
@@ -67,8 +66,8 @@ export interface OfflineIndexEntry {
   attendee: AttendeeSummary;
 }
 
-export function fetchOfflineIndex(token: string) {
-  return checkinRequest<OfflineIndexEntry[]>("/checkin/offline-index", token);
+export function fetchOfflineIndex() {
+  return checkinRequest<OfflineIndexEntry[]>("/checkin/offline-index");
 }
 
 export interface QueuedScanPayload {
@@ -92,8 +91,8 @@ export type SyncScanResult =
     }
   | { clientScanId: string; result: "valid_first_use"; attendee: AttendeeSummary };
 
-export function syncScans(token: string, scans: QueuedScanPayload[]) {
-  return checkinRequest<SyncScanResult[]>("/checkin/sync", token, {
+export function syncScans(scans: QueuedScanPayload[]) {
+  return checkinRequest<SyncScanResult[]>("/checkin/sync", {
     method: "POST",
     body: JSON.stringify({ scans }),
   });

@@ -6,6 +6,7 @@ import { PrismaClient } from '../src/generated/prisma/client';
 // DEV-ONLY credentials, never for production use — printed to the
 // console below so a fresh `prisma db seed` is self-documenting.
 const DEV_ADMIN_USERS = [
+  { name: 'Dev Super Admin', email: 'superadmin@ifysummit.ng', password: 'dev-superadmin-pw', role: 'super_admin' as const },
   { name: 'Dev Organizer', email: 'organizer@ifysummit.ng', password: 'dev-organizer-pw', role: 'organizer' as const },
   { name: 'Dev Door Staff', email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw', role: 'door_staff' as const },
 ];
@@ -56,6 +57,12 @@ async function main() {
           priceKobo: PLACEHOLDER_PRICING_KOBO[category][tier],
           currency: 'NGN',
           perksJson: tier === 'premium' ? { placeholder: true } : {},
+          ...(tier === 'standard' && category === 'student'
+            ? { cardPriceLabel: '5K', cardNote: '*30% discount for early birds' }
+            : {}),
+          ...(tier === 'standard' && category === 'professional'
+            ? { cardPriceLabel: '10K', cardNote: '*30% discount for early birds' }
+            : {}),
         },
       });
     }

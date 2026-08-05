@@ -40,29 +40,32 @@ export function FaqSection() {
   return (
     <section id="faq" className="bg-islamic-pattern">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-        <p className="font-mono text-sm font-semibold tracking-widest text-coral-deep uppercase mb-3 text-center">
+        <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase mb-4 text-center">
           Frequently Asked Questions
         </p>
-        <h2 className="font-display text-3xl sm:text-4xl text-emerald text-center mb-12">
+        <h2 className="font-bricolage font-medium text-2xl sm:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center mb-12 sm:mb-14">
           Good to Know
         </h2>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {FAQS.map((faq) => (
-            <details key={faq.question} className="group border border-line rounded-md px-5 sm:px-6 py-4 open:bg-cloud">
-              <summary className="flex items-center justify-between gap-4 cursor-pointer list-none font-display text-lg text-emerald">
+            <details
+              key={faq.question}
+              className="group bg-white border border-line/50 rounded-2xl px-5 sm:px-8 py-5 sm:py-6 shadow-[0_1px_2px_rgba(16,32,29,0.06)] open:shadow-md transition-shadow"
+            >
+              <summary className="flex items-center justify-between gap-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-bricolage font-bold text-base sm:text-xl text-forest">
                 {faq.question}
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="w-5 h-5 shrink-0 text-gold-deep transition-transform group-open:rotate-45"
+                  strokeWidth="2"
+                  className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-forest transition-transform duration-200 group-open:rotate-180"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
                 </svg>
               </summary>
-              <p className="text-sm sm:text-base text-emerald/70 leading-relaxed mt-3">{faq.answer}</p>
+              <p className="text-sm sm:text-base text-forest/70 leading-relaxed mt-4">{faq.answer}</p>
             </details>
           ))}
         </div>

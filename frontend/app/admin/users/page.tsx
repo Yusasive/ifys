@@ -3,8 +3,8 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  AdminRole,
   AdminUserListItem,
+  CreatableAdminRole,
   createAdminUser,
   listAdminUsers,
 } from "@/lib/admin-api";
@@ -19,7 +19,7 @@ export default function AdminUsersPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<AdminRole>("door_staff");
+  const [role, setRole] = useState<CreatableAdminRole>("door_staff");
   const [submitting, setSubmitting] = useState(false);
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -31,7 +31,7 @@ export default function AdminUsersPage() {
     async function load() {
       if (!session) return;
       try {
-        const { users: list } = await listAdminUsers(session.token);
+        const { users: list } = await listAdminUsers();
         if (!cancelled) {
           setUsers(list);
           setUsersLoaded(true);
@@ -54,7 +54,7 @@ export default function AdminUsersPage() {
     if (!session) return;
     setSubmitting(true);
     try {
-      await createAdminUser(session.token, { name, email, password, role });
+      await createAdminUser({ name, email, password, role });
       toast.success(`Account created for ${email}.`);
       setName("");
       setEmail("");
@@ -120,7 +120,7 @@ export default function AdminUsersPage() {
               <span className="text-sm text-muted">Role</span>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as AdminRole)}
+                onChange={(e) => setRole(e.target.value as CreatableAdminRole)}
                 className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
               >
                 <option value="door_staff">Door staff (check-in only)</option>

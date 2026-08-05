@@ -19,14 +19,14 @@ export function HeroSection() {
       </div>
 
       <div>
-        <div className="aspect-[1944/1291] w-full relative overflow-hidden">
+        <div className="aspect-[1944/988] w-full relative overflow-hidden">
           <Image
             src="/hero.png"
             alt="Skyscrapers, viewed from below"
             fill
             priority
             sizes="100vw"
-            className="object-cover"
+            className="object-cover opacity-100"
           />
           <div className="absolute inset-0 flex flex-row flex-wrap items-center justify-center gap-2 sm:gap-4 px-3">
             <Link
@@ -35,12 +35,12 @@ export function HeroSection() {
             >
               Buy a Ticket
             </Link>
-            <a
-              href="#sponsors"
+            <Link
+              href="/partner-with-us"
               className="bg-black/20 backdrop-blur-sm border border-white text-white font-semibold text-xs sm:text-base px-3 sm:px-8 py-2 sm:py-3.5 rounded-full whitespace-nowrap hover:bg-white hover:text-emerald transition-colors"
             >
               Become a Sponsor
-            </a>
+            </Link>
           </div>
         </div>
       </div>

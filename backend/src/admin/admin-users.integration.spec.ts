@@ -6,14 +6,16 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
+import { extractSessionToken } from '../testing/fixtures';
 
-// M6: organizers must be able to provision real door-staff accounts
-// without editing the seed script — this is the actual mechanism behind
-// "door staff accounts provisioned" in the event-day readiness checklist.
+// M6 + Phase 4 remediation: only super_admin can provision real accounts
+// without editing the seed script — organizer alone must not be able to
+// mint other organizer (or super_admin) accounts.
 describe('Admin user management (integration)', () => {
   let app: INestApplication;
   let httpServer: App;
   let prisma: PrismaService;
+  let superAdminToken: string;
   let organizerToken: string;
   let doorStaffToken: string;
 
@@ -35,30 +37,34 @@ describe('Admin user management (integration)', () => {
     httpServer = app.getHttpServer() as App;
     prisma = app.get(PrismaService);
 
+    const superAdminLogin = await request(httpServer).post('/auth/login').send({
+      email: 'superadmin@ifysummit.ng',
+      password: 'dev-superadmin-pw',
+    });
+    superAdminToken = extractSessionToken(superAdminLogin);
+
     const organizerLogin = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'organizer@ifysummit.ng', password: 'dev-organizer-pw' });
-    organizerToken = (organizerLogin.body as { accessToken: string })
-      .accessToken;
+    organizerToken = extractSessionToken(organizerLogin);
 
     const doorStaffLogin = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw' });
-    doorStaffToken = (doorStaffLogin.body as { accessToken: string })
-      .accessToken;
+    doorStaffToken = extractSessionToken(doorStaffLogin);
   });
 
   afterAll(async () => {
     await app.close();
   }, 15000);
 
-  it('lets an organizer create a new door-staff account, which can then log in', async () => {
+  it('lets a super_admin create a new door-staff account, which can then log in', async () => {
     const email = `door-${randomUUID()}@example.com`;
     const password = 'a-strong-test-password';
 
     const createRes = await request(httpServer)
       .post('/admin/users')
-      .set('Authorization', `Bearer ${organizerToken}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
       .send({
         name: 'New Door Volunteer',
         email,
@@ -90,7 +96,7 @@ describe('Admin user management (integration)', () => {
   it('rejects a duplicate email with 409', async () => {
     const res = await request(httpServer)
       .post('/admin/users')
-      .set('Authorization', `Bearer ${organizerToken}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
       .send({
         name: 'Duplicate',
         email: 'organizer@ifysummit.ng',
@@ -103,7 +109,7 @@ describe('Admin user management (integration)', () => {
   it('rejects a short password', async () => {
     const res = await request(httpServer)
       .post('/admin/users')
-      .set('Authorization', `Bearer ${organizerToken}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
       .send({
         name: 'Too Short',
         email: `short-${randomUUID()}@example.com`,
@@ -131,10 +137,28 @@ describe('Admin user management (integration)', () => {
     expect(listRes.status).toBe(403);
   });
 
+  it('rejects an organizer from creating admin accounts (super_admin-only) but still allows listing them', async () => {
+    const createRes = await request(httpServer)
+      .post('/admin/users')
+      .set('Authorization', `Bearer ${organizerToken}`)
+      .send({
+        name: 'Should Not Work Either',
+        email: `blocked-${randomUUID()}@example.com`,
+        password: 'whatever-password',
+        role: 'door_staff',
+      });
+    expect(createRes.status).toBe(403);
+
+    const listRes = await request(httpServer)
+      .get('/admin/users')
+      .set('Authorization', `Bearer ${organizerToken}`);
+    expect(listRes.status).toBe(200);
+  });
+
   it('lists admin users without exposing password hashes', async () => {
     const res = await request(httpServer)
       .get('/admin/users')
-      .set('Authorization', `Bearer ${organizerToken}`);
+      .set('Authorization', `Bearer ${superAdminToken}`);
     expect(res.status).toBe(200);
     const { users } = res.body as { users: unknown[] };
     expect(Array.isArray(users)).toBe(true);

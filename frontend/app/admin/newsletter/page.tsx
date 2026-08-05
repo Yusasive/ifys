@@ -1,0 +1,192 @@
+"use client";
+
+import { Fragment, useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  deleteNewsletterSubscriber,
+  getNewsletterExportStatus,
+  listNewsletterSubscribers,
+  NewsletterSubscriber,
+  requestNewsletterExport,
+} from "@/lib/admin-api";
+import { useRequireAdminAuth } from "@/lib/admin-auth-context";
+import { ApiError } from "@/lib/api";
+import { useToast } from "@/lib/toast-context";
+import { TableRowsSkeleton } from "../skeleton";
+
+export default function AdminNewsletterPage() {
+  const { session, loading: authLoading } = useRequireAdminAuth();
+  const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [exportState, setExportState] = useState<string | null>(null);
+  const [exportUrl, setExportUrl] = useState<string | null>(null);
+
+  const toast = useToast();
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    async function load() {
+      if (!session) return;
+      try {
+        const list = await listNewsletterSubscribers();
+        if (!cancelled) {
+          setSubscribers(list);
+          setLoaded(true);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(
+            err instanceof ApiError ? err.body.message : "Failed to load subscribers.",
+          );
+        }
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, reloadKey]);
+
+  async function handleDelete(subscriber: NewsletterSubscriber) {
+    if (!session) return;
+    setDeleting(true);
+    try {
+      await deleteNewsletterSubscriber(subscriber.id);
+      toast.success(`${subscriber.email} removed.`);
+      setDeleteConfirmId(null);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.body.message : "Failed to remove subscriber.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleExport() {
+    if (!session) return;
+    setExportState("queued");
+    setExportUrl(null);
+    const { jobId } = await requestNewsletterExport();
+    const poll = async () => {
+      if (!session) return;
+      const result = await getNewsletterExportStatus(jobId);
+      if (result.state === "completed" && result.downloadUrl) {
+        setExportState("completed");
+        setExportUrl(result.downloadUrl);
+        return;
+      }
+      setExportState(result.state);
+      setTimeout(() => void poll(), 1500);
+    };
+    void poll();
+  }
+
+  if (authLoading || !session) return null;
+
+  return (
+    <main className="max-w-3xl mx-auto px-6 py-8">
+      <Link
+        href="/admin/registrations"
+        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+      >
+        ← Back to registrations
+      </Link>
+
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="font-display text-2xl">Newsletter subscribers</h1>
+        <div className="flex items-center gap-3">
+          {exportState === "completed" && exportUrl ? (
+            <a
+              href={exportUrl}
+              className="border border-ink px-4 py-2 rounded-sm text-sm"
+            >
+              Download CSV
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void handleExport()}
+              disabled={exportState !== null && exportState !== "completed"}
+              className="border border-ink px-4 py-2 rounded-sm text-sm disabled:opacity-50"
+            >
+              {exportState && exportState !== "completed"
+                ? "Preparing export…"
+                : "Export CSV"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="border border-line rounded-sm bg-white overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+              <th className="px-4 py-2">Email</th>
+              <th className="px-4 py-2">Subscribed</th>
+              <th className="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {!loaded && <TableRowsSkeleton rows={5} cols={3} />}
+            {loaded && subscribers.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-4 py-6 text-center text-muted">
+                  No subscribers yet.
+                </td>
+              </tr>
+            )}
+            {subscribers.map((subscriber) => (
+              <Fragment key={subscriber.id}>
+                <tr className="border-b border-line last:border-0">
+                  <td className="px-4 py-2">{subscriber.email}</td>
+                  <td className="px-4 py-2 text-muted">
+                    {new Date(subscriber.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => setDeleteConfirmId(subscriber.id)}
+                      className="text-sm text-red-700 underline"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+                {deleteConfirmId === subscriber.id && (
+                  <tr className="border-b border-line last:border-0">
+                    <td colSpan={3} className="px-4 py-3 bg-red-50">
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm">
+                          Remove {subscriber.email}? This cannot be undone.
+                        </p>
+                        <button
+                          disabled={deleting}
+                          onClick={() => void handleDelete(subscriber)}
+                          className="bg-red-700 text-white px-3 py-1 rounded-sm text-sm disabled:opacity-50"
+                        >
+                          Confirm delete
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="text-sm text-muted"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  );
+}

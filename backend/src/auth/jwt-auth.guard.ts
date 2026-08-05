@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuthService } from './auth.service';
 import { JwtPayload } from './jwt-payload';
+
+export const SESSION_COOKIE = 'admin_session';
 
 export interface AuthenticatedRequest extends Request {
   user: JwtPayload;
@@ -14,24 +18,49 @@ export interface AuthenticatedRequest extends Request {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly auth: AuthService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const token = extractBearerToken(request.headers.authorization);
+    const token = extractToken(request);
     if (!token) {
-      throw new UnauthorizedException('Missing bearer token');
+      throw new UnauthorizedException('Missing session');
     }
+
+    let payload: JwtPayload;
     try {
-      request.user = await this.jwt.verifyAsync<JwtPayload>(token);
+      payload = await this.jwt.verifyAsync<JwtPayload>(token);
     } catch {
-      throw new UnauthorizedException('Invalid or expired token');
+      throw new UnauthorizedException('Invalid or expired session');
     }
+
+    if (await this.auth.isDenylisted(payload.jti)) {
+      throw new UnauthorizedException('Session has been revoked');
+    }
+
+    const user = await this.prisma.adminUser.findUnique({
+      where: { id: payload.sub },
+      select: { tokenVersion: true },
+    });
+    if (!user || user.tokenVersion !== payload.tv) {
+      throw new UnauthorizedException('Session has been revoked');
+    }
+
+    request.user = payload;
     return true;
   }
 }
 
-function extractBearerToken(header: string | undefined): string | null {
-  if (!header?.startsWith('Bearer ')) return null;
-  return header.slice('Bearer '.length);
+function extractToken(request: Request): string | null {
+  const cookieToken = (request.cookies as Record<string, string> | undefined)?.[
+    SESSION_COOKIE
+  ];
+  if (cookieToken) return cookieToken;
+  const header = request.headers.authorization;
+  if (header?.startsWith('Bearer ')) return header.slice('Bearer '.length);
+  return null;
 }

@@ -1,8 +1,8 @@
 import { fetchOfflineIndex, syncScans } from "./checkin-api";
 import { getQueue, refreshLocalIndex, removeFromQueue } from "./offline-store";
 
-export async function refreshIndex(token: string): Promise<void> {
-  const entries = await fetchOfflineIndex(token);
+export async function refreshIndex(): Promise<void> {
+  const entries = await fetchOfflineIndex();
   await refreshLocalIndex(entries);
 }
 
@@ -15,14 +15,13 @@ export interface FlushSummary {
 // the local queue once the server has a final answer for it — a
 // `sync_conflict` is still a resolved outcome (TRD §8: flagged for
 // review, not re-queued for another attempt).
-export async function flushQueue(token: string): Promise<FlushSummary> {
+export async function flushQueue(): Promise<FlushSummary> {
   const queue = await getQueue();
   if (queue.length === 0) {
     return { synced: 0, conflicts: 0 };
   }
 
   const results = await syncScans(
-    token,
     queue.map((item) => ({
       clientScanId: item.clientScanId,
       qrToken: item.qrToken,

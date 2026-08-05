@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -14,9 +15,14 @@ async function bootstrap() {
   // per-client rate limiting) to reflect the real client, not the proxy.
   app.use(helmet());
   app.set('trust proxy', 1);
+  app.use(cookieParser());
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3001',
+    // Required for the browser to send/receive the httpOnly session and
+    // CSRF cookies cross-origin (frontend and backend run on different
+    // ports/hosts).
+    credentials: true,
   });
   app.useGlobalPipes(
     new ValidationPipe({

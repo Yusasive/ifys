@@ -55,8 +55,7 @@ resource "aws_ecs_task_definition" "api" {
       { name = "REDIS_URL", valueFrom = "${aws_secretsmanager_secret.infra.arn}:REDIS_URL::" },
       # Application (user-managed — fill via AWS Console or CLI after first apply)
       { name = "JWT_SECRET", valueFrom = "${aws_secretsmanager_secret.app.arn}:JWT_SECRET::" },
-      { name = "FLUTTERWAVE_SECRET_KEY", valueFrom = "${aws_secretsmanager_secret.app.arn}:FLUTTERWAVE_SECRET_KEY::" },
-      { name = "FLUTTERWAVE_WEBHOOK_HASH", valueFrom = "${aws_secretsmanager_secret.app.arn}:FLUTTERWAVE_WEBHOOK_HASH::" },
+      { name = "PAYSTACK_SECRET_KEY", valueFrom = "${aws_secretsmanager_secret.app.arn}:PAYSTACK_SECRET_KEY::" },
       { name = "SMTP_USER", valueFrom = "${aws_secretsmanager_secret.app.arn}:SMTP_USER::" },
       { name = "SMTP_PASSWORD", valueFrom = "${aws_secretsmanager_secret.app.arn}:SMTP_PASSWORD::" },
     ]

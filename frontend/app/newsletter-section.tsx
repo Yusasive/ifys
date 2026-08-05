@@ -1,0 +1,94 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { ApiError, subscribeToNewsletter } from "@/lib/api";
+
+function EnvelopeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 6.75h16.5v10.5a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V6.75Z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m3.75 6.75 8.25 6.75 8.25-6.75" />
+    </svg>
+  );
+}
+
+function PaperPlaneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 shrink-0">
+      <path d="M21.44 2.56a.75.75 0 0 0-.8-.17L2.9 9.24a.75.75 0 0 0 .04 1.4l7.06 2.53 2.53 7.06a.75.75 0 0 0 1.4.04l6.85-17.74a.75.75 0 0 0-.34-.97ZM11.2 12.7 4.86 10.4l13.4-5.17-7.06 7.47Zm2.09 6.94-2.3-6.34 7.47-7.06-5.17 13.4Z" />
+    </svg>
+  );
+}
+
+export function NewsletterSection() {
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      await subscribeToNewsletter(email);
+      setSubmitted(true);
+      setEmail("");
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.body.message : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <section className="bg-white">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
+        <h2 className="font-plex font-semibold text-2xl sm:text-3xl text-rust mb-4">
+          Sign up for more Updates
+        </h2>
+        <p className="text-base text-black/80 mb-10">
+          No spam, just good vibes! We promise not to flood your inbox with unwanted messages and
+          we shall keep your data safe
+        </p>
+
+        {submitted ? (
+          <p className="text-base text-emerald font-medium">
+            You&apos;re subscribed — check your inbox for a confirmation email.
+          </p>
+        ) : (
+          <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 rounded-full border border-coral bg-white px-5 py-4">
+              <EnvelopeIcon />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="flex-1 bg-transparent text-base text-ink placeholder:text-muted focus:outline-none"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center justify-center gap-2 rounded-full bg-coral text-white font-semibold text-base py-4 hover:bg-coral-deep transition-colors disabled:opacity-50"
+            >
+              <PaperPlaneIcon />
+              {submitting ? "Subscribing…" : "Subscribe"}
+            </button>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+}

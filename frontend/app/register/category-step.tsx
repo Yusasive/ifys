@@ -19,17 +19,6 @@ const CATEGORIES: { value: Category; description: string; icon: ReactElement }[]
     ),
   },
   {
-    value: "founder",
-    description: "Building or leading an early-stage venture.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 3c2 2 3 5 3 8 0 2-.5 3.5-1 4.5l-2 3-2-3c-.5-1-1-2.5-1-4.5 0-3 1-6 3-8Zm0 6.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM8 17l-2 3M16 17l2 3"
-      />
-    ),
-  },
-  {
     value: "professional",
     description: "Working in finance, tech, or an adjacent field.",
     icon: (

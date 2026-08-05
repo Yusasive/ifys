@@ -5,7 +5,10 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
-import { createPaidCheckoutFixture } from '../testing/fixtures';
+import {
+  createPaidCheckoutFixture,
+  extractSessionToken,
+} from '../testing/fixtures';
 import { TicketsService } from '../tickets/tickets.service';
 
 // TRD §4/§11: check-in is reachable by door_staff or organizer, and the
@@ -40,14 +43,12 @@ describe('Check-in role scoping and rate limiting (integration)', () => {
     const organizerLogin = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'organizer@ifysummit.ng', password: 'dev-organizer-pw' });
-    organizerToken = (organizerLogin.body as { accessToken: string })
-      .accessToken;
+    organizerToken = extractSessionToken(organizerLogin);
 
     const doorStaffLogin = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw' });
-    doorStaffToken = (doorStaffLogin.body as { accessToken: string })
-      .accessToken;
+    doorStaffToken = extractSessionToken(doorStaffLogin);
   });
 
   afterAll(async () => {

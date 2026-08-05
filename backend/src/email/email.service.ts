@@ -3,9 +3,25 @@ import { ConfigService } from '@nestjs/config';
 import { createTransport, Transporter } from 'nodemailer';
 import * as QRCode from 'qrcode';
 import {
+  NewsletterEmailData,
+  renderNewsletterConfirmationHtml,
+} from './newsletter-email-template';
+import {
+  renderSponsorApplicationApprovedHtml,
+  renderSponsorApplicationReceivedHtml,
+  renderSponsorApplicationRejectedHtml,
+  SponsorApplicationEmailData,
+} from './sponsor-application-email-template';
+import {
   renderTicketEmailHtml,
   TicketEmailData,
 } from './ticket-email-template';
+import {
+  renderVolunteerApplicationApprovedHtml,
+  renderVolunteerApplicationReceivedHtml,
+  renderVolunteerApplicationRejectedHtml,
+  VolunteerApplicationEmailData,
+} from './volunteer-application-email-template';
 
 @Injectable()
 export class EmailService {
@@ -50,5 +66,93 @@ export class EmailService {
     });
 
     this.logger.log(`Ticket email sent to ${to} (ticket ${data.ticketId})`);
+  }
+
+  async sendSponsorApplicationReceivedEmail(
+    to: string,
+    data: SponsorApplicationEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `Application received — ${data.eventName}`,
+      html: renderSponsorApplicationReceivedHtml(data),
+    });
+    this.logger.log(`Sponsor application received email sent to ${to}`);
+  }
+
+  async sendSponsorApplicationApprovedEmail(
+    to: string,
+    data: SponsorApplicationEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `You're approved as a ${data.typeLabel} — ${data.eventName}`,
+      html: renderSponsorApplicationApprovedHtml(data),
+    });
+    this.logger.log(`Sponsor application approved email sent to ${to}`);
+  }
+
+  async sendSponsorApplicationRejectedEmail(
+    to: string,
+    data: SponsorApplicationEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `Application update — ${data.eventName}`,
+      html: renderSponsorApplicationRejectedHtml(data),
+    });
+    this.logger.log(`Sponsor application rejected email sent to ${to}`);
+  }
+
+  async sendNewsletterConfirmationEmail(to: string, data: NewsletterEmailData) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `You're subscribed for updates`,
+      html: renderNewsletterConfirmationHtml(data),
+    });
+    this.logger.log(`Newsletter confirmation email sent to ${to}`);
+  }
+
+  async sendVolunteerApplicationReceivedEmail(
+    to: string,
+    data: VolunteerApplicationEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `Application received — ${data.eventName}`,
+      html: renderVolunteerApplicationReceivedHtml(data),
+    });
+    this.logger.log(`Volunteer application received email sent to ${to}`);
+  }
+
+  async sendVolunteerApplicationApprovedEmail(
+    to: string,
+    data: VolunteerApplicationEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `You're in! — ${data.eventName}`,
+      html: renderVolunteerApplicationApprovedHtml(data),
+    });
+    this.logger.log(`Volunteer application approved email sent to ${to}`);
+  }
+
+  async sendVolunteerApplicationRejectedEmail(
+    to: string,
+    data: VolunteerApplicationEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `Application update — ${data.eventName}`,
+      html: renderVolunteerApplicationRejectedHtml(data),
+    });
+    this.logger.log(`Volunteer application rejected email sent to ${to}`);
   }
 }

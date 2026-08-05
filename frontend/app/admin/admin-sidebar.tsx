@@ -34,9 +34,10 @@ export function AdminSidebarNav({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const items = ADMIN_NAV_ITEMS.filter((item) => !item.organizerOnly || role === "organizer");
+  const canSeeOrganizerOnly = role === "organizer" || role === "super_admin";
+  const items = ADMIN_NAV_ITEMS.filter((item) => !item.organizerOnly || canSeeOrganizerOnly);
   const footerItems = ADMIN_NAV_FOOTER_ITEMS.filter(
-    (item) => !item.organizerOnly || role === "organizer",
+    (item) => !item.organizerOnly || canSeeOrganizerOnly,
   );
 
   return (

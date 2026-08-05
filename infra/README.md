@@ -52,8 +52,7 @@ ready to point a real domain at it.
      --secret-id ify-summit/production/app \
      --secret-string '{
        "JWT_SECRET": "'"$(openssl rand -hex 32)"'",
-       "FLUTTERWAVE_SECRET_KEY": "FLWSECK-...",
-       "FLUTTERWAVE_WEBHOOK_HASH": "...",
+       "PAYSTACK_SECRET_KEY": "sk_live_...",
        "SMTP_USER": "contact@ifysummit.com",
        "SMTP_PASSWORD": "your_zoho_app_password"
      }'

@@ -1,45 +1,80 @@
 import Link from "next/link";
+import type { TicketProduct } from "@/lib/api";
+import { formatKobo } from "@/lib/format";
 
-const TICKETS = [
-  { label: "Students", price: "₦5,000" },
-  { label: "Professionals", price: "₦10,000" },
-];
+const LABELS: Record<string, string> = { student: "Students", professional: "Professionals" };
+const TONES: Record<string, "forest" | "rust"> = { student: "forest", professional: "rust" };
+const ORDER: Record<string, number> = { student: 0, professional: 1 };
 
-export function TicketsSection() {
+const TONE_STYLES = {
+  forest: { header: "bg-forest", border: "border-forest", text: "text-forest" },
+  rust: { header: "bg-rust", border: "border-rust", text: "text-rust" },
+};
+
+function isEarlyBirdActive(product: TicketProduct): boolean {
+  return (
+    !!product.discountPercent &&
+    !!product.discountExpiresAt &&
+    new Date(product.discountExpiresAt).getTime() > Date.now()
+  );
+}
+
+function cardNote(product: TicketProduct): string | null {
+  if (product.cardNote) return product.cardNote;
+  if (isEarlyBirdActive(product)) {
+    return `*${product.discountPercent}% discount for early birds`;
+  }
+  return null;
+}
+
+export function TicketsSection({ ticketProducts }: { ticketProducts: TicketProduct[] }) {
+  const tickets = ticketProducts
+    .filter((p) => (p.category === "student" || p.category === "professional") && p.tier === "standard" && p.isActive)
+    .sort((a, b) => ORDER[a.category] - ORDER[b.category]);
+
+  if (tickets.length === 0) return null;
+
   return (
     <section id="tickets" className="bg-islamic-pattern">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-        <p className="font-mono text-sm font-semibold tracking-widest text-coral-deep uppercase mb-3 text-center">
+        <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase mb-4 text-center">
           Tickets
         </p>
-        <h2 className="font-display text-3xl sm:text-4xl text-emerald text-center mb-12">
+        <h2 className="font-bricolage font-medium text-2xl sm:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center mb-10 sm:mb-12">
           Register for the Islamic Finance Youth Summit
         </h2>
 
-        <div className="grid sm:grid-cols-2 gap-6 mb-8">
-          {TICKETS.map((ticket) => (
-            <div
-              key={ticket.label}
-              className="border border-line rounded-md p-8 text-center hover:border-coral transition-colors"
-            >
-              <p className="font-mono text-xs font-semibold uppercase tracking-widest text-emerald/60 mb-3">
-                {ticket.label}
-              </p>
-              <p className="font-display text-4xl text-coral-deep mb-3">{ticket.price}</p>
-              <p className="text-xs text-emerald/50">*30% discount for early birds</p>
-            </div>
-          ))}
+        <div className="grid sm:grid-cols-2 gap-6 mb-10">
+          {tickets.map((product) => {
+            const tone = TONE_STYLES[TONES[product.category]];
+            const note = cardNote(product);
+            return (
+              <div key={product.id} className={`rounded-2xl border ${tone.border} bg-white overflow-hidden`}>
+                <div className={`${tone.header} py-4 text-center`}>
+                  <p className="font-bricolage font-bold text-lg sm:text-xl uppercase tracking-wide text-white">
+                    {LABELS[product.category]}
+                  </p>
+                </div>
+                <div className="px-8 py-8 sm:py-10 text-center">
+                  <p className={`font-bricolage font-bold text-4xl sm:text-5xl ${tone.text} mb-6`}>
+                    {product.cardPriceLabel ?? formatKobo(product.priceKobo, product.currency)}
+                  </p>
+                  {note && <p className={`text-sm ${tone.text} opacity-80`}>{note}</p>}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <p className="text-sm text-emerald/60 text-center max-w-xl mx-auto mb-8">
-          10% of all ticket proceeds will be channeled towards supporting charity projects in
+        <p className="font-bricolage font-medium text-base sm:text-lg text-forest text-center max-w-xl mx-auto mb-10">
+          10% of all ticket proceeds will be channelled towards supporting charity projects in
           Nigeria and humanitarian relief efforts in Palestine.
         </p>
 
         <div className="text-center">
           <Link
             href="/register"
-            className="inline-block bg-coral text-white font-semibold text-base px-10 py-3.5 rounded-sm hover:bg-coral-deep transition-colors"
+            className="inline-block bg-coral text-white font-semibold text-base px-10 py-3.5 rounded-full hover:bg-coral-deep transition-colors"
           >
             Get Tickets
           </Link>

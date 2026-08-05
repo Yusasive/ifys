@@ -28,17 +28,16 @@ export default function RegistrationDetailPage() {
 
   async function load() {
     if (!session) return;
-    const detail = await fetchRegistrationDetail(session.token, params.id);
+    const detail = await fetchRegistrationDetail(params.id);
     setRegistration(detail);
   }
 
   useEffect(() => {
     if (!session) return;
-    const token = session.token;
     let cancelled = false;
 
     async function init() {
-      const detail = await fetchRegistrationDetail(token, params.id);
+      const detail = await fetchRegistrationDetail(params.id);
       if (!cancelled) setRegistration(detail);
     }
 
@@ -191,7 +190,7 @@ export default function RegistrationDetailPage() {
               disabled={busy}
               onClick={() =>
                 void runAction(
-                  () => markPaid(session.token, registration.id),
+                  () => markPaid(registration.id),
                   "Marked as paid and ticket issued.",
                 )
               }
@@ -205,7 +204,7 @@ export default function RegistrationDetailPage() {
               disabled={busy}
               onClick={() =>
                 void runAction(
-                  () => resendTicket(session.token, registration.id),
+                  () => resendTicket(registration.id),
                   "Ticket email resent.",
                 )
               }
@@ -242,7 +241,7 @@ export default function RegistrationDetailPage() {
                 disabled={busy || !voidPassword}
                 onClick={() =>
                   void runAction(async () => {
-                    await voidTicket(session.token, registration.id, voidPassword);
+                    await voidTicket(registration.id, voidPassword);
                     setShowVoidConfirm(false);
                     setVoidPassword("");
                   }, "Ticket voided.")

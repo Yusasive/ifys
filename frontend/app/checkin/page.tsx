@@ -46,7 +46,7 @@ export default function CheckInPage() {
     async function poll() {
       if (!session) return;
       try {
-        const s = await fetchCheckInStatus(session.token);
+        const s = await fetchCheckInStatus();
         if (!cancelled) setStatus(s);
       } catch {
         // best-effort; scanning still works without it
@@ -70,7 +70,7 @@ export default function CheckInPage() {
     async function syncUp() {
       if (!session) return;
       try {
-        const summary = await flushQueue(session.token);
+        const summary = await flushQueue();
         if (cancelled) return;
         if (summary.conflicts > 0) {
           setConflictCount((c) => c + summary.conflicts);
@@ -84,7 +84,7 @@ export default function CheckInPage() {
     async function refresh() {
       if (!session) return;
       try {
-        await refreshIndex(session.token);
+        await refreshIndex();
       } catch {
         // keep using whatever snapshot we already have
       }
@@ -121,7 +121,7 @@ export default function CheckInPage() {
 
     if (online) {
       try {
-        const res = await scan(session.token, { ...params, stationId });
+        const res = await scan({ ...params, stationId });
         finish(res);
         return;
       } catch (err) {

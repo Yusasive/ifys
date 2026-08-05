@@ -39,21 +39,22 @@ function buildCalendarUrl(ticketCode: string): string {
 export function ConfirmationClient() {
   const searchParams = useSearchParams();
   const registrationId = searchParams.get("registration");
+  const lookupToken = searchParams.get("token");
   const [state, setState] = useState<PollState>("polling");
   const [registration, setRegistration] = useState<Registration | null>(null);
   const attemptsRef = useRef(0);
 
   useEffect(() => {
-    if (!registrationId) {
+    if (!registrationId || !lookupToken) {
       return;
     }
 
     let cancelled = false;
 
     async function poll() {
-      if (!registrationId) return;
+      if (!registrationId || !lookupToken) return;
       try {
-        const reg = await fetchRegistration(registrationId);
+        const reg = await fetchRegistration(registrationId, lookupToken);
         if (cancelled) return;
 
         if (reg.status === "paid") {
@@ -80,9 +81,9 @@ export function ConfirmationClient() {
     // Poll survives a page refresh because it's driven entirely by reads
     // (GET /registrations/:id) — nothing here mutates state or reissues
     // a ticket, so refreshing this page can never duplicate anything.
-  }, [registrationId]);
+  }, [registrationId, lookupToken]);
 
-  if (state === "error" || !registrationId) {
+  if (state === "error" || !registrationId || !lookupToken) {
     return (
       <StatusCard
         heading="We couldn't find that registration."

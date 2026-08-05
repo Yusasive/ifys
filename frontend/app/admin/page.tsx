@@ -34,8 +34,8 @@ export default function AdminOverviewPage() {
       if (!session) return;
       try {
         const [statsRes, recentRes] = await Promise.all([
-          fetchStats(session.token),
-          fetchRegistrations(session.token, { page: 1, pageSize: RECENT_PAGE_SIZE }),
+          fetchStats(),
+          fetchRegistrations({ page: 1, pageSize: RECENT_PAGE_SIZE }),
         ]);
         if (cancelled) return;
         setStats(statsRes);

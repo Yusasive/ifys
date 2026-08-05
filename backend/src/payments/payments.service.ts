@@ -7,17 +7,36 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
+import { CouponsService } from '../coupons/coupons.service';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
+import { matchesLookupToken } from '../registrations/registrations.service';
 import { TicketsService } from '../tickets/tickets.service';
-import { FlutterwaveProvider } from './flutterwave.provider';
+import { PaystackProvider } from './paystack.provider';
 
-interface FlutterwaveChargeEvent {
+// Early-bird discount is admin-managed on the ticket product itself
+// (discountPercent + discountExpiresAt) and, unlike a coupon, applies
+// automatically — no code needed — as long as it hasn't expired yet.
+function earlyBirdDiscountKobo(
+  ticketProduct: {
+    discountPercent: number | null;
+    discountExpiresAt: Date | null;
+  },
+  priceKobo: number,
+): number {
+  if (!ticketProduct.discountPercent || !ticketProduct.discountExpiresAt) {
+    return 0;
+  }
+  if (ticketProduct.discountExpiresAt.getTime() < Date.now()) {
+    return 0;
+  }
+  return Math.round((priceKobo * ticketProduct.discountPercent) / 100);
+}
+
+interface PaystackChargeEvent {
   event: string;
   data?: {
-    id?: number | string;
-    tx_ref?: string;
-    status?: string;
+    reference?: string;
     amount?: number;
   };
 }
@@ -29,17 +48,18 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    private readonly flutterwave: FlutterwaveProvider,
+    private readonly paystack: PaystackProvider,
     private readonly tickets: TicketsService,
     private readonly emailQueue: TicketEmailQueue,
+    private readonly coupons: CouponsService,
   ) {}
 
-  async createCheckout(registrationId: string) {
+  async createCheckout(registrationId: string, token?: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id: registrationId },
-      include: { attendee: true, ticketProduct: true },
+      include: { attendee: true, ticketProduct: true, coupon: true },
     });
-    if (!registration) {
+    if (!registration || !matchesLookupToken(registration.lookupToken, token)) {
       throw new NotFoundException('Registration not found');
     }
     if (registration.status === 'paid') {
@@ -50,15 +70,49 @@ export class PaymentsService {
 
     // Never trust a client-supplied amount (TRD §6) — always derive it
     // server-side from the ticket product the registration was created
-    // against.
-    const reference = `ify-${registration.id.slice(0, 8)}-${randomUUID().slice(0, 8)}`;
-    const callbackUrl = `${this.config.getOrThrow<string>('FRONTEND_ORIGIN')}/register/confirmation?registration=${registration.id}`;
+    // against, plus whatever discounts still validly apply at this
+    // moment (early-bird may have expired, or a coupon may have been
+    // deactivated, since the registration was created).
+    const basePrice = registration.ticketProduct.priceKobo;
+    const earlyBirdOff = earlyBirdDiscountKobo(
+      registration.ticketProduct,
+      basePrice,
+    );
+    const priceAfterEarlyBird = basePrice - earlyBirdOff;
 
-    const { authorizationUrl } = await this.flutterwave.initializeTransaction({
+    let couponOff = 0;
+    if (registration.couponId) {
+      // Re-validate rather than trusting the snapshot from registration
+      // time — the coupon could have expired, been deactivated, or hit
+      // its redemption cap in the meantime. If so, it silently just
+      // doesn't apply rather than blocking checkout.
+      const coupon = await this.coupons
+        .findRedeemableCoupon(registration.eventId, registration.coupon!.code)
+        .catch(() => null);
+      if (coupon) {
+        couponOff = this.coupons.computeDiscountKobo(
+          coupon,
+          priceAfterEarlyBird,
+        );
+      }
+    }
+
+    const finalAmount = Math.max(0, priceAfterEarlyBird - couponOff);
+    const totalDiscount = basePrice - finalAmount;
+
+    const reference = `ify-${registration.id.slice(0, 8)}-${randomUUID().slice(0, 8)}`;
+    const callbackUrl = `${this.config.getOrThrow<string>('FRONTEND_ORIGIN')}/register/confirmation?registration=${registration.id}&token=${registration.lookupToken}`;
+
+    const { authorizationUrl } = await this.paystack.initializeTransaction({
       email: registration.attendee.email,
-      amountMinor: registration.ticketProduct.priceKobo,
+      amountMinor: finalAmount,
       reference,
       callbackUrl,
+    });
+
+    await this.prisma.registration.update({
+      where: { id: registration.id },
+      data: { discountAppliedKobo: totalDiscount },
     });
 
     // Order.registrationId is unique — at most one order per registration
@@ -69,14 +123,14 @@ export class PaymentsService {
       update: {
         providerReference: reference,
         status: 'pending',
-        amountMinor: registration.ticketProduct.priceKobo,
+        amountMinor: finalAmount,
         currency: registration.ticketProduct.currency,
       },
       create: {
         registrationId: registration.id,
-        amountMinor: registration.ticketProduct.priceKobo,
+        amountMinor: finalAmount,
         currency: registration.ticketProduct.currency,
-        provider: 'flutterwave',
+        provider: 'paystack',
         providerReference: reference,
         status: 'pending',
       },
@@ -85,39 +139,53 @@ export class PaymentsService {
     return { authorizationUrl, reference };
   }
 
-  async handleFlutterwaveWebhook(
+  async handlePaystackWebhook(
     rawBody: Buffer,
     signatureHeader: string | undefined,
   ) {
-    if (!this.flutterwave.verifyWebhookSignature(rawBody, signatureHeader)) {
+    if (!this.paystack.verifyWebhookSignature(rawBody, signatureHeader)) {
       throw new BadRequestException('Invalid webhook signature');
     }
 
-    const event = JSON.parse(
-      rawBody.toString('utf8'),
-    ) as FlutterwaveChargeEvent;
+    const event = JSON.parse(rawBody.toString('utf8')) as PaystackChargeEvent;
 
-    if (
-      event.event !== 'charge.completed' ||
-      event.data?.status !== 'successful' ||
-      !event.data?.tx_ref ||
-      event.data?.id === undefined
-    ) {
+    if (event.event !== 'charge.success' || !event.data?.reference) {
       return { received: true };
     }
 
-    const reference = event.data.tx_ref;
+    const reference = event.data.reference;
 
-    // The webhook hash only proves the request came from Flutterwave, not
-    // that the transaction really succeeded for the expected amount — so
-    // re-verify server-side before claiming the order (Flutterwave's
+    // The webhook signature only proves the request came from Paystack,
+    // not that the transaction really succeeded for the expected amount —
+    // so re-verify server-side before claiming the order (Paystack's
     // recommended integration pattern).
-    const verified = await this.flutterwave.verifyTransaction(
-      String(event.data.id),
-    );
+    const verified = await this.paystack.verifyTransaction(reference);
     if (!verified.successful || verified.reference !== reference) {
       this.logger.warn(
-        `Flutterwave verify failed or mismatched for reference ${reference}`,
+        `Paystack verify failed or mismatched for reference ${reference}`,
+      );
+      return { received: true };
+    }
+
+    const order = await this.prisma.order.findUnique({
+      where: { providerReference: reference },
+    });
+    if (!order) {
+      this.logger.warn(`Webhook for unknown reference ${reference} — no-op`);
+      return { received: true };
+    }
+
+    // Checked before the order is claimed as paid — a mismatched amount
+    // must never reach the ticket-issuing code path below, no matter how
+    // it happened (a discount-calc bug, a downgraded/tampered Paystack
+    // transaction, a stale reference reused for a cheaper item).
+    if (verified.amountMinor !== order.amountMinor) {
+      await this.prisma.order.updateMany({
+        where: { providerReference: reference, status: 'pending' },
+        data: { status: 'amount_mismatch' },
+      });
+      this.logger.error(
+        `Webhook amount mismatch for order ${order.id}: expected ${order.amountMinor}, got ${verified.amountMinor} — held for review, no ticket issued`,
       );
       return { received: true };
     }
@@ -140,14 +208,13 @@ export class PaymentsService {
       return { received: true };
     }
 
-    const order = await this.prisma.order.findUniqueOrThrow({
-      where: { providerReference: reference },
+    const registration = await this.prisma.registration.findUniqueOrThrow({
+      where: { id: order.registrationId },
     });
-
-    if (verified.amountMinor !== order.amountMinor) {
-      this.logger.warn(
-        `Webhook amount mismatch for order ${order.id}: expected ${order.amountMinor}, got ${verified.amountMinor}`,
-      );
+    if (registration.couponId) {
+      // Only now — payment confirmed — does the coupon actually get
+      // spent. An abandoned checkout never reaches this point.
+      await this.coupons.redeem(registration.couponId);
     }
 
     const ticket = await this.tickets.issueTicketForRegistration(

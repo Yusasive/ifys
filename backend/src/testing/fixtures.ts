@@ -1,6 +1,22 @@
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
+// Login now sets the JWT as an httpOnly cookie rather than returning it in
+// the response body — tests that need a raw token (to send as a Bearer
+// header, bypassing the browser-cookie/CSRF path entirely) pull it back
+// out of Set-Cookie here.
+export function extractSessionToken(res: {
+  headers: Record<string, string | string[] | undefined>;
+}): string {
+  const raw = res.headers['set-cookie'];
+  const cookies = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  for (const cookie of cookies) {
+    const match = /(?:^|;\s*)admin_session=([^;]+)/.exec(cookie);
+    if (match) return decodeURIComponent(match[1]);
+  }
+  throw new Error('No admin_session cookie found in login response');
+}
+
 // Creates a fully independent org/event/ticket-product/attendee/
 // registration/order chain per call (random slug/email) so concurrent
 // test runs never collide, and returns an ids bag plus a teardown
@@ -53,7 +69,7 @@ export async function createPaidCheckoutFixture(
       registrationId: registration.id,
       amountMinor: ticketProduct.priceKobo,
       currency: ticketProduct.currency,
-      provider: 'flutterwave',
+      provider: 'paystack',
       providerReference: opts.providerReference ?? `test-ref-${suffix}`,
       status: opts.orderStatus ?? 'pending',
     },

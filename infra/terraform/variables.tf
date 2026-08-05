@@ -57,6 +57,12 @@ variable "db_instance_class" {
   default     = "db.t4g.micro"
 }
 
+variable "db_deletion_protection" {
+  description = "Prevent the RDS instance from being deleted via a plain `terraform destroy`/apply. Defaults on since this is the production attendee/payment database — a final snapshot is still taken regardless (see skip_final_snapshot in rds.tf)."
+  type        = bool
+  default     = true
+}
+
 variable "redis_node_type" {
   description = "ElastiCache node type (cache.t4g.micro = ~$11/month)"
   type        = string

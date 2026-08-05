@@ -32,7 +32,7 @@ enum RegistrationStatus {
 }
 
 enum OrderProvider {
-  flutterwave
+  paystack
 }
 
 enum OrderStatus {
@@ -40,6 +40,10 @@ enum OrderStatus {
   paid
   failed
   refunded
+  // Paystack confirmed the charge, but the verified amount didn't match
+  // what checkout computed server-side — held for manual review, never
+  // auto-issues a ticket.
+  amount_mismatch
 }
 
 enum TicketStatus {
@@ -56,6 +60,32 @@ enum CheckInMethod {
 enum AdminRole {
   organizer
   door_staff
+  // Can do everything an organizer can, plus create/manage other admin
+  // accounts (organizer alone cannot mint new admins — see admin.controller
+  // createAdminUser's @Roles override).
+  super_admin
+}
+
+enum SponsorType {
+  sponsor
+  partner
+}
+
+enum SponsorApplicationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum CouponDiscountType {
+  percent
+  fixed
+}
+
+enum VolunteerApplicationStatus {
+  pending
+  approved
+  rejected
 }
 
 // Future-proofing if NextIF runs more than one event later (PRD §3, TRD §3).
@@ -68,34 +98,157 @@ model Organization {
 }
 
 model Event {
-  id             String          @id @default(uuid())
-  orgId          String          @map("org_id")
-  name           String
-  venue          String
-  startsAt       DateTime        @map("starts_at")
-  slug           String          @unique
-  organization   Organization    @relation(fields: [orgId], references: [id])
-  ticketProducts TicketProduct[]
-  registrations  Registration[]
+  id                  String               @id @default(uuid())
+  orgId               String               @map("org_id")
+  name                String
+  venue               String
+  startsAt            DateTime             @map("starts_at")
+  slug                String               @unique
+  organization        Organization         @relation(fields: [orgId], references: [id])
+  ticketProducts      TicketProduct[]
+  registrations       Registration[]
+  speakers              Speaker[]
+  sponsors              Sponsor[]
+  sponsorApplications   SponsorApplication[]
+  coupons               Coupon[]
+  volunteerApplications VolunteerApplication[]
 
   @@map("events")
 }
 
 // The sellable combination of category x tier (PRD §5, TRD §3).
 model TicketProduct {
-  id            String         @id @default(uuid())
-  eventId       String         @map("event_id")
-  category      Category
-  tier          Tier
-  priceKobo     Int            @map("price_kobo")
-  currency      String         @default("NGN")
-  perksJson     Json           @default("{}") @map("perks_json")
-  isActive      Boolean        @default(true) @map("is_active")
-  event         Event          @relation(fields: [eventId], references: [id])
-  registrations Registration[]
+  id                String         @id @default(uuid())
+  eventId           String         @map("event_id")
+  category          Category
+  tier              Tier
+  priceKobo         Int            @map("price_kobo")
+  currency          String         @default("NGN")
+  perksJson         Json           @default("{}") @map("perks_json")
+  isActive          Boolean        @default(true) @map("is_active")
+  // Admin-managed early-bird discount, auto-applied at checkout while
+  // discountExpiresAt is in the future. Independent of coupon codes.
+  discountPercent   Int?           @map("discount_percent")
+  discountExpiresAt DateTime?      @map("discount_expires_at")
+  // Admin-editable copy for the public ticket card (e.g. "5K" and "*30%
+  // discount for early birds") — falls back to a formatted price /
+  // generic early-bird note on the frontend when unset.
+  cardPriceLabel    String?        @map("card_price_label")
+  cardNote          String?        @map("card_note")
+  event             Event          @relation(fields: [eventId], references: [id])
+  registrations     Registration[]
 
   @@unique([eventId, category, tier])
   @@map("ticket_products")
+}
+
+// Admin-managed discount codes, validated during registration (before
+// payment) and redeemed (count incremented) only once payment succeeds —
+// an abandoned checkout must not burn a redemption.
+model Coupon {
+  id              String             @id @default(uuid())
+  eventId         String             @map("event_id")
+  code            String
+  discountType    CouponDiscountType @map("discount_type")
+  // Percent: 1-100. Fixed: kobo amount off.
+  discountValue   Int                @map("discount_value")
+  maxRedemptions  Int?               @map("max_redemptions")
+  redemptionCount Int                @default(0) @map("redemption_count")
+  expiresAt       DateTime?          @map("expires_at")
+  isActive        Boolean            @default(true) @map("is_active")
+  createdAt       DateTime           @default(now()) @map("created_at")
+
+  event         Event          @relation(fields: [eventId], references: [id])
+  registrations Registration[]
+
+  @@unique([eventId, code])
+  @@map("coupons")
+}
+
+// Admin-managed speaker lineup shown on the public site (TRD-adjacent —
+// added for admin dashboard CRUD).
+model Speaker {
+  id           String   @id @default(uuid())
+  eventId      String   @map("event_id")
+  name         String
+  role         String
+  tag          String   @default("Speaker")
+  bio          String?
+  photoKey     String?  @map("photo_key")
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@map("speakers")
+}
+
+// Unified sponsor/partner directory shown on the public site (type
+// distinguishes the two, since they're the same shape — a logo in a
+// marquee) — added for admin dashboard CRUD.
+model Sponsor {
+  id           String      @id @default(uuid())
+  eventId      String      @map("event_id")
+  type         SponsorType
+  name         String
+  websiteUrl   String?     @map("website_url")
+  logoKey      String?     @map("logo_key")
+  displayOrder Int         @default(0) @map("display_order")
+  isActive     Boolean     @default(true) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  event        Event                @relation(fields: [eventId], references: [id])
+  applications SponsorApplication[]
+
+  @@map("sponsors")
+}
+
+// Public applications from prospective sponsors/partners, reviewed by an
+// organizer on the admin Applicants tab; approving one creates the live
+// Sponsor record it links to via sponsorId.
+model SponsorApplication {
+  id               String                   @id @default(uuid())
+  eventId          String                   @map("event_id")
+  type             SponsorType
+  organizationName String                   @map("organization_name")
+  contactName      String                   @map("contact_name")
+  email            String
+  phone            String?
+  message          String?
+  logoKey          String?                  @map("logo_key")
+  status           SponsorApplicationStatus @default(pending)
+  reviewedAt       DateTime?                @map("reviewed_at")
+  sponsorId        String?                  @unique @map("sponsor_id")
+  createdAt        DateTime                 @default(now()) @map("created_at")
+
+  event   Event    @relation(fields: [eventId], references: [id])
+  // SetNull rather than the default Restrict — deleting a Sponsor that
+  // originated from an approved application must not fail with a FK
+  // violation; the application record stays as history, just unlinked.
+  sponsor Sponsor? @relation(fields: [sponsorId], references: [id], onDelete: SetNull)
+
+  @@map("sponsor_applications")
+}
+
+// Public volunteer sign-up form (event staff, not attendees). Screening
+// answers beyond the core identity fields live in formDataJson — same
+// "core columns + JSON blob" split Registration already uses for its
+// category-specific form data.
+model VolunteerApplication {
+  id           String                      @id @default(uuid())
+  eventId      String                      @map("event_id")
+  fullName     String                      @map("full_name")
+  phone        String
+  email        String
+  formDataJson Json                        @map("form_data_json")
+  status       VolunteerApplicationStatus  @default(pending)
+  reviewedAt   DateTime?                   @map("reviewed_at")
+  createdAt    DateTime                    @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@map("volunteer_applications")
 }
 
 model Attendee {
@@ -110,18 +263,31 @@ model Attendee {
 
 // One per attendee per event; holds category-specific answers (TRD §3).
 model Registration {
-  id               String              @id @default(uuid())
-  eventId          String              @map("event_id")
-  attendeeId       String              @map("attendee_id")
-  ticketProductId  String              @map("ticket_product_id")
-  formDataJson     Json                @map("form_data_json")
-  studentIdFileUrl String?             @map("student_id_file_url")
-  status           RegistrationStatus  @default(draft)
-  createdAt        DateTime            @default(now()) @map("created_at")
+  id                  String             @id @default(uuid())
+  eventId             String             @map("event_id")
+  attendeeId          String             @map("attendee_id")
+  ticketProductId     String             @map("ticket_product_id")
+  formDataJson        Json               @map("form_data_json")
+  studentIdFileUrl    String?            @map("student_id_file_url")
+  status              RegistrationStatus @default(draft)
+  couponId            String?            @map("coupon_id")
+  // Returned once, at creation — proves the caller is the person who
+  // created this registration (or someone they shared the confirmation
+  // link with), since the registration id alone is a guessable-enough
+  // UUID to not be a sufficient secret for PII + payment-initiation access.
+  lookupToken         String             @unique @default(uuid()) @map("lookup_token")
+  // Snapshot of the total discount (early-bird + coupon) actually applied
+  // at checkout — kept even if the coupon or ticket product is edited
+  // later, so historical orders stay accurate.
+  discountAppliedKobo Int                @default(0) @map("discount_applied_kobo")
+  createdAt           DateTime           @default(now()) @map("created_at")
 
   event         Event         @relation(fields: [eventId], references: [id])
   attendee      Attendee      @relation(fields: [attendeeId], references: [id])
   ticketProduct TicketProduct @relation(fields: [ticketProductId], references: [id])
+  // SetNull, not Restrict — deleting a coupon must not fail because past
+  // registrations still reference it as history.
+  coupon        Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
   order         Order?
   ticket        Ticket?
 
@@ -134,7 +300,7 @@ model Order {
   registrationId    String        @unique @map("registration_id")
   amountMinor       Int           @map("amount_minor")
   currency          String        @default("NGN")
-  provider          OrderProvider @default(flutterwave)
+  provider          OrderProvider @default(paystack)
   providerReference String        @unique @map("provider_reference")
   status            OrderStatus   @default(pending)
   paidAt            DateTime?     @map("paid_at")
@@ -160,17 +326,17 @@ model Ticket {
 }
 
 model CheckIn {
-  id            String        @id @default(uuid())
-  ticketId      String        @map("ticket_id")
-  stationId     String        @map("station_id")
-  checkedInAt   DateTime      @default(now()) @map("checked_in_at")
-  checkedInBy   String        @map("checked_in_by")
-  method        CheckInMethod
+  id           String        @id @default(uuid())
+  ticketId     String        @map("ticket_id")
+  stationId    String        @map("station_id")
+  checkedInAt  DateTime      @default(now()) @map("checked_in_at")
+  checkedInBy  String        @map("checked_in_by")
+  method       CheckInMethod
   // Client-generated id for offline-queued scans (TRD §8) — lets a
   // retried sync of the same queued item be recognized as a replay
   // instead of re-racing for the ticket (which it would otherwise lose
   // against its own prior win, since the ticket is already `used`).
-  clientScanId  String?       @unique @map("client_scan_id")
+  clientScanId String?       @unique @map("client_scan_id")
 
   ticket Ticket @relation(fields: [ticketId], references: [id])
 
@@ -183,6 +349,9 @@ model AdminUser {
   email        String    @unique
   passwordHash String    @map("password_hash")
   role         AdminRole
+  // Bumped to force-invalidate every outstanding JWT for this user (e.g.
+  // suspected compromise) — checked against the `tv` claim on each request.
+  tokenVersion Int       @default(0) @map("token_version")
   createdAt    DateTime  @default(now()) @map("created_at")
 
   @@map("admin_users")
@@ -198,4 +367,14 @@ model AuditLog {
   metadataJson Json     @default("{}") @map("metadata_json")
 
   @@map("audit_log")
+}
+
+// Site-wide "sign up for updates" list — not scoped to a single Event,
+// unlike Speaker/Sponsor, since it's a general mailing list.
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("newsletter_subscribers")
 }

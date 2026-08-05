@@ -4,12 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import * as QRCode from 'qrcode';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { CouponsService } from '../coupons/coupons.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
+import { UpdateTicketProductDto } from './dto/update-ticket-product.dto';
 import { StudentIdUploadUrlDto } from './dto/upload-url.dto';
 import {
   FormValidationError,
@@ -30,6 +33,8 @@ export class RegistrationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly coupons: CouponsService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async listTicketProducts(eventSlug: string) {
@@ -100,6 +105,14 @@ export class RegistrationsService {
       );
     }
 
+    // Validated here (before the registration/order even exists) so the
+    // review step can surface a bad code immediately — but not redeemed
+    // yet; redemptionCount only increments once payment actually succeeds
+    // (see PaymentsService.handlePaystackWebhook).
+    const couponId = dto.couponCode
+      ? (await this.coupons.findRedeemableCoupon(event.id, dto.couponCode)).id
+      : null;
+
     const attendee = await this.prisma.attendee.upsert({
       where: { email: dto.email },
       update: { fullName: dto.fullName, phone: dto.phone },
@@ -120,6 +133,7 @@ export class RegistrationsService {
           formDataJson: dto.formData as Prisma.InputJsonValue,
           studentIdFileUrl,
           status: 'pending_payment',
+          couponId,
         },
         include: { ticketProduct: true, attendee: true },
       });
@@ -133,16 +147,21 @@ export class RegistrationsService {
     }
   }
 
-  async findById(id: string) {
+  async findById(id: string, token?: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id },
       include: { ticketProduct: true, attendee: true, ticket: true },
     });
-    if (!registration) {
+    // Same 404 whether the id doesn't exist or the token is wrong/missing
+    // — the id alone must never confirm a registration exists to someone
+    // who doesn't hold its lookup token.
+    if (!registration || !matchesLookupToken(registration.lookupToken, token)) {
       throw new NotFoundException('Registration not found');
     }
 
-    const { ticket, ...rest } = registration;
+    // lookupToken is intentionally never echoed back once past creation.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { ticket, lookupToken, ...rest } = registration;
     if (!ticket) {
       return { ...rest, ticket: null };
     }
@@ -164,4 +183,73 @@ export class RegistrationsService {
       },
     };
   }
+
+  async listAdminTicketProducts(eventSlug: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { slug: eventSlug },
+    });
+    if (!event) {
+      throw new NotFoundException(`No event found for slug "${eventSlug}"`);
+    }
+    const ticketProducts = await this.prisma.ticketProduct.findMany({
+      where: { eventId: event.id },
+      orderBy: [{ category: 'asc' }, { tier: 'asc' }],
+    });
+    return { ticketProducts };
+  }
+
+  async updateTicketProduct(
+    id: string,
+    dto: UpdateTicketProductDto,
+    actorId: string,
+  ) {
+    const existing = await this.prisma.ticketProduct.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('Ticket product not found');
+    }
+
+    const ticketProduct = await this.prisma.ticketProduct.update({
+      where: { id },
+      data: {
+        priceKobo: dto.priceKobo,
+        discountPercent:
+          dto.discountPercent === undefined ? undefined : dto.discountPercent,
+        discountExpiresAt:
+          dto.discountExpiresAt === undefined
+            ? undefined
+            : dto.discountExpiresAt === null
+              ? null
+              : new Date(dto.discountExpiresAt),
+        cardPriceLabel:
+          dto.cardPriceLabel === undefined ? undefined : dto.cardPriceLabel,
+        cardNote: dto.cardNote === undefined ? undefined : dto.cardNote,
+        isActive: dto.isActive,
+      },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'update_ticket_product',
+      targetType: 'ticket_product',
+      targetId: ticketProduct.id,
+    });
+
+    return ticketProduct;
+  }
+}
+
+// Constant-time comparison so a timing side-channel can't help an
+// attacker guess a valid token byte-by-byte. Also used by
+// PaymentsService.createCheckout, which guards the same registration id.
+export function matchesLookupToken(
+  stored: string,
+  provided: string | undefined,
+): boolean {
+  if (!provided) return false;
+  const storedBuf = Buffer.from(stored);
+  const providedBuf = Buffer.from(provided);
+  if (storedBuf.length !== providedBuf.length) return false;
+  return timingSafeEqual(storedBuf, providedBuf);
 }

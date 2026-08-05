@@ -2,6 +2,7 @@ import {
   IsEmail,
   IsEnum,
   IsObject,
+  IsOptional,
   IsString,
   Matches,
   MinLength,
@@ -33,4 +34,8 @@ export class CreateRegistrationDto {
 
   @IsObject()
   formData!: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 }

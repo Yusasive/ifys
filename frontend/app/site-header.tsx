@@ -12,7 +12,13 @@ const NAV_LINKS = [
   { href: "/#faq", label: "FAQ" },
 ];
 
-export function SiteHeader({ showCta = true }: { showCta?: boolean }) {
+export function SiteHeader({
+  showCta = true,
+  showJoinTeam = true,
+}: {
+  showCta?: boolean;
+  showJoinTeam?: boolean;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -35,10 +41,18 @@ export function SiteHeader({ showCta = true }: { showCta?: boolean }) {
         </nav>
 
         {showCta && (
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-3">
+            {showJoinTeam && (
+              <Link
+                href="/volunteer"
+                className="border border-emerald text-emerald font-semibold text-sm px-5 py-2.5 rounded-3xl hover:bg-emerald hover:text-white transition-colors"
+              >
+                Join our team
+              </Link>
+            )}
             <Link
               href="/register"
-              className="bg-coral text-white font-semibold text-sm px-5 py-2.5 rounded-sm hover:bg-coral-deep transition-colors"
+              className="bg-coral text-white font-semibold text-sm px-5 py-2.5 rounded-3xl hover:bg-coral-deep transition-colors"
             >
               Get Tickets
             </Link>
@@ -75,13 +89,24 @@ export function SiteHeader({ showCta = true }: { showCta?: boolean }) {
             </a>
           ))}
           {showCta && (
-            <Link
-              href="/register"
-              onClick={() => setOpen(false)}
-              className="bg-coral text-white font-semibold text-sm px-5 py-3 rounded-sm text-center hover:bg-coral-deep transition-colors"
-            >
-              Get Tickets
-            </Link>
+            <>
+              {showJoinTeam && (
+                <Link
+                  href="/volunteer"
+                  onClick={() => setOpen(false)}
+                  className="border border-emerald text-emerald font-semibold text-sm px-5 py-3 rounded-sm text-center hover:bg-emerald hover:text-white transition-colors"
+                >
+                  Join our team
+                </Link>
+              )}
+              <Link
+                href="/register"
+                onClick={() => setOpen(false)}
+                className="bg-coral text-white font-semibold text-sm px-5 py-3 rounded-sm text-center hover:bg-coral-deep transition-colors"
+              >
+                Get Tickets
+              </Link>
+            </>
           )}
         </nav>
       )}

@@ -147,7 +147,7 @@ export class AdminService {
   // Reuses the exact same ticket-issuance path as the webhook (TRD §6:
   // "one single function that creates a ticket, not two divergent
   // implementations"), just claiming payment manually instead of via a
-  // verified Flutterwave callback — e.g. a bank transfer reconciled by hand.
+  // verified Paystack callback — e.g. a bank transfer reconciled by hand.
   async markPaid(registrationId: string, actorId: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id: registrationId },
@@ -171,7 +171,7 @@ export class AdminService {
           registrationId: registration.id,
           amountMinor: registration.ticketProduct.priceKobo,
           currency: registration.ticketProduct.currency,
-          provider: 'flutterwave',
+          provider: 'paystack',
           providerReference: `manual-${registration.id}`,
           status: 'paid',
           paidAt: new Date(),

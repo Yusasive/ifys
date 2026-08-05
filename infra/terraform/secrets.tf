@@ -32,10 +32,9 @@ resource "aws_secretsmanager_secret_version" "infra" {
 #   aws secretsmanager put-secret-value \
 #     --secret-id ify-summit/production/app \
 #     --secret-string '{
-#       "JWT_SECRET":                "$(openssl rand -hex 32)",
-#       "FLUTTERWAVE_SECRET_KEY":    "FLWSECK-...",
-#       "FLUTTERWAVE_WEBHOOK_HASH":  "...",
-#       "SMTP_PASSWORD":             "your_zoho_app_password"
+#       "JWT_SECRET":           "$(openssl rand -hex 32)",
+#       "PAYSTACK_SECRET_KEY":  "sk_live_...",
+#       "SMTP_PASSWORD":        "your_zoho_app_password"
 #     }'
 
 resource "aws_secretsmanager_secret" "app" {

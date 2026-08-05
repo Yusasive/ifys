@@ -20,11 +20,15 @@ export default function AdminLoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const { accessToken, user } = await login(email, password);
-      setSession({ token: accessToken, user });
+      const { user } = await login(email, password);
+      setSession({ user });
       router.replace(user.role === "door_staff" ? "/checkin" : "/admin");
     } catch (err) {
-      setError(err instanceof ApiError ? err.body.message : "Login failed");
+      if (err instanceof ApiError && err.status === 429) {
+        setError("Too many login attempts. Please wait a minute and try again.");
+      } else {
+        setError(err instanceof ApiError ? err.body.message : "Login failed");
+      }
     } finally {
       setSubmitting(false);
     }

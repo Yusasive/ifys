@@ -23,7 +23,7 @@ export class RegistrationsController {
   }
 
   @Get(':id')
-  findById(@Param('id') id: string) {
-    return this.registrations.findById(id);
+  findById(@Param('id') id: string, @Query('token') token?: string) {
+    return this.registrations.findById(id, token);
   }
 }

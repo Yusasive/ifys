@@ -36,7 +36,7 @@ resource "aws_internet_gateway" "main" {
   tags   = { Name = "${local.prefix}-igw" }
 }
 
-# NAT gateway lets private-subnet ECS tasks reach the internet (ECR, Flutterwave, Zoho SMTP, etc.)
+# NAT gateway lets private-subnet ECS tasks reach the internet (ECR, Paystack, Zoho SMTP, etc.)
 resource "aws_eip" "nat" {
   domain     = "vpc"
   depends_on = [aws_internet_gateway.main]
