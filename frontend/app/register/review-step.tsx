@@ -184,7 +184,9 @@ export function ReviewStep({
         )}
 
         <div className="border-t border-line pt-3 flex flex-col gap-2">
-          <span className="text-sm font-medium text-emerald/70">Coupon code (optional)</span>
+          <label htmlFor="coupon-code" className="text-sm font-medium text-emerald/70">
+            Coupon code (optional)
+          </label>
           {appliedCoupon ? (
             <div className="flex items-center justify-between bg-gold/10 border border-gold/40 rounded-sm px-3 py-2">
               <span className="text-sm font-semibold text-gold-deep">
@@ -201,9 +203,12 @@ export function ReviewStep({
           ) : (
             <div className="flex gap-2">
               <input
+                id="coupon-code"
                 value={couponInput}
                 onChange={(e) => setCouponInput(e.target.value)}
                 placeholder="Enter code"
+                aria-describedby={couponError ? "coupon-error" : undefined}
+                aria-invalid={couponError ? true : undefined}
                 className="flex-1 border border-line rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-gold"
               />
               <button
@@ -216,7 +221,11 @@ export function ReviewStep({
               </button>
             </div>
           )}
-          {couponError && <p className="text-sm text-red-600">{couponError}</p>}
+          {couponError && (
+            <p id="coupon-error" role="alert" className="text-sm text-red-600">
+              {couponError}
+            </p>
+          )}
         </div>
 
         <div className="border-t border-line mt-3 pt-3 flex items-baseline justify-between">
@@ -232,7 +241,10 @@ export function ReviewStep({
       </div>
 
       {error && (
-        <p className="text-base text-red-600 border border-red-200 bg-red-50 rounded-sm px-3 py-2">
+        <p
+          role="alert"
+          className="text-base text-red-600 border border-red-200 bg-red-50 rounded-sm px-3 py-2"
+        >
           {error}
         </p>
       )}

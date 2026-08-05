@@ -292,6 +292,13 @@ model Registration {
   ticket        Ticket?
 
   @@unique([eventId, attendeeId])
+  // Hot paths in admin.service.ts: listRegistrations filters by status and
+  // sorts by createdAt by default; getStats groups by ticketProductId;
+  // coupon redemption counting filters by couponId.
+  @@index([status])
+  @@index([createdAt])
+  @@index([ticketProductId])
+  @@index([couponId])
   @@map("registrations")
 }
 
@@ -340,6 +347,9 @@ model CheckIn {
 
   ticket Ticket @relation(fields: [ticketId], references: [id])
 
+  // check-ins.service.ts looks up existing check-ins by ticketId on every
+  // scan to enforce single-use.
+  @@index([ticketId])
   @@map("check_ins")
 }
 

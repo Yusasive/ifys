@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import { Speaker } from "@/lib/api";
 
 function ChevronIcon({ direction }: { direction: "left" | "right" }) {
@@ -85,13 +86,17 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
               className="snap-start shrink-0 w-[260px] sm:w-[300px]"
             >
               <div className="speaker-card-frame rounded-2xl p-2.5 border border-line/60">
-                <div className="aspect-square rounded-xl bg-ink/85 flex items-center justify-center overflow-hidden">
+                <div className="aspect-square rounded-xl bg-ink/85 flex items-center justify-center overflow-hidden relative">
                   {speaker.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    // unoptimized: photoUrl is a short-lived signed S3/R2
+                    // URL (see sponsors-section.tsx for why the image
+                    // proxy is skipped here).
+                    <Image
                       src={speaker.photoUrl}
                       alt={speaker.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      unoptimized
+                      className="object-cover"
                     />
                   ) : (
                     <span className="font-bricolage font-bold text-7xl text-white/90">?</span>

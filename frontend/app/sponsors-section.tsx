@@ -1,12 +1,16 @@
+import Image from "next/image";
 import { Sponsor } from "@/lib/api";
 
 function LogoCard({ name, logoUrl }: { name: string; logoUrl: string | null }) {
   return (
     <div className="flex flex-col items-center gap-3 w-[220px] sm:w-[280px] shrink-0">
-      <div className="w-full aspect-[392/154] bg-white rounded-md flex items-center justify-center p-[10px] opacity-100">
+      <div className="w-full aspect-[392/154] bg-white rounded-md flex items-center justify-center p-[10px] opacity-100 relative">
         {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={name} className="max-h-full max-w-full object-contain" />
+          // unoptimized: logoUrl is a short-lived signed S3/R2 URL that
+          // differs in host shape between local MinIO and prod — running
+          // it through Next's image proxy would cache-key on a URL that
+          // expires and can point at a host we haven't allow-listed.
+          <Image src={logoUrl} alt={name} fill unoptimized className="object-contain" />
         ) : (
           <span className="font-bricolage font-semibold text-sm sm:text-base text-ink/30 uppercase tracking-wide">
             Your Logo

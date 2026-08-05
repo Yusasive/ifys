@@ -218,7 +218,11 @@ export default function CheckInPage() {
       )}
 
       <form onSubmit={handleManualSubmit} className="mt-6 flex gap-2 max-w-md mx-auto w-full">
+        <label htmlFor="manual-check-in-code" className="sr-only">
+          Manual check-in code
+        </label>
         <input
+          id="manual-check-in-code"
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="Enter short code"
@@ -234,7 +238,9 @@ export default function CheckInPage() {
       </form>
 
       {error && (
-        <p className="mt-4 text-center text-sm text-red-600 max-w-md mx-auto">{error}</p>
+        <p role="alert" className="mt-4 text-center text-sm text-red-600 max-w-md mx-auto">
+          {error}
+        </p>
       )}
     </main>
   );

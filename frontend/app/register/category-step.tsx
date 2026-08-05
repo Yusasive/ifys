@@ -47,6 +47,7 @@ export function CategoryStep({ ticketProducts }: { ticketProducts: TicketProduct
           <button
             key={c.value}
             type="button"
+            aria-pressed={selected === c.value}
             onClick={() => {
               dispatch(setCategory(c.value));
               dispatch(setTier("standard"));

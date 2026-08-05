@@ -33,9 +33,30 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+const title = "Islamic Finance Youth Summit 2026";
+const description =
+  "Registration & ticketing for the Islamic Finance Youth Summit 2026";
+const siteUrl = "https://ifysummit.com";
+
 export const metadata: Metadata = {
-  title: "Islamic Finance Youth Summit 2026",
-  description: "Registration & ticketing for the Islamic Finance Youth Summit 2026",
+  metadataBase: new URL(siteUrl),
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    url: siteUrl,
+    siteName: title,
+    images: [{ url: "/hero.png", width: 1200, height: 630, alt: title }],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: ["/hero.png"],
+  },
 };
 
 export default function RootLayout({
