@@ -60,7 +60,7 @@ export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
   }
 
   private async process(job: Job<TicketEmailJobData>) {
-    const ticket = await this.prisma.ticket.findUniqueOrThrow({
+    const ticket = await this.prisma.ticket.findUnique({
       where: { id: job.data.ticketId },
       include: {
         registration: {
@@ -68,6 +68,12 @@ export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
         },
       },
     });
+    if (!ticket) {
+      this.logger.warn(
+        `Ticket ${job.data.ticketId} no longer exists; skipping email job ${job.id}`,
+      );
+      return;
+    }
     const { registration } = ticket;
 
     await this.emailService.sendTicketEmail(

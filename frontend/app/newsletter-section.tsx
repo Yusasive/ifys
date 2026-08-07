@@ -5,7 +5,7 @@ import { ApiError, subscribeToNewsletter } from "@/lib/api";
 
 function EnvelopeIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0 text-black/65">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -49,11 +49,11 @@ export function NewsletterSection() {
 
   return (
     <section className="bg-white">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-        <h2 className="font-plex font-semibold text-2xl sm:text-3xl text-rust mb-4">
+      <div className=" mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
+        <h2 className="font-plex text-lg text-2xl font-normal tracking-normal text-rust text-center mb-4">
           Sign up for more Updates
         </h2>
-        <p className="text-base text-black/80 mb-10">
+        <p className="font-bricolage font-normal text-md lg:text-2xl tracking-normal text-center text-black/80 mb-10">
           No spam, just good vibes! We promise not to flood your inbox with unwanted messages and
           we shall keep your data safe
         </p>
@@ -64,7 +64,7 @@ export function NewsletterSection() {
           </p>
         ) : (
           <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 rounded-full border border-coral bg-white px-5 py-4">
+            <div className="flex lg:mx-24 items-center justify-center gap-3 rounded-full border border-coral bg-white px-5 lg:py-2">
               <EnvelopeIcon />
               <input
                 type="email"
@@ -72,7 +72,7 @@ export function NewsletterSection() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="flex-1 bg-transparent text-base text-ink placeholder:text-muted focus:outline-none"
+                className="bg-transparent font-sans font-normal text-lg leading-[48px] tracking-normal text-left text-black/65 placeholder:text-black/65 focus:outline-none"
               />
             </div>
 
@@ -81,7 +81,7 @@ export function NewsletterSection() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center justify-center gap-2 rounded-full bg-coral text-white font-semibold text-base py-4 hover:bg-coral-deep transition-colors disabled:opacity-50"
+              className="flex lg:mx-24  items-center justify-center gap-2 rounded-full bg-rust text-white font-semibold text-base py-3.5 lg:py-6 hover:bg-coral-deep transition-colors disabled:opacity-50"
             >
               <PaperPlaneIcon />
               {submitting ? "Subscribing…" : "Subscribe"}

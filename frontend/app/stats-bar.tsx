@@ -112,13 +112,13 @@ export function StatsBar() {
         <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase mb-4">
           2026 Summit Target
         </p>
-        <h2 className="font-bricolage font-medium text-2xl sm:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center">
+        <h2 className="font-bricolage font-medium text-xl lg:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center">
           Bringing together the right people, voices and conversations
         </h2>
       </div>
 
       <div ref={ref} className="bg-salmon">
-        <div className="w-full max-w-5xl mx-auto px-3 sm:px-8 py-8 sm:py-10 xl:min-h-[172px] flex flex-row flex-wrap items-start justify-between gap-x-6 gap-y-6 text-center">
+        <div className="w-full mx-auto px-3 lg:px-12 py-8 lg:py-10 xl:min-h-[172px] flex flex-row flex-wrap items-start justify-between gap-x-6 gap-y-6 text-center">
           {STATS.map((stat, i) => (
             <Stat key={stat.label} stat={stat} active={visible} delay={i * 150} />
           ))}

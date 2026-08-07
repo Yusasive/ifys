@@ -40,7 +40,7 @@ export function TicketsSection({ ticketProducts }: { ticketProducts: TicketProdu
         <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase mb-4 text-center">
           Tickets
         </p>
-        <h2 className="font-bricolage font-medium text-2xl sm:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center mb-10 sm:mb-12">
+        <h2 className="font-bricolage font-medium text-xl lg:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center mb-10 sm:mb-12">
           Register for the Islamic Finance Youth Summit
         </h2>
 
@@ -74,7 +74,7 @@ export function TicketsSection({ ticketProducts }: { ticketProducts: TicketProdu
         <div className="text-center">
           <Link
             href="/register"
-            className="inline-block bg-coral text-white font-semibold text-base px-10 py-3.5 rounded-full hover:bg-coral-deep transition-colors"
+            className="inline-block bg-coral text-white font-semibold text-base px-16 py-3 rounded-full hover:bg-coral-deep transition-colors"
           >
             Get Tickets
           </Link>

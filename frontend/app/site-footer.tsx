@@ -62,7 +62,7 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-8 sm:gap-16">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-10 sm:gap-16">
           <div>
             <p className="font-plex font-medium text-base lg:text-lg leading-[1.3] sm:leading-[48px] tracking-normal text-rust uppercase mb-2 sm:mb-0">
               Explore

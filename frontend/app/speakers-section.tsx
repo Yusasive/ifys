@@ -66,10 +66,10 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
     <section id="speakers" className="bg-islamic-pattern">
       <div className="py-16 sm:py-24">
         <div className="mx-auto px-4 sm:px-6 text-center mb-12 sm:mb-14">
-          <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase mb-4">
+          <p className="font-plex text-lg lg:text-2xl font-normal leading-[48px] tracking-normal text-rust uppercase text-center mb-4">
             Meet Our Speakers
           </p>
-          <h2 className="font-bricolage font-medium text-2xl sm:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center">
+          <h2 className="font-sans text-lg lg:text-[36px] font-normal leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center">
             A powerful lineup of speakers bringing experience, ideas, and insights to redefine the
             future of finance, innovation, and ethical impact.
           </h2>

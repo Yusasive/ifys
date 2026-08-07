@@ -21,7 +21,7 @@ function CalendarIcon() {
 export function VenueSection() {
   return (
     <section className="bg-white">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-14 sm:py-16 text-center">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-14 lg:py-16 text-center">
         <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase">
           Venue and Date
         </p>
@@ -37,22 +37,22 @@ export function VenueSection() {
           style={{ top: -10 }}
         />
 
-        <div className="absolute inset-0 flex flex-col items-center justify-between py-10 sm:py-14 px-4 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-between py-10 lg:py-14 px-4 text-center">
           <div className="flex flex-col items-center gap-3 text-forest">
             <PinIcon />
-            <p className="font-sans font-bold text-xl sm:text-[32px] leading-[1.2] sm:leading-[48px] tracking-normal text-center">
+            <p className="font-sans font-bold text-base sm:text-[32px] lg:leading-[1.2] lg:leading-[48px] tracking-normal text-center">
               Ilorin Innovation Hub,
               <br />
               Multipurpose Hall
             </p>
-            <p className="font-sans font-bold text-3xl sm:text-[48px] leading-[1.1] sm:leading-[48px] tracking-normal text-center uppercase">
+            <p className="font-sans font-bold text-xl sm:text-[48px] leading-[1.1] sm:leading-[48px] tracking-normal text-center uppercase">
               Ilorin, Nigeria
             </p>
           </div>
 
           <div className="flex flex-col items-center gap-3 text-white">
             <CalendarIcon />
-            <p className="font-sans font-bold text-2xl sm:text-[48px] leading-[1.2] sm:leading-[48px] tracking-normal text-center max-w-xs sm:max-w-none">
+            <p className="font-sans font-bold text-lg sm:text-[48px] leading-[1.2] sm:leading-[48px] tracking-normal text-center max-w-xs sm:max-w-none">
               Saturday, 7th of November, <br /> 2026
             </p>
           </div>

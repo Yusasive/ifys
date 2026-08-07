@@ -4,7 +4,7 @@ import Link from "next/link";
 export function OrganizedBySection() {
   return (
     <section className="bg-islamic-pattern">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
+      <div className="mx-auto px-4 sm:px-6 py-4 sm:py-6 text-center">
         <h2 className="font-bricolage font-semibold text-2xl sm:text-3xl tracking-wide text-black mb-10 sm:mb-12">
           Organized By
         </h2>

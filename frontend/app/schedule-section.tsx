@@ -16,7 +16,7 @@ export function ScheduleSection() {
         <p className="font-mono text-sm font-semibold tracking-widest text-coral-deep uppercase mb-3 text-center">
           Program Schedule
         </p>
-        <h2 className="font-display text-3xl sm:text-4xl text-emerald text-center mb-14">
+        <h2 className="font-display text-xl lg:text-4xl text-emerald text-center mb-14">
           One day, from opening keynote to closing mixer.
         </h2>
 

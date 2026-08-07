@@ -101,10 +101,10 @@ export function ExperienceSection() {
   return (
     <section className="bg-islamic-pattern">
       <div className="mx-auto px-4 sm:px-6 pt-16 sm:pt-24 text-center">
-        <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase mb-4">
+        <p className="font-plex text-lg lg:text-2xl font-normal leading-[48px] tracking-normal text-rust uppercase text-center mb-4">
           Summit Experience
         </p>
-        <h2 className="font-bricolage font-medium text-2xl sm:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center">
+        <h2 className="font-sans text-xl log:text-[36px] font-normal leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center">
           Step into conversations that challenge the way you think about finance, innovation, and
           opportunity. Explore powerful conversations, founder stories, career insights, and
           industry perspectives shaping the next generation of ethical finance and innovation.

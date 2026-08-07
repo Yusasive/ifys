@@ -2,10 +2,10 @@ export function AboutSection() {
   return (
     <section id="about" className="bg-islamic-pattern">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-        <p className="font-plex text-2xl font-normal leading-[48px] tracking-normal text-rust uppercase text-center mb-3">
-          About the Speakers
+        <p className="font-plex text:xl lg:text-2xl font-normal leading-[48px] tracking-normal text-rust uppercase text-center mb-3">
+          About the Summit
         </p>
-        <h2 className="font-bricolage text-3xl sm:text-[40px] font-medium leading-[48px] tracking-normal text-black text-center mb-10">
+        <h2 className="font-sans text-xl lg:text-[36px] font-normal text-black text-center mb-10">
           One stage for the builders defining what is next.
         </h2>
 
