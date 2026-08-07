@@ -74,7 +74,7 @@ export default function AdminUsersPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <Link
         href="/admin/registrations"
-        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
+        className="inline-flex items-center gap-1 border border-emerald/20 rounded-full px-4 py-1.5 text-sm text-ink hover:bg-emerald/5 transition-colors mb-6"
       >
         ← Back to registrations
       </Link>
@@ -83,45 +83,45 @@ export default function AdminUsersPage() {
 
         <form
           onSubmit={(e) => void handleSubmit(e)}
-          className="border border-line rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
+          className="border border-emerald/20 rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="flex flex-col gap-1">
-              <span className="text-sm text-muted">Name</span>
+              <span className="text-sm text-sage">Name</span>
               <input
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-sm text-muted">Email</span>
+              <span className="text-sm text-sage">Email</span>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-sm text-muted">Temporary password</span>
+              <span className="text-sm text-sage">Temporary password</span>
               <input
                 type="password"
                 required
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-sm text-muted">Role</span>
+              <span className="text-sm text-sage">Role</span>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as CreatableAdminRole)}
-                className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
               >
                 <option value="door_staff">Door staff (check-in only)</option>
                 <option value="organizer">Organizer (full access)</option>
@@ -138,10 +138,10 @@ export default function AdminUsersPage() {
           </button>
         </form>
 
-        <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
+        <div className="border border-emerald/20 rounded-2xl bg-white overflow-x-auto shadow-sm">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+              <tr className="border-b border-emerald/20 text-left text-xs uppercase tracking-wide text-sage">
                 <th className="px-4 py-2">Name</th>
                 <th className="px-4 py-2">Email</th>
                 <th className="px-4 py-2">Role</th>
@@ -150,9 +150,9 @@ export default function AdminUsersPage() {
             <tbody>
               {!usersLoaded && <TableRowsSkeleton rows={3} cols={3} />}
               {users.map((u) => (
-                <tr key={u.id} className="border-b border-line last:border-0">
+                <tr key={u.id} className="border-b border-emerald/20 last:border-0">
                   <td className="px-4 py-2">{u.name}</td>
-                  <td className="px-4 py-2 text-muted">{u.email}</td>
+                  <td className="px-4 py-2 text-sage">{u.email}</td>
                   <td className="px-4 py-2 font-mono text-xs">{u.role}</td>
                 </tr>
               ))}

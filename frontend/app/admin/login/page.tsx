@@ -59,39 +59,39 @@ export default function AdminLoginPage() {
           className="h-10 w-auto mb-6"
           priority
         />
-        <p className="font-mono text-xs uppercase tracking-widest text-rust mb-2">
+        <p className="font-mono text-xs uppercase tracking-widest text-coral-deep mb-2">
           Islamic Finance Youth Summit 2026
         </p>
         <h1 className="font-bricolage font-bold text-2xl text-forest mb-1">Admin sign in</h1>
-        <p className="text-sm text-muted mb-6">Operations dashboard</p>
+        <p className="text-sm text-sage mb-6">Operations dashboard</p>
 
         <label className="flex flex-col gap-1 mb-4">
-          <span className="text-sm text-muted">Email</span>
+          <span className="text-sm text-sage">Email</span>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+            className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
           />
         </label>
 
         <label className="flex flex-col gap-1 mb-6">
-          <span className="text-sm text-muted">Password</span>
+          <span className="text-sm text-sage">Password</span>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-line rounded-xl px-3 py-2 pr-10 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="w-full border border-emerald/20 rounded-xl px-3 py-2 pr-10 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? "Hide password" : "Show password"}
               aria-pressed={showPassword}
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-muted hover:text-forest transition-colors"
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-sage hover:text-forest transition-colors"
             >
               {showPassword ? (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -109,7 +109,7 @@ export default function AdminLoginPage() {
           </div>
         </label>
 
-        {error && <p className="text-sm text-rust mb-4">{error}</p>}
+        {error && <p className="text-sm text-coral-deep mb-4">{error}</p>}
 
         <button
           type="submit"

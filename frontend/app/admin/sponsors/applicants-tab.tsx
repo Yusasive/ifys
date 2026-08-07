@@ -23,7 +23,7 @@ const STATUS_LABEL: Record<SponsorApplicationStatus, string> = {
 const STATUS_STYLE: Record<SponsorApplicationStatus, string> = {
   pending: "bg-gold/10 text-gold-deep",
   approved: "bg-emerald/10 text-emerald",
-  rejected: "bg-rust/10 text-rust",
+  rejected: "bg-coral/10 text-coral-deep",
 };
 
 export function ApplicantsTab() {
@@ -97,13 +97,13 @@ export function ApplicantsTab() {
   return (
     <>
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-sm text-muted">Status</span>
+        <span className="text-sm text-sage">Status</span>
         <select
           value={statusFilter}
           onChange={(e) =>
             setStatusFilter(e.target.value as SponsorApplicationStatus | "all")
           }
-          className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+          className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
         >
           <option value="all">All</option>
           <option value="pending">Pending</option>
@@ -112,10 +112,10 @@ export function ApplicantsTab() {
         </select>
       </div>
 
-      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
+      <div className="border border-emerald/20 rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+            <tr className="border-b border-emerald/20 text-left text-xs uppercase tracking-wide text-sage">
               <th className="px-4 py-2">Logo</th>
               <th className="px-4 py-2">Organization</th>
               <th className="px-4 py-2">Contact</th>
@@ -129,33 +129,33 @@ export function ApplicantsTab() {
             {!loaded && <TableRowsSkeleton rows={3} cols={7} />}
             {loaded && applications.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-muted">
+                <td colSpan={7} className="px-4 py-6 text-center text-sage">
                   No applicants here yet.
                 </td>
               </tr>
             )}
             {applications.map((application) => (
-              <tr key={application.id} className="border-b border-line last:border-0">
+              <tr key={application.id} className="border-b border-emerald/20 last:border-0">
                 <td className="px-4 py-2">
                   {application.logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={application.logoUrl}
                       alt={application.organizationName}
-                      className="w-10 h-10 rounded-lg object-contain bg-paper-2"
+                      className="w-10 h-10 rounded-lg object-contain bg-emerald/5"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-paper-2" />
+                    <div className="w-10 h-10 rounded-lg bg-emerald/5" />
                   )}
                 </td>
                 <td className="px-4 py-2">{application.organizationName}</td>
-                <td className="px-4 py-2 text-muted">
+                <td className="px-4 py-2 text-sage">
                   <div>{application.contactName}</div>
                   <div className="text-xs">{application.email}</div>
                   {application.phone && <div className="text-xs">{application.phone}</div>}
                 </td>
-                <td className="px-4 py-2 text-muted capitalize">{application.type}</td>
-                <td className="px-4 py-2 text-muted max-w-[16rem] truncate" title={application.message ?? undefined}>
+                <td className="px-4 py-2 text-sage capitalize">{application.type}</td>
+                <td className="px-4 py-2 text-sage max-w-[16rem] truncate" title={application.message ?? undefined}>
                   {application.message ?? "—"}
                 </td>
                 <td className="px-4 py-2">
@@ -178,13 +178,13 @@ export function ApplicantsTab() {
                       <button
                         disabled={busyId === application.id}
                         onClick={() => void handleReject(application)}
-                        className="text-sm text-rust underline disabled:opacity-50"
+                        className="text-sm text-coral-deep underline disabled:opacity-50"
                       >
                         Reject
                       </button>
                     </>
                   ) : (
-                    <span className="text-xs text-muted">
+                    <span className="text-xs text-sage">
                       {application.reviewedAt
                         ? new Date(application.reviewedAt).toLocaleDateString()
                         : "—"}

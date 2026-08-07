@@ -156,26 +156,64 @@ export class PaymentsService {
       return { received: true };
     }
 
-    const reference = event.data.reference;
+    await this.settleByReference(event.data.reference);
+    return { received: true };
+  }
 
-    // The webhook signature only proves the request came from Paystack,
-    // not that the transaction really succeeded for the expected amount —
-    // so re-verify server-side before claiming the order (Paystack's
+  // Client-triggered fallback for when the webhook never arrives (wrong
+  // URL registered on Paystack's side, delivery failure, a slow/duplicate
+  // retry, etc.) — the confirmation page calls this on load instead of
+  // relying purely on the webhook to have already settled the order.
+  // Re-verifying directly with Paystack (not trusting the client) makes
+  // this safe to expose to anyone holding the registration's lookup token.
+  async verifyRegistrationPayment(registrationId: string, token?: string) {
+    const registration = await this.prisma.registration.findUnique({
+      where: { id: registrationId },
+      include: { order: true },
+    });
+    if (!registration || !matchesLookupToken(registration.lookupToken, token)) {
+      throw new NotFoundException('Registration not found');
+    }
+    if (!registration.order) {
+      throw new NotFoundException(
+        'No payment has been started for this registration',
+      );
+    }
+
+    if (registration.order.status === 'pending') {
+      await this.settleByReference(registration.order.providerReference);
+    }
+
+    const fresh = await this.prisma.registration.findUniqueOrThrow({
+      where: { id: registrationId },
+    });
+    return { status: fresh.status };
+  }
+
+  // Shared by the webhook and the client-triggered fallback above — both
+  // ultimately just want "go check with Paystack and settle this
+  // reference if it's really paid," so there's exactly one place that
+  // does the verify-then-claim dance.
+  private async settleByReference(reference: string): Promise<void> {
+    // The caller (webhook signature, or the registration's own lookup
+    // token) only proves the request is legitimate, not that the
+    // transaction really succeeded for the expected amount — so always
+    // re-verify server-side before claiming the order (Paystack's
     // recommended integration pattern).
     const verified = await this.paystack.verifyTransaction(reference);
     if (!verified.successful || verified.reference !== reference) {
       this.logger.warn(
         `Paystack verify failed or mismatched for reference ${reference}`,
       );
-      return { received: true };
+      return;
     }
 
     const order = await this.prisma.order.findUnique({
       where: { providerReference: reference },
     });
     if (!order) {
-      this.logger.warn(`Webhook for unknown reference ${reference} — no-op`);
-      return { received: true };
+      this.logger.warn(`Verify for unknown reference ${reference} — no-op`);
+      return;
     }
 
     // Checked before the order is claimed as paid — a mismatched amount
@@ -188,17 +226,16 @@ export class PaymentsService {
         data: { status: 'amount_mismatch' },
       });
       this.logger.error(
-        `Webhook amount mismatch for order ${order.id}: expected ${order.amountMinor}, got ${verified.amountMinor} — held for review, no ticket issued`,
+        `Amount mismatch for order ${order.id}: expected ${order.amountMinor}, got ${verified.amountMinor} — held for review, no ticket issued`,
       );
-      return { received: true };
+      return;
     }
 
     // Atomic claim: this UPDATE only affects a row still in `pending`
-    // status. A duplicate delivery of the same webhook event — or a
-    // second one racing it concurrently — will find the row already
-    // `paid` and get count 0, which is treated as an idempotent no-op.
-    // This is the DB-level state transition itself, not app-level locking
-    // around it.
+    // status. A duplicate delivery of the same webhook event, a
+    // concurrently racing client-triggered verify, or both firing at
+    // once — whichever loses the race finds the row already `paid` and
+    // gets count 0, treated as an idempotent no-op.
     const claim = await this.prisma.order.updateMany({
       where: { providerReference: reference, status: 'pending' },
       data: { status: 'paid', paidAt: new Date() },
@@ -206,9 +243,9 @@ export class PaymentsService {
 
     if (claim.count === 0) {
       this.logger.log(
-        `Webhook for reference ${reference} already handled or unknown — no-op`,
+        `Settle for reference ${reference} already handled or unknown — no-op`,
       );
-      return { received: true };
+      return;
     }
 
     const registration = await this.prisma.registration.findUniqueOrThrow({
@@ -224,7 +261,5 @@ export class PaymentsService {
       order.registrationId,
     );
     await this.emailQueue.enqueue(ticket.id);
-
-    return { received: true };
   }
 }

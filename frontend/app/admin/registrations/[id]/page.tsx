@@ -69,7 +69,7 @@ export default function RegistrationDetailPage() {
       <main className="max-w-3xl mx-auto px-6 py-8">
         <button
           onClick={() => router.push("/admin/registrations")}
-          className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
+          className="inline-flex items-center gap-1 border border-emerald/20 rounded-full px-4 py-1.5 text-sm text-ink hover:bg-emerald/5 transition-colors mb-6"
         >
           ← Back to registrations
         </button>
@@ -82,16 +82,16 @@ export default function RegistrationDetailPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <button
         onClick={() => router.push("/admin/registrations")}
-        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
+        className="inline-flex items-center gap-1 border border-emerald/20 rounded-full px-4 py-1.5 text-sm text-ink hover:bg-emerald/5 transition-colors mb-6"
       >
         ← Back to registrations
       </button>
 
-        <div className="border border-line rounded-2xl bg-white p-6 mb-6 shadow-sm">
+        <div className="border border-emerald/20 rounded-2xl bg-white p-6 mb-6 shadow-sm">
           <div className="flex items-start justify-between mb-4">
             <div>
               <h1 className="font-bricolage font-bold text-2xl text-forest">{registration.attendee.fullName}</h1>
-              <p className="text-sm text-muted">
+              <p className="text-sm text-sage">
                 {registration.attendee.email} · {registration.attendee.phone}
               </p>
             </div>
@@ -99,27 +99,27 @@ export default function RegistrationDetailPage() {
           </div>
 
           <dl className="grid grid-cols-2 gap-y-2 text-sm mb-4">
-            <dt className="text-muted">Category</dt>
+            <dt className="text-sage">Category</dt>
             <dd className="text-right">
               {CATEGORY_LABELS[registration.ticketProduct.category]}
             </dd>
-            <dt className="text-muted">Tier</dt>
+            <dt className="text-sage">Tier</dt>
             <dd className="text-right">{TIER_LABELS[registration.ticketProduct.tier]}</dd>
-            <dt className="text-muted">Price</dt>
+            <dt className="text-sage">Price</dt>
             <dd className="text-right font-mono">
               {formatKobo(registration.ticketProduct.priceKobo, registration.ticketProduct.currency)}
             </dd>
-            <dt className="text-muted">Registered at</dt>
+            <dt className="text-sage">Registered at</dt>
             <dd className="text-right">{formatDateTime(registration.createdAt)}</dd>
             {registration.order && (
               <>
-                <dt className="text-muted">Payment status</dt>
+                <dt className="text-sage">Payment status</dt>
                 <dd className="text-right">
                   <StatusBadge status={registration.order.status} />
                 </dd>
                 {registration.order.paidAt && (
                   <>
-                    <dt className="text-muted">Paid at</dt>
+                    <dt className="text-sage">Paid at</dt>
                     <dd className="text-right">{formatDateTime(registration.order.paidAt)}</dd>
                   </>
                 )}
@@ -127,14 +127,14 @@ export default function RegistrationDetailPage() {
             )}
           </dl>
 
-          <div className="border-t border-line pt-4 mb-4">
-            <h2 className="text-xs uppercase tracking-wide text-muted mb-2">
+          <div className="border-t border-emerald/20 pt-4 mb-4">
+            <h2 className="text-xs uppercase tracking-wide text-sage mb-2">
               Submission
             </h2>
             <dl className="grid grid-cols-2 gap-y-1 text-sm">
               {Object.entries(registration.formDataJson).map(([key, value]) => (
                 <div key={key} className="contents">
-                  <dt className="text-muted">{key}</dt>
+                  <dt className="text-sage">{key}</dt>
                   <dd className="text-right break-all">{String(value)}</dd>
                 </div>
               ))}
@@ -152,28 +152,28 @@ export default function RegistrationDetailPage() {
           </div>
 
           {registration.ticket && (
-            <div className="border-t border-line pt-4">
-              <h2 className="text-xs uppercase tracking-wide text-muted mb-2">Ticket</h2>
+            <div className="border-t border-emerald/20 pt-4">
+              <h2 className="text-xs uppercase tracking-wide text-sage mb-2">Ticket</h2>
               <dl className="grid grid-cols-2 gap-y-1 text-sm">
-                <dt className="text-muted">Code</dt>
+                <dt className="text-sage">Code</dt>
                 <dd className="text-right font-mono">{registration.ticket.ticketCode}</dd>
-                <dt className="text-muted">Status</dt>
+                <dt className="text-sage">Status</dt>
                 <dd className="text-right">
                   <StatusBadge status={registration.ticket.status} />
                 </dd>
-                <dt className="text-muted">Issued at</dt>
+                <dt className="text-sage">Issued at</dt>
                 <dd className="text-right">{formatDateTime(registration.ticket.issuedAt)}</dd>
               </dl>
 
               {registration.ticket.checkIns.length > 0 && (
                 <div className="mt-4">
-                  <h3 className="text-xs uppercase tracking-wide text-muted mb-2">
+                  <h3 className="text-xs uppercase tracking-wide text-sage mb-2">
                     Check-in history
                   </h3>
                   <dl className="grid grid-cols-2 gap-y-1 text-sm">
                     {registration.ticket.checkIns.map((c) => (
                       <div key={c.id} className="contents">
-                        <dt className="text-muted">{c.stationId}</dt>
+                        <dt className="text-sage">{c.stationId}</dt>
                         <dd className="text-right">{formatDateTime(c.checkedInAt)}</dd>
                       </div>
                     ))}
@@ -217,7 +217,7 @@ export default function RegistrationDetailPage() {
             <button
               disabled={busy}
               onClick={() => setShowVoidConfirm(true)}
-              className="border border-rust text-rust px-4 py-2 rounded-full text-sm hover:bg-rust hover:text-white transition-colors disabled:opacity-50"
+              className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
             >
               Void ticket
             </button>
@@ -225,7 +225,7 @@ export default function RegistrationDetailPage() {
         </div>
 
         {showVoidConfirm && (
-          <div className="mt-4 border border-rust/30 rounded-xl p-4 bg-rust/10">
+          <div className="mt-4 border border-coral/30 rounded-xl p-4 bg-coral/10">
             <p className="text-sm mb-3">
               Voiding a ticket cannot be undone. Re-enter your password to confirm.
             </p>
@@ -235,7 +235,7 @@ export default function RegistrationDetailPage() {
                 value={voidPassword}
                 onChange={(e) => setVoidPassword(e.target.value)}
                 placeholder="Your password"
-                className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold flex-1"
+                className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold flex-1"
               />
               <button
                 disabled={busy || !voidPassword}
@@ -246,7 +246,7 @@ export default function RegistrationDetailPage() {
                     setVoidPassword("");
                   }, "Ticket voided.")
                 }
-                className="bg-rust text-white px-4 py-1.5 rounded-full text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
+                className="bg-coral-deep text-white px-4 py-1.5 rounded-full text-sm hover:bg-gold-deep transition-colors disabled:opacity-50"
               >
                 Confirm void
               </button>
@@ -255,7 +255,7 @@ export default function RegistrationDetailPage() {
                   setShowVoidConfirm(false);
                   setVoidPassword("");
                 }}
-                className="text-sm text-muted"
+                className="text-sm text-sage"
               >
                 Cancel
               </button>

@@ -23,9 +23,9 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="relative overflow-hidden border border-line rounded-2xl p-4 bg-white shadow-sm">
+    <div className="relative overflow-hidden border border-emerald/20 rounded-2xl p-4 bg-white shadow-sm">
       <div className={`absolute top-0 left-0 h-1 w-full ${accent}`} />
-      <div className="font-mono text-xs uppercase tracking-wide text-muted mb-1">{label}</div>
+      <div className="font-mono text-xs uppercase tracking-wide text-sage mb-1">{label}</div>
       <div className="font-bricolage font-bold text-3xl text-forest">{value}</div>
     </div>
   );
@@ -75,7 +75,7 @@ export default function AdminOverviewPage() {
       <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Overview</h1>
 
       {loadError && (
-        <p className="border border-rust/30 bg-rust/10 text-rust rounded-xl px-4 py-3 text-sm mb-6">
+        <p className="border border-coral/30 bg-coral/10 text-coral-deep rounded-xl px-4 py-3 text-sm mb-6">
           {loadError}
         </p>
       )}
@@ -95,30 +95,30 @@ export default function AdminOverviewPage() {
         !loadError && <div className="mb-8"><StatCardsSkeleton /></div>
       )}
 
-      <div className="border border-line rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="font-mono text-xs uppercase tracking-wide text-rust mb-3">
+      <div className="border border-emerald/20 rounded-2xl bg-white p-4 shadow-sm">
+        <h2 className="font-mono text-xs uppercase tracking-wide text-coral-deep mb-3">
           Recent registrations
         </h2>
         {recent ? (
           recent.length > 0 ? (
-            <ul className="flex flex-col divide-y divide-line">
+            <ul className="flex flex-col divide-y divide-emerald/20">
               {recent.map((r) => (
                 <li key={r.id}>
                   <Link
                     href={`/admin/registrations/${r.id}`}
-                    className="flex items-center justify-between gap-3 py-2.5 text-sm hover:bg-paper-2 -mx-2 px-2 rounded-lg transition-colors"
+                    className="flex items-center justify-between gap-3 py-2.5 text-sm hover:bg-emerald/5 -mx-2 px-2 rounded-lg transition-colors"
                   >
                     <span className="truncate">{r.attendee.fullName}</span>
                     <span className="flex items-center gap-3 shrink-0">
                       <StatusBadge status={r.status} />
-                      <span className="text-muted text-xs">{formatDateTime(r.createdAt)}</span>
+                      <span className="text-sage text-xs">{formatDateTime(r.createdAt)}</span>
                     </span>
                   </Link>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted">No registrations yet.</p>
+            <p className="text-sm text-sage">No registrations yet.</p>
           )
         ) : (
           !loadError && (

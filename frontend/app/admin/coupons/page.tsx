@@ -140,7 +140,7 @@ export default function AdminCouponsPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <Link
         href="/admin/registrations"
-        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
+        className="inline-flex items-center gap-1 border border-emerald/20 rounded-full px-4 py-1.5 text-sm text-ink hover:bg-emerald/5 transition-colors mb-6"
       >
         ← Back to registrations
       </Link>
@@ -149,26 +149,26 @@ export default function AdminCouponsPage() {
 
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="border border-line rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
+        className="border border-emerald/20 rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Code</span>
+            <span className="text-sm text-sage">Code</span>
             <input
               required
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
               placeholder="e.g. EARLYBIRD30"
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors uppercase"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors uppercase"
             />
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Discount type</span>
+            <span className="text-sm text-sage">Discount type</span>
             <select
               value={form.discountType}
               onChange={(e) => setForm({ ...form, discountType: e.target.value as CouponDiscountType })}
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             >
               <option value="percent">Percent off</option>
               <option value="fixed">Fixed amount off (NGN)</option>
@@ -176,7 +176,7 @@ export default function AdminCouponsPage() {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">
+            <span className="text-sm text-sage">
               {form.discountType === "percent" ? "Discount (%)" : "Discount (NGN)"}
             </span>
             <input
@@ -186,29 +186,29 @@ export default function AdminCouponsPage() {
               max={form.discountType === "percent" ? 100 : undefined}
               value={form.discountValue}
               onChange={(e) => setForm({ ...form, discountValue: Number(e.target.value) })}
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Max redemptions</span>
+            <span className="text-sm text-sage">Max redemptions</span>
             <input
               type="number"
               min={1}
               value={form.maxRedemptions}
               onChange={(e) => setForm({ ...form, maxRedemptions: e.target.value })}
               placeholder="Unlimited"
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Expires</span>
+            <span className="text-sm text-sage">Expires</span>
             <input
               type="datetime-local"
               value={form.expiresAt}
               onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
         </div>
@@ -216,10 +216,11 @@ export default function AdminCouponsPage() {
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
+            className="accent-emerald"
             checked={form.isActive}
             onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
           />
-          <span className="text-sm text-muted">Active</span>
+          <span className="text-sm text-sage">Active</span>
         </label>
 
         <div className="flex items-center gap-3">
@@ -231,17 +232,17 @@ export default function AdminCouponsPage() {
             {submitting ? (editingId ? "Saving…" : "Adding…") : editingId ? "Save changes" : "Add coupon"}
           </button>
           {editingId && (
-            <button type="button" onClick={resetForm} className="text-sm text-muted">
+            <button type="button" onClick={resetForm} className="text-sm text-sage">
               Cancel edit
             </button>
           )}
         </div>
       </form>
 
-      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
+      <div className="border border-emerald/20 rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+            <tr className="border-b border-emerald/20 text-left text-xs uppercase tracking-wide text-sage">
               <th className="px-4 py-2">Code</th>
               <th className="px-4 py-2">Discount</th>
               <th className="px-4 py-2">Redemptions</th>
@@ -254,20 +255,20 @@ export default function AdminCouponsPage() {
             {!couponsLoaded && <TableRowsSkeleton rows={3} cols={6} />}
             {coupons.map((coupon) => (
               <Fragment key={coupon.id}>
-                <tr className="border-b border-line last:border-0">
+                <tr className="border-b border-emerald/20 last:border-0">
                   <td className="px-4 py-2 font-mono">{coupon.code}</td>
-                  <td className="px-4 py-2 text-muted">{discountLabel(coupon)}</td>
-                  <td className="px-4 py-2 text-muted">
+                  <td className="px-4 py-2 text-sage">{discountLabel(coupon)}</td>
+                  <td className="px-4 py-2 text-sage">
                     {coupon.redemptionCount}
                     {coupon.maxRedemptions !== null ? ` / ${coupon.maxRedemptions}` : ""}
                   </td>
-                  <td className="px-4 py-2 text-muted">
+                  <td className="px-4 py-2 text-sage">
                     {coupon.expiresAt ? formatDateTime(coupon.expiresAt) : "Never"}
                   </td>
                   <td className="px-4 py-2">
                     <span
                       className={`text-xs px-2.5 py-0.5 rounded-full ${
-                        coupon.isActive ? "bg-emerald/10 text-emerald" : "bg-paper-2 text-muted"
+                        coupon.isActive ? "bg-emerald/10 text-emerald" : "bg-emerald/5 text-sage"
                       }`}
                     >
                       {coupon.isActive ? "Active" : "Inactive"}
@@ -279,25 +280,25 @@ export default function AdminCouponsPage() {
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(coupon.id)}
-                      className="text-sm text-rust underline"
+                      className="text-sm text-coral-deep underline"
                     >
                       Delete
                     </button>
                   </td>
                 </tr>
                 {deleteConfirmId === coupon.id && (
-                  <tr className="border-b border-line last:border-0">
-                    <td colSpan={6} className="px-4 py-3 bg-red-50">
+                  <tr className="border-b border-emerald/20 last:border-0">
+                    <td colSpan={6} className="px-4 py-3 bg-coral/10">
                       <div className="flex items-center gap-3">
                         <p className="text-sm">Delete {coupon.code}? This cannot be undone.</p>
                         <button
                           disabled={deleting}
                           onClick={() => void handleDelete(coupon)}
-                          className="bg-rust text-white px-3 py-1 rounded-full text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
+                          className="bg-coral-deep text-white px-3 py-1 rounded-full text-sm hover:bg-gold-deep transition-colors disabled:opacity-50"
                         >
                           Confirm delete
                         </button>
-                        <button onClick={() => setDeleteConfirmId(null)} className="text-sm text-muted">
+                        <button onClick={() => setDeleteConfirmId(null)} className="text-sm text-sage">
                           Cancel
                         </button>
                       </div>

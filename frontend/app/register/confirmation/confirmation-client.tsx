@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { fetchRegistration, Registration, ticketPdfUrl } from "@/lib/api";
+import { fetchRegistration, Registration, ticketPdfUrl, verifyRegistrationPayment } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 
 const POLL_INTERVAL_MS = 2000;
@@ -50,6 +50,13 @@ export function ConfirmationClient() {
     }
 
     let cancelled = false;
+
+    // Best-effort nudge: ask the backend to check with Paystack directly
+    // right away, instead of just sitting on the poll below waiting for a
+    // webhook that may be slow, misconfigured, or never arrive. If this
+    // fails or the webhook already settled it, the poll loop below is
+    // still the source of truth either way.
+    void verifyRegistrationPayment(registrationId, lookupToken).catch(() => {});
 
     async function poll() {
       if (!registrationId || !lookupToken) return;

@@ -166,7 +166,7 @@ export default function AdminSpeakersPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <Link
         href="/admin/registrations"
-        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
+        className="inline-flex items-center gap-1 border border-emerald/20 rounded-full px-4 py-1.5 text-sm text-ink hover:bg-emerald/5 transition-colors mb-6"
       >
         ← Back to registrations
       </Link>
@@ -175,61 +175,61 @@ export default function AdminSpeakersPage() {
 
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="border border-line rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
+        className="border border-emerald/20 rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Name</span>
+            <span className="text-sm text-sage">Name</span>
             <input
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Role</span>
+            <span className="text-sm text-sage">Role</span>
             <input
               required
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Tag</span>
+            <span className="text-sm text-sage">Tag</span>
             <input
               value={form.tag}
               onChange={(e) => setForm({ ...form, tag: e.target.value })}
               placeholder="e.g. Keynote Speaker"
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Display order</span>
+            <span className="text-sm text-sage">Display order</span>
             <input
               type="number"
               value={form.displayOrder}
               onChange={(e) =>
                 setForm({ ...form, displayOrder: Number(e.target.value) })
               }
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-muted">Bio</span>
+          <span className="text-sm text-sage">Bio</span>
           <textarea
             value={form.bio}
             onChange={(e) => setForm({ ...form, bio: e.target.value })}
             rows={3}
-            className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+            className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
           />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-muted">Photo</span>
+          <span className="text-sm text-sage">Photo</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -237,10 +237,10 @@ export default function AdminSpeakersPage() {
               const file = e.target.files?.[0];
               if (file) void handlePhotoChange(file);
             }}
-            className="text-sm text-emerald file:mr-3 file:rounded-full file:border file:border-line file:bg-cloud file:px-3 file:py-1.5 file:text-emerald"
+            className="text-sm text-emerald file:mr-3 file:rounded-full file:border file:border-emerald/20 file:bg-emerald/5 file:px-3 file:py-1.5 file:text-emerald"
           />
           {photoUploading && (
-            <span className="text-sm text-muted">Uploading…</span>
+            <span className="text-sm text-sage">Uploading…</span>
           )}
           {photoKey && !photoUploading && (
             <span className="text-sm text-gold-deep">Photo uploaded.</span>
@@ -250,10 +250,11 @@ export default function AdminSpeakersPage() {
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
+            className="accent-emerald"
             checked={form.isActive}
             onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
           />
-          <span className="text-sm text-muted">Visible on public site</span>
+          <span className="text-sm text-sage">Visible on public site</span>
         </label>
 
         <div className="flex items-center gap-3">
@@ -274,7 +275,7 @@ export default function AdminSpeakersPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="text-sm text-muted"
+              className="text-sm text-sage"
             >
               Cancel edit
             </button>
@@ -282,10 +283,10 @@ export default function AdminSpeakersPage() {
         </div>
       </form>
 
-      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
+      <div className="border border-emerald/20 rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+            <tr className="border-b border-emerald/20 text-left text-xs uppercase tracking-wide text-sage">
               <th className="px-4 py-2">Photo</th>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Role</th>
@@ -299,7 +300,7 @@ export default function AdminSpeakersPage() {
             {!speakersLoaded && <TableRowsSkeleton rows={3} cols={7} />}
             {speakers.map((speaker) => (
               <Fragment key={speaker.id}>
-                <tr className="border-b border-line last:border-0">
+                <tr className="border-b border-emerald/20 last:border-0">
                   <td className="px-4 py-2">
                     {speaker.photoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -309,19 +310,19 @@ export default function AdminSpeakersPage() {
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-paper-2" />
+                      <div className="w-10 h-10 rounded-full bg-emerald/5" />
                     )}
                   </td>
                   <td className="px-4 py-2">{speaker.name}</td>
-                  <td className="px-4 py-2 text-muted">{speaker.role}</td>
-                  <td className="px-4 py-2 text-muted">{speaker.tag}</td>
+                  <td className="px-4 py-2 text-sage">{speaker.role}</td>
+                  <td className="px-4 py-2 text-sage">{speaker.tag}</td>
                   <td className="px-4 py-2">{speaker.displayOrder}</td>
                   <td className="px-4 py-2">
                     <span
                       className={`text-xs px-2.5 py-0.5 rounded-full ${
                         speaker.isActive
                           ? "bg-emerald/10 text-emerald"
-                          : "bg-paper-2 text-muted"
+                          : "bg-emerald/5 text-sage"
                       }`}
                     >
                       {speaker.isActive ? "Active" : "Hidden"}
@@ -336,15 +337,15 @@ export default function AdminSpeakersPage() {
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(speaker.id)}
-                      className="text-sm text-rust underline"
+                      className="text-sm text-coral-deep underline"
                     >
                       Delete
                     </button>
                   </td>
                 </tr>
                 {deleteConfirmId === speaker.id && (
-                  <tr className="border-b border-line last:border-0">
-                    <td colSpan={7} className="px-4 py-3 bg-red-50">
+                  <tr className="border-b border-emerald/20 last:border-0">
+                    <td colSpan={7} className="px-4 py-3 bg-coral/10">
                       <div className="flex items-center gap-3">
                         <p className="text-sm">
                           Delete {speaker.name}? This cannot be undone.
@@ -352,13 +353,13 @@ export default function AdminSpeakersPage() {
                         <button
                           disabled={deleting}
                           onClick={() => void handleDelete(speaker)}
-                          className="bg-rust text-white px-3 py-1 rounded-full text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
+                          className="bg-coral-deep text-white px-3 py-1 rounded-full text-sm hover:bg-gold-deep transition-colors disabled:opacity-50"
                         >
                           Confirm delete
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(null)}
-                          className="text-sm text-muted"
+                          className="text-sm text-sage"
                         >
                           Cancel
                         </button>

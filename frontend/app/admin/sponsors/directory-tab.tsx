@@ -153,17 +153,17 @@ export function DirectoryTab() {
     <>
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="border border-line rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
+        className="border border-emerald/20 rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Type</span>
+            <span className="text-sm text-sage">Type</span>
             <select
               value={form.type}
               onChange={(e) =>
                 setForm({ ...form, type: e.target.value as SponsorType })
               }
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             >
               <option value="sponsor">Sponsor</option>
               <option value="partner">Partner</option>
@@ -171,39 +171,39 @@ export function DirectoryTab() {
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Name</span>
+            <span className="text-sm text-sage">Name</span>
             <input
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Website URL</span>
+            <span className="text-sm text-sage">Website URL</span>
             <input
               type="url"
               value={form.websiteUrl}
               onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
               placeholder="https://"
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-muted">Display order</span>
+            <span className="text-sm text-sage">Display order</span>
             <input
               type="number"
               value={form.displayOrder}
               onChange={(e) =>
                 setForm({ ...form, displayOrder: Number(e.target.value) })
               }
-              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-muted">Logo</span>
+          <span className="text-sm text-sage">Logo</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -211,9 +211,9 @@ export function DirectoryTab() {
               const file = e.target.files?.[0];
               if (file) void handleLogoChange(file);
             }}
-            className="text-sm text-emerald file:mr-3 file:rounded-full file:border file:border-line file:bg-cloud file:px-3 file:py-1.5 file:text-emerald"
+            className="text-sm text-emerald file:mr-3 file:rounded-full file:border file:border-emerald/20 file:bg-emerald/5 file:px-3 file:py-1.5 file:text-emerald"
           />
-          {logoUploading && <span className="text-sm text-muted">Uploading…</span>}
+          {logoUploading && <span className="text-sm text-sage">Uploading…</span>}
           {logoKey && !logoUploading && (
             <span className="text-sm text-gold-deep">Logo uploaded.</span>
           )}
@@ -222,10 +222,11 @@ export function DirectoryTab() {
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
+            className="accent-emerald"
             checked={form.isActive}
             onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
           />
-          <span className="text-sm text-muted">Visible on public site</span>
+          <span className="text-sm text-sage">Visible on public site</span>
         </label>
 
         <div className="flex items-center gap-3">
@@ -243,17 +244,17 @@ export function DirectoryTab() {
                 : "Add entry"}
           </button>
           {editingId && (
-            <button type="button" onClick={resetForm} className="text-sm text-muted">
+            <button type="button" onClick={resetForm} className="text-sm text-sage">
               Cancel edit
             </button>
           )}
         </div>
       </form>
 
-      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
+      <div className="border border-emerald/20 rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+            <tr className="border-b border-emerald/20 text-left text-xs uppercase tracking-wide text-sage">
               <th className="px-4 py-2">Logo</th>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Type</th>
@@ -266,28 +267,28 @@ export function DirectoryTab() {
             {!loaded && <TableRowsSkeleton rows={3} cols={6} />}
             {sponsors.map((sponsor) => (
               <Fragment key={sponsor.id}>
-                <tr className="border-b border-line last:border-0">
+                <tr className="border-b border-emerald/20 last:border-0">
                   <td className="px-4 py-2">
                     {sponsor.logoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={sponsor.logoUrl}
                         alt={sponsor.name}
-                        className="w-10 h-10 rounded-lg object-contain bg-paper-2"
+                        className="w-10 h-10 rounded-lg object-contain bg-emerald/5"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-lg bg-paper-2" />
+                      <div className="w-10 h-10 rounded-lg bg-emerald/5" />
                     )}
                   </td>
                   <td className="px-4 py-2">{sponsor.name}</td>
-                  <td className="px-4 py-2 text-muted capitalize">{sponsor.type}</td>
+                  <td className="px-4 py-2 text-sage capitalize">{sponsor.type}</td>
                   <td className="px-4 py-2">{sponsor.displayOrder}</td>
                   <td className="px-4 py-2">
                     <span
                       className={`text-xs px-2.5 py-0.5 rounded-full ${
                         sponsor.isActive
                           ? "bg-emerald/10 text-emerald"
-                          : "bg-paper-2 text-muted"
+                          : "bg-emerald/5 text-sage"
                       }`}
                     >
                       {sponsor.isActive ? "Active" : "Hidden"}
@@ -302,15 +303,15 @@ export function DirectoryTab() {
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(sponsor.id)}
-                      className="text-sm text-rust underline"
+                      className="text-sm text-coral-deep underline"
                     >
                       Delete
                     </button>
                   </td>
                 </tr>
                 {deleteConfirmId === sponsor.id && (
-                  <tr className="border-b border-line last:border-0">
-                    <td colSpan={6} className="px-4 py-3 bg-red-50">
+                  <tr className="border-b border-emerald/20 last:border-0">
+                    <td colSpan={6} className="px-4 py-3 bg-coral/10">
                       <div className="flex items-center gap-3">
                         <p className="text-sm">
                           Delete {sponsor.name}? This cannot be undone.
@@ -318,13 +319,13 @@ export function DirectoryTab() {
                         <button
                           disabled={deleting}
                           onClick={() => void handleDelete(sponsor)}
-                          className="bg-rust text-white px-3 py-1 rounded-full text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
+                          className="bg-coral-deep text-white px-3 py-1 rounded-full text-sm hover:bg-gold-deep transition-colors disabled:opacity-50"
                         >
                           Confirm delete
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(null)}
-                          className="text-sm text-muted"
+                          className="text-sm text-sage"
                         >
                           Cancel
                         </button>

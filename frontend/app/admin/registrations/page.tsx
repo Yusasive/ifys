@@ -176,7 +176,7 @@ export default function AdminRegistrationsPage() {
   if (loadError) {
     return (
       <main className="max-w-6xl mx-auto px-6 py-8">
-        <p className="border border-rust/30 bg-rust/10 text-rust rounded-xl px-4 py-3 text-sm">
+        <p className="border border-coral/30 bg-coral/10 text-coral-deep rounded-xl px-4 py-3 text-sm">
           {loadError}
         </p>
       </main>
@@ -193,7 +193,7 @@ export default function AdminRegistrationsPage() {
 
       <div className="flex flex-wrap items-end gap-3 mb-4">
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-muted">Search</span>
+          <span className="text-xs text-sage">Search</span>
           <input
             value={search}
             onChange={(e) => {
@@ -201,18 +201,18 @@ export default function AdminRegistrationsPage() {
               setSearch(e.target.value);
             }}
             placeholder="Name or email"
-            className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+            className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-muted">Status</span>
+          <span className="text-xs text-sage">Status</span>
           <select
             value={status}
             onChange={(e) => {
               setPage(1);
               setStatus(e.target.value);
             }}
-            className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+            className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
           >
             <option value="">All</option>
             <option value="pending_payment">Pending payment</option>
@@ -223,14 +223,14 @@ export default function AdminRegistrationsPage() {
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-muted">Category</span>
+          <span className="text-xs text-sage">Category</span>
           <select
             value={category}
             onChange={(e) => {
               setPage(1);
               setCategory(e.target.value);
             }}
-            className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+            className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
           >
             <option value="">All</option>
             <option value="student">Student</option>
@@ -261,7 +261,7 @@ export default function AdminRegistrationsPage() {
           <button
             disabled={bulkBusy}
             onClick={() => void runBulk(markPaid, "marked paid")}
-            className="bg-emerald text-paper px-4 py-1.5 rounded-full hover:bg-forest transition-colors disabled:opacity-50"
+            className="bg-emerald text-white px-4 py-1.5 rounded-full hover:bg-forest transition-colors disabled:opacity-50"
           >
             Mark paid
           </button>
@@ -272,19 +272,20 @@ export default function AdminRegistrationsPage() {
           >
             Resend ticket
           </button>
-          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-muted underline">
+          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-sage underline">
             Clear
           </button>
         </div>
       )}
 
-      <div className="border border-line rounded-2xl overflow-x-auto bg-white shadow-sm">
+      <div className="border border-emerald/20 rounded-2xl overflow-x-auto bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+            <tr className="border-b border-emerald/20 text-left text-xs uppercase tracking-wide text-sage">
               <th className="px-4 py-2 w-8">
                 <input
                   type="checkbox"
+                  className="accent-emerald"
                   checked={allVisibleSelected}
                   onChange={toggleAllVisible}
                   aria-label="Select all visible rows"
@@ -302,10 +303,11 @@ export default function AdminRegistrationsPage() {
           <tbody>
             {loading && !hasLoadedOnce && <TableRowsSkeleton cols={COLUMN_COUNT} />}
             {registrations.map((r) => (
-              <tr key={r.id} className="border-b border-line last:border-0 hover:bg-paper-2">
+              <tr key={r.id} className="border-b border-emerald/20 last:border-0 hover:bg-emerald/5">
                 <td className="px-4 py-2">
                   <input
                     type="checkbox"
+                    className="accent-emerald"
                     checked={selectedIds.has(r.id)}
                     onChange={() => toggleRow(r.id)}
                     aria-label={`Select ${r.attendee.fullName}`}
@@ -316,7 +318,7 @@ export default function AdminRegistrationsPage() {
                     {r.attendee.fullName}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-muted">{r.attendee.email}</td>
+                <td className="px-4 py-2 text-sage">{r.attendee.email}</td>
                 <td className="px-4 py-2">
                   {CATEGORY_LABELS[r.ticketProduct.category]} · {TIER_LABELS[r.ticketProduct.tier]}
                 </td>
@@ -326,7 +328,7 @@ export default function AdminRegistrationsPage() {
                 <td className="px-4 py-2">
                   <StatusBadge status={r.status} />
                 </td>
-                <td className="px-4 py-2 text-muted">{formatDateTime(r.createdAt)}</td>
+                <td className="px-4 py-2 text-sage">{formatDateTime(r.createdAt)}</td>
                 <td className="px-4 py-2 font-mono">
                   {r.ticket ? (
                     <>
@@ -334,14 +336,14 @@ export default function AdminRegistrationsPage() {
                       <StatusBadge status={r.ticket.status} />
                     </>
                   ) : (
-                    <span className="text-muted">N/A</span>
+                    <span className="text-sage">N/A</span>
                   )}
                 </td>
               </tr>
             ))}
             {registrations.length === 0 && !loading && (
               <tr>
-                <td colSpan={COLUMN_COUNT} className="px-4 py-8 text-center text-muted">
+                <td colSpan={COLUMN_COUNT} className="px-4 py-8 text-center text-sage">
                   No registrations match these filters.
                 </td>
               </tr>
@@ -351,21 +353,21 @@ export default function AdminRegistrationsPage() {
       </div>
 
       <div className="flex items-center justify-between mt-4 text-sm">
-        <span className="text-muted">
+        <span className="text-sage">
           {total} total · page {page} of {totalPages}
         </span>
         <div className="flex gap-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="border border-line px-4 py-1.5 rounded-full disabled:opacity-40 hover:bg-paper-2 transition-colors"
+            className="border border-emerald/20 px-4 py-1.5 rounded-full disabled:opacity-40 hover:bg-emerald/5 transition-colors"
           >
             Previous
           </button>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="border border-line px-4 py-1.5 rounded-full disabled:opacity-40 hover:bg-paper-2 transition-colors"
+            className="border border-emerald/20 px-4 py-1.5 rounded-full disabled:opacity-40 hover:bg-emerald/5 transition-colors"
           >
             Next
           </button>

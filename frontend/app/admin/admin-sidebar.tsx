@@ -53,7 +53,7 @@ export function AdminSidebarNav({
         ))}
       </div>
       {footerItems.length > 0 && (
-        <div className="mt-auto pt-4 border-t border-line flex flex-col gap-1">
+        <div className="mt-auto pt-4 border-t border-emerald/20 flex flex-col gap-1">
           {footerItems.map((item) => (
             <NavLink
               key={item.href}

@@ -27,13 +27,13 @@ function SignOutFooter() {
   }
 
   return (
-    <div className="pt-4 border-t border-line text-sm">
-      <p className="font-mono text-xs uppercase tracking-wide text-muted mb-2">
+    <div className="pt-4 border-t border-emerald/20 text-sm">
+      <p className="font-mono text-xs uppercase tracking-wide text-sage mb-2">
         {session.user.name} · {session.user.role}
       </p>
       <button
         onClick={handleLogout}
-        className="text-rust hover:text-coral-deep transition-colors underline underline-offset-2"
+        className="text-coral-deep hover:text-coral-deep transition-colors underline underline-offset-2"
       >
         Sign out
       </button>
@@ -69,11 +69,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen md:flex">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col md:w-64 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-line border-t-4 border-t-gold bg-paper-2 px-4 py-6">
+      <aside className="hidden md:flex md:flex-col md:w-64 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-emerald/20 border-t-4 border-t-gold bg-white px-4 py-6">
         <div className="mb-2">
           <BrandLink />
         </div>
-        <p className="font-mono text-[11px] uppercase tracking-widest text-rust mb-6">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-coral-deep mb-6">
           Operations dashboard
         </p>
         <AdminSidebarNav role={session?.user.role} />
@@ -81,7 +81,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile top bar */}
-      <div className="md:hidden flex items-center justify-between border-b border-line border-t-4 border-t-gold px-4 py-3 bg-paper-2">
+      <div className="md:hidden flex items-center justify-between border-b border-emerald/20 border-t-4 border-t-gold px-4 py-3 bg-white">
         <BrandLink />
         <button
           onClick={() => setDrawerOpen(true)}
@@ -99,7 +99,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="absolute inset-0 bg-ink/40"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 w-72 max-w-[80vw] bg-paper-2 border-r border-line px-4 py-6 flex flex-col transition-transform duration-200">
+          <div className="absolute inset-y-0 left-0 w-72 max-w-[80vw] bg-white border-r border-emerald/20 px-4 py-6 flex flex-col transition-transform duration-200">
             <div className="flex items-center justify-between mb-6">
               <BrandLink />
               <button
