@@ -4,20 +4,6 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { Speaker } from "@/lib/api";
 
-// function ChevronIcon({ direction }: { direction: "left" | "right" }) {
-//   return (
-//     <svg
-//       viewBox="0 0 24 24"
-//       fill="none"
-//       stroke="currentColor"
-//       strokeWidth="2"
-//       className={`w-5 h-5 ${direction === "left" ? "rotate-180" : ""}`}
-//     >
-//       <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
-//     </svg>
-//   );
-// }
-
 export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
@@ -25,12 +11,6 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
   function getStep(el: HTMLDivElement) {
     const card = el.querySelector("[data-card]") as HTMLElement | null;
     return card ? card.offsetWidth + 32 : el.clientWidth * 0.8;
-  }
-
-  function scrollBy(direction: "left" | "right") {
-    const el = trackRef.current;
-    if (!el) return;
-    el.scrollBy({ left: direction === "left" ? -getStep(el) : getStep(el), behavior: "smooth" });
   }
 
   useEffect(() => {
@@ -120,25 +100,6 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
             </div>
           ))}
         </div>
-
-        {/* <div className="flex items-center justify-center gap-3 mt-10 px-4">
-          <button
-            type="button"
-            onClick={() => scrollBy("left")}
-            aria-label="Previous speaker"
-            className="w-10 h-10 py-3.5 rounded-full border border-line flex items-center justify-center text-rust hover:bg-coral hover:text-white hover:border-coral transition-colors"
-          >
-            <ChevronIcon direction="left" />
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollBy("right")}
-            aria-label="Next speaker"
-            className="w-10 h-10 py-3.5 rounded-full border border-line flex items-center justify-center text-rust hover:bg-coral hover:text-white hover:border-coral transition-colors"
-          >
-            <ChevronIcon direction="right" />
-          </button>
-        </div> */}
       </div>
     </section>
   );
