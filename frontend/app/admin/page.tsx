@@ -11,11 +11,22 @@ import { StatusBadge } from "./status-badge";
 
 const RECENT_PAGE_SIZE = 5;
 
-function StatCard({ label, value }: { label: string; value: number | string }) {
+const STAT_ACCENTS = ["bg-emerald", "bg-coral", "bg-gold", "bg-forest"];
+
+function StatCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number | string;
+  accent: string;
+}) {
   return (
-    <div className="border border-line rounded-sm p-4 bg-white">
-      <div className="text-xs uppercase tracking-wide text-muted mb-1">{label}</div>
-      <div className="font-mono text-2xl">{value}</div>
+    <div className="relative overflow-hidden border border-line rounded-2xl p-4 bg-white shadow-sm">
+      <div className={`absolute top-0 left-0 h-1 w-full ${accent}`} />
+      <div className="font-mono text-xs uppercase tracking-wide text-muted mb-1">{label}</div>
+      <div className="font-bricolage font-bold text-3xl text-forest">{value}</div>
     </div>
   );
 }
@@ -61,27 +72,33 @@ export default function AdminOverviewPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
-      <h1 className="font-display text-2xl mb-6">Overview</h1>
+      <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Overview</h1>
 
       {loadError && (
-        <p className="border border-red-300 bg-red-50 text-red-700 rounded-sm px-4 py-3 text-sm mb-6">
+        <p className="border border-rust/30 bg-rust/10 text-rust rounded-xl px-4 py-3 text-sm mb-6">
           {loadError}
         </p>
       )}
 
       {stats ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <StatCard label="Total registrations" value={stats.total} />
-          <StatCard label="Paid" value={stats.byStatus.paid ?? 0} />
-          <StatCard label="Pending payment" value={stats.byStatus.pending_payment ?? 0} />
-          <StatCard label="Tickets issued" value={stats.ticketsIssued} />
+          <StatCard label="Total registrations" value={stats.total} accent={STAT_ACCENTS[0]} />
+          <StatCard label="Paid" value={stats.byStatus.paid ?? 0} accent={STAT_ACCENTS[1]} />
+          <StatCard
+            label="Pending payment"
+            value={stats.byStatus.pending_payment ?? 0}
+            accent={STAT_ACCENTS[2]}
+          />
+          <StatCard label="Tickets issued" value={stats.ticketsIssued} accent={STAT_ACCENTS[3]} />
         </div>
       ) : (
         !loadError && <div className="mb-8"><StatCardsSkeleton /></div>
       )}
 
-      <div className="border border-line rounded-sm bg-white p-4">
-        <h2 className="text-xs uppercase tracking-wide text-muted mb-3">Recent registrations</h2>
+      <div className="border border-line rounded-2xl bg-white p-4 shadow-sm">
+        <h2 className="font-mono text-xs uppercase tracking-wide text-rust mb-3">
+          Recent registrations
+        </h2>
         {recent ? (
           recent.length > 0 ? (
             <ul className="flex flex-col divide-y divide-line">
@@ -89,7 +106,7 @@ export default function AdminOverviewPage() {
                 <li key={r.id}>
                   <Link
                     href={`/admin/registrations/${r.id}`}
-                    className="flex items-center justify-between gap-3 py-2.5 text-sm hover:bg-paper-2 -mx-2 px-2 rounded-sm"
+                    className="flex items-center justify-between gap-3 py-2.5 text-sm hover:bg-paper-2 -mx-2 px-2 rounded-lg transition-colors"
                   >
                     <span className="truncate">{r.attendee.fullName}</span>
                     <span className="flex items-center gap-3 shrink-0">

@@ -144,6 +144,9 @@ export class PaymentsService {
     signatureHeader: string | undefined,
   ) {
     if (!this.paystack.verifyWebhookSignature(rawBody, signatureHeader)) {
+      this.logger.warn(
+        'Rejected Paystack webhook: invalid or missing signature. Check that PAYSTACK_SECRET_KEY matches the live/test mode of the dashboard that sent this request.',
+      );
       throw new BadRequestException('Invalid webhook signature');
     }
 

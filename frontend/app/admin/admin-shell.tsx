@@ -28,10 +28,13 @@ function SignOutFooter() {
 
   return (
     <div className="pt-4 border-t border-line text-sm">
-      <p className="text-muted mb-2">
+      <p className="font-mono text-xs uppercase tracking-wide text-muted mb-2">
         {session.user.name} · {session.user.role}
       </p>
-      <button onClick={handleLogout} className="text-ink underline">
+      <button
+        onClick={handleLogout}
+        className="text-rust hover:text-coral-deep transition-colors underline underline-offset-2"
+      >
         Sign out
       </button>
     </div>
@@ -62,21 +65,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen md:flex">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col md:w-64 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-line bg-paper-2 px-4 py-6">
-        <div className="mb-6">
+      <aside className="hidden md:flex md:flex-col md:w-64 md:shrink-0 md:h-screen md:sticky md:top-0 border-r border-line border-t-4 border-t-gold bg-paper-2 px-4 py-6">
+        <div className="mb-2">
           <BrandLink />
         </div>
+        <p className="font-mono text-[11px] uppercase tracking-widest text-rust mb-6">
+          Operations dashboard
+        </p>
         <AdminSidebarNav role={session?.user.role} />
         <SignOutFooter />
       </aside>
 
       {/* Mobile top bar */}
-      <div className="md:hidden flex items-center justify-between border-b border-line px-4 py-3 bg-paper-2">
+      <div className="md:hidden flex items-center justify-between border-b border-line border-t-4 border-t-gold px-4 py-3 bg-paper-2">
         <BrandLink />
         <button
           onClick={() => setDrawerOpen(true)}
           aria-label="Open menu"
-          className="text-2xl leading-none text-ink px-2"
+          className="text-2xl leading-none text-forest px-2"
         >
           ☰
         </button>

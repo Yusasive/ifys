@@ -175,24 +175,43 @@ export default function CheckInPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col px-4 py-6">
-      <div className="flex items-center justify-between mb-4 text-sm gap-3 border-b border-line pb-4">
-        <div className="flex items-center gap-3 font-mono text-muted">
-          <span>{status ? `${status.checkedIn} / ${status.totalTickets} checked in` : "…"}</span>
-          <span className={online ? "text-emerald" : "text-gold"}>
-            {online ? "online" : "offline"}
+    <main className="min-h-screen bg-white flex flex-col px-4 py-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 border-b border-rust/20 pb-4">
+        <div className="flex flex-wrap items-center gap-2 font-plex text-sm text-emerald/70">
+          <span className="font-medium text-emerald">
+            {status ? `${status.checkedIn} / ${status.totalTickets} checked in` : "…"}
           </span>
-          {pendingCount > 0 && <span className="text-gold">{pendingCount} queued</span>}
+
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+              online ? "bg-emerald/10 text-emerald" : "bg-rust/10 text-rust"
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${online ? "bg-emerald" : "bg-rust"}`}
+              aria-hidden="true"
+            />
+            {online ? "Online" : "Offline"}
+          </span>
+
+          {pendingCount > 0 && (
+            <span className="rounded-full bg-rust/10 text-rust text-xs font-medium px-2.5 py-1">
+              {pendingCount} queued
+            </span>
+          )}
           {conflictCount > 0 && (
-            <span className="text-red-600">{conflictCount} sync conflict{conflictCount > 1 ? "s" : ""}</span>
+            <span className="rounded-full bg-red-100 text-red-700 text-xs font-medium px-2.5 py-1">
+              {conflictCount} sync conflict{conflictCount > 1 ? "s" : ""}
+            </span>
           )}
         </div>
+
         <button
           onClick={() => {
             logout();
             router.replace("/admin/login");
           }}
-          className="text-muted underline shrink-0"
+          className="self-start sm:self-auto text-sm font-medium text-emerald/60 hover:text-rust border border-rust/30 hover:border-rust rounded-full px-4 py-1.5 shrink-0 transition-colors"
         >
           Sign out
         </button>
@@ -203,7 +222,7 @@ export default function CheckInPage() {
           <ScannerCamera paused={busy} onDetect={(text) => void runScan({ qrToken: text })} />
           <button
             onClick={() => setScanning(false)}
-            className="mt-3 w-full text-muted underline text-sm"
+            className="mt-3 w-full text-emerald/60 hover:text-rust underline text-sm transition-colors"
           >
             Stop camera
           </button>
@@ -211,13 +230,13 @@ export default function CheckInPage() {
       ) : (
         <button
           onClick={() => setScanning(true)}
-          className="max-w-md mx-auto w-full aspect-[3/1] bg-white border border-line rounded-sm flex items-center justify-center text-lg font-medium text-emerald hover:bg-paper-2"
+          className="max-w-md mx-auto w-full aspect-[3/1] bg-rust text-white rounded-[20px] flex items-center justify-center text-lg font-sans font-medium hover:bg-rust/90 transition-colors"
         >
           Start scanning
         </button>
       )}
 
-      <form onSubmit={handleManualSubmit} className="mt-6 flex gap-2 max-w-md mx-auto w-full">
+      <form onSubmit={handleManualSubmit} className="mt-6 flex flex-col sm:flex-row gap-3 max-w-md mx-auto w-full">
         <label htmlFor="manual-check-in-code" className="sr-only">
           Manual check-in code
         </label>
@@ -227,11 +246,11 @@ export default function CheckInPage() {
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="Enter short code"
           autoCapitalize="characters"
-          className="flex-1 bg-white border border-line rounded-sm px-4 py-3 text-lg font-mono tracking-widest text-center text-ink focus:outline-none focus:border-gold"
+          className="flex-1 min-w-0 bg-white border border-rust/70 rounded-full px-5 py-3 text-base sm:text-lg font-mono tracking-widest text-center text-emerald placeholder:text-emerald/50 focus:outline-none focus:border-rust"
         />
         <button
           type="submit"
-          className="bg-gold text-ink font-medium px-6 rounded-sm"
+          className="w-full sm:w-auto flex items-center justify-center bg-rust text-white font-sans font-semibold px-6 py-3 rounded-full hover:bg-rust/90 transition-colors"
         >
           Check in
         </button>

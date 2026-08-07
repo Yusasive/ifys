@@ -29,7 +29,7 @@ const STATUS_LABEL: Record<VolunteerApplicationStatus, string> = {
 const STATUS_STYLE: Record<VolunteerApplicationStatus, string> = {
   pending: "bg-gold/10 text-gold-deep",
   approved: "bg-emerald/10 text-emerald",
-  rejected: "bg-red-100 text-red-700",
+  rejected: "bg-rust/10 text-rust",
 };
 
 export default function AdminVolunteersPage() {
@@ -112,12 +112,12 @@ export default function AdminVolunteersPage() {
     <main className="max-w-4xl mx-auto px-6 py-8">
       <Link
         href="/admin/registrations"
-        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
       >
         ← Back to registrations
       </Link>
 
-      <h1 className="font-display text-2xl mb-6">Volunteer applicants</h1>
+      <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Volunteer applicants</h1>
 
       <div className="flex items-center gap-2 mb-4">
         <span className="text-sm text-muted">Status</span>
@@ -126,7 +126,7 @@ export default function AdminVolunteersPage() {
           onChange={(e) =>
             setStatusFilter(e.target.value as VolunteerApplicationStatus | "all")
           }
-          className="border border-line rounded-sm px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+          className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
         >
           <option value="all">All</option>
           <option value="pending">Pending</option>
@@ -135,7 +135,7 @@ export default function AdminVolunteersPage() {
         </select>
       </div>
 
-      <div className="border border-line rounded-sm bg-white overflow-x-auto">
+      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -178,7 +178,7 @@ export default function AdminVolunteersPage() {
                     </td>
                     <td className="px-4 py-2">
                       <span
-                        className={`text-xs px-2 py-0.5 rounded-sm ${STATUS_STYLE[application.status]}`}
+                        className={`text-xs px-2.5 py-0.5 rounded-full ${STATUS_STYLE[application.status]}`}
                       >
                         {STATUS_LABEL[application.status]}
                       </span>
@@ -196,7 +196,7 @@ export default function AdminVolunteersPage() {
                           <button
                             disabled={busyId === application.id}
                             onClick={() => void handleReject(application)}
-                            className="text-sm text-red-700 underline disabled:opacity-50"
+                            className="text-sm text-rust underline disabled:opacity-50"
                           >
                             Reject
                           </button>

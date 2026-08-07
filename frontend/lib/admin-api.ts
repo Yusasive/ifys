@@ -11,7 +11,12 @@ import {
 } from "./api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
-const CSRF_COOKIE = "csrf_token";
+
+// The CSRF token is handed to us once in the login/me response body and
+// kept here in memory rather than read back out of a cookie — the API and
+// the frontend can be served from different origins in production, and a
+// cookie set by one origin isn't visible to document.cookie on another.
+let csrfToken: string | null = null;
 
 export type AdminRole = "organizer" | "door_staff" | "super_admin";
 // Roles that can actually be assigned via POST /admin/users — super_admin
@@ -25,19 +30,11 @@ export interface AdminUser {
   role: AdminRole;
 }
 
-function readCsrfToken(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${CSRF_COOKIE}=`));
-  return match ? decodeURIComponent(match.split("=").slice(1).join("=")) : null;
-}
-
 const SAFE_METHODS = new Set(["GET", "HEAD", undefined]);
 
 async function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const method = init?.method?.toUpperCase();
-  const csrfToken = SAFE_METHODS.has(method) ? null : readCsrfToken();
+  const tokenForRequest = SAFE_METHODS.has(method) ? null : csrfToken;
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -46,7 +43,7 @@ async function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+      ...(tokenForRequest ? { "X-CSRF-Token": tokenForRequest } : {}),
       ...init?.headers,
     },
   });
@@ -61,19 +58,25 @@ async function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function login(email: string, password: string) {
-  return adminRequest<{ user: AdminUser }>("/auth/login", {
+export async function login(email: string, password: string) {
+  const result = await adminRequest<{ user: AdminUser; csrfToken: string }>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
+  csrfToken = result.csrfToken;
+  return { user: result.user };
 }
 
-export function logout() {
-  return adminRequest<{ ok: true }>("/auth/logout", { method: "POST" });
+export async function logout() {
+  const result = await adminRequest<{ ok: true }>("/auth/logout", { method: "POST" });
+  csrfToken = null;
+  return result;
 }
 
-export function fetchCurrentUser() {
-  return adminRequest<{ user: AdminUser }>("/auth/me");
+export async function fetchCurrentUser() {
+  const result = await adminRequest<{ user: AdminUser; csrfToken: string }>("/auth/me");
+  csrfToken = result.csrfToken;
+  return { user: result.user };
 }
 
 export interface RegistrationListItem {

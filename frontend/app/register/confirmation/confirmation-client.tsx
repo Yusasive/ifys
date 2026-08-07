@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { fetchRegistration, Registration } from "@/lib/api";
+import { fetchRegistration, Registration, ticketPdfUrl } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 
 const POLL_INTERVAL_MS = 2000;
@@ -86,8 +86,10 @@ export function ConfirmationClient() {
   if (state === "error" || !registrationId || !lookupToken) {
     return (
       <StatusCard
-        heading="We couldn't find that registration."
+        eyebrow="Registration Not Found"
+        subheading="We couldn't find that registration."
         body="If you completed payment, check your email for your ticket, or contact support."
+        icon="error"
       />
     );
   }
@@ -95,9 +97,10 @@ export function ConfirmationClient() {
   if (state === "polling") {
     return (
       <StatusCard
-        heading="Confirming your payment…"
+        eyebrow="Confirming Payment"
+        subheading="Hang tight, almost there!"
         body="This usually takes a few seconds. Do not close this page."
-        spinning
+        icon="spinner"
       />
     );
   }
@@ -105,8 +108,10 @@ export function ConfirmationClient() {
   if (state === "timeout") {
     return (
       <StatusCard
-        heading="Still processing."
+        eyebrow="Still Processing"
+        subheading="This is taking a little longer than usual."
         body="Your payment may still be confirming on our end. Check your email shortly. If nothing arrives in a few minutes, contact support."
+        icon="error"
       />
     );
   }
@@ -114,69 +119,106 @@ export function ConfirmationClient() {
   const ticket = registration?.ticket;
 
   return (
-    <div className="border border-gold-deep rounded-sm px-6 py-8 bg-cloud text-center">
-      <p className="font-mono text-sm font-semibold tracking-widest text-gold-deep uppercase mb-3">
-        Ticket issued
-      </p>
-      <h2 className="font-display text-4xl italic text-emerald mb-2">You&apos;re in.</h2>
+    <StatusCard
+      eyebrow="Registration Successful"
+      subheading="You have just secured your spot!"
+      icon="check"
+    >
       {registration && (
-        <p className="text-base font-medium text-emerald/70 max-w-sm mx-auto mb-1">
+        <p className="text-base font-medium text-white/90 mb-1">
           {CATEGORY_LABELS[registration.ticketProduct.category]}
         </p>
       )}
-      <p className="text-sm text-muted max-w-sm mx-auto mb-6">
+      <p className="text-sm text-white/70 mb-6">
         {EVENT_VENUE} · {EVENT_DATE_LABEL}
       </p>
 
       {ticket ? (
         <div className="max-w-xs mx-auto">
-          <div className="bg-white border border-line rounded-sm p-4 inline-block">
+          <div className="bg-white rounded-sm p-4 inline-block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ticket.qrDataUrl} alt="Ticket QR code" className="w-48 h-48" />
+            <img src={ticket.qrDataUrl} alt="Ticket QR code" className="w-40 h-40 sm:w-48 sm:h-48" />
           </div>
-          <div className="border-t border-dashed border-line my-4" />
-          <p className="text-sm font-semibold text-emerald/60 uppercase tracking-widest mb-1">Short code</p>
-          <p className="font-mono text-4xl font-semibold text-gold-deep tracking-widest mb-6">
+          <div className="border-t border-dashed border-white/30 my-4" />
+          <p className="text-sm font-semibold text-white/70 uppercase tracking-widest mb-1">Short code</p>
+          <p className="font-mono text-3xl sm:text-4xl font-semibold text-white tracking-widest mb-6">
             {ticket.ticketCode}
           </p>
           <div className="flex items-center justify-center gap-4 text-sm font-medium">
-            <a href={ticket.qrDataUrl} download={`ticket-${ticket.ticketCode}.png`} className="underline text-gold-deep">
-              Download ticket
+            <a href={ticketPdfUrl(registrationId, lookupToken)} className="underline text-white">
+              Download ticket (PDF)
             </a>
-            <a href={buildCalendarUrl(ticket.ticketCode)} download="ify-summit-2026.ics" className="underline text-gold-deep">
+            <a href={buildCalendarUrl(ticket.ticketCode)} download="ify-summit-2026.ics" className="underline text-white">
               Add to calendar
             </a>
           </div>
         </div>
       ) : (
-        <p className="text-base text-muted max-w-sm mx-auto">
-          Your e-ticket with QR code and short code has been emailed to{" "}
-          {registration?.attendee.email}.
+        <p className="font-sans text-base sm:text-2xl font-medium leading-snug sm:leading-[48px] tracking-normal text-center text-white max-w-sm mx-auto">
+          We look forward to welcoming you at the {EVENT_NAME}. Check your Email for your Ticket
+          details.
         </p>
       )}
-    </div>
+    </StatusCard>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-8 h-8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12.5 10 16l8-8" />
+    </svg>
+  );
+}
+
+function ErrorIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-8 h-8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v5M12 16.5h.01" />
+    </svg>
   );
 }
 
 function StatusCard({
-  heading,
+  eyebrow,
+  subheading,
   body,
-  spinning,
+  icon,
+  children,
 }: {
-  heading: string;
-  body: string;
-  spinning?: boolean;
+  eyebrow: string;
+  subheading: string;
+  body?: string;
+  icon: "check" | "error" | "spinner";
+  children?: ReactNode;
 }) {
   return (
-    <div className="border border-line rounded-sm px-6 py-10 bg-cloud text-center">
-      {spinning && (
-        <div
-          className="w-8 h-8 mx-auto mb-4 rounded-full border-2 border-line border-t-gold-deep animate-spin"
-          aria-hidden="true"
-        />
-      )}
-      <h2 className="font-display text-4xl italic text-emerald mb-4">{heading}</h2>
-      <p className="text-base text-emerald/70 max-w-sm mx-auto">{body}</p>
+    <div className="text-center">
+      <h1 className="font-plex text-lg sm:text-2xl font-medium leading-tight sm:leading-[48px] tracking-normal uppercase text-forest mb-4 sm:mb-6">
+        {eyebrow}
+      </h1>
+      <p className="font-bricolage text-lg sm:text-2xl font-medium leading-tight sm:leading-[48px] tracking-normal text-black mb-6 sm:mb-8">
+        {subheading}
+      </p>
+
+      <div className="w-full lg:w-[541px] lg:min-h-[421px] mx-auto bg-rust rounded-[10px] px-6 py-10 sm:px-10 lg:py-12 flex flex-col justify-center">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-6 rounded-full border-2 border-white text-white flex items-center justify-center shrink-0">
+          {icon === "check" && <CheckIcon />}
+          {icon === "error" && <ErrorIcon />}
+          {icon === "spinner" && (
+            <div
+              className="w-6 h-6 rounded-full border-2 border-white/40 border-t-white animate-spin"
+              aria-hidden="true"
+            />
+          )}
+        </div>
+        {body && (
+          <p className="font-sans text-base sm:text-2xl font-medium leading-snug sm:leading-[48px] tracking-normal text-center text-white max-w-sm mx-auto">
+            {body}
+          </p>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

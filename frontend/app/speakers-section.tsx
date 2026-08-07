@@ -4,19 +4,19 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { Speaker } from "@/lib/api";
 
-function ChevronIcon({ direction }: { direction: "left" | "right" }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={`w-5 h-5 ${direction === "left" ? "rotate-180" : ""}`}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
-    </svg>
-  );
-}
+// function ChevronIcon({ direction }: { direction: "left" | "right" }) {
+//   return (
+//     <svg
+//       viewBox="0 0 24 24"
+//       fill="none"
+//       stroke="currentColor"
+//       strokeWidth="2"
+//       className={`w-5 h-5 ${direction === "left" ? "rotate-180" : ""}`}
+//     >
+//       <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
+//     </svg>
+//   );
+// }
 
 export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -64,14 +64,15 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
 
   return (
     <section id="speakers" className="bg-islamic-pattern">
-      <div className="py-16 sm:py-24">
+      <div className="py-8 lg:py-14">
         <div className="mx-auto px-4 sm:px-6 text-center mb-12 sm:mb-14">
           <p className="font-plex text-lg lg:text-2xl font-normal leading-[48px] tracking-normal text-rust uppercase text-center mb-4">
             Meet Our Speakers
           </p>
           <h2 className="font-sans text-lg lg:text-[36px] font-normal leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center">
-            A powerful lineup of speakers bringing experience, ideas, and insights to redefine the
-            future of finance, innovation, and ethical impact.
+            A powerful lineup of speakers bringing experience, ideas, and
+            insights to redefine the future of finance, innovation, and ethical
+            impact.
           </h2>
         </div>
 
@@ -99,7 +100,9 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
                       className="object-cover"
                     />
                   ) : (
-                    <span className="font-bricolage font-bold text-7xl text-white/90">?</span>
+                    <span className="font-bricolage font-bold text-7xl text-white/90">
+                      ?
+                    </span>
                   )}
                 </div>
               </div>
@@ -111,17 +114,19 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
               <p className="mt-4 font-bricolage font-medium text-base text-black text-center">
                 {speaker.name}
               </p>
-              <p className="mt-1 text-sm text-muted text-center">{speaker.role}</p>
+              <p className="mt-1 text-sm text-muted text-center">
+                {speaker.role}
+              </p>
             </div>
           ))}
         </div>
 
-        <div className="flex items-center justify-center gap-3 mt-10 px-4">
+        {/* <div className="flex items-center justify-center gap-3 mt-10 px-4">
           <button
             type="button"
             onClick={() => scrollBy("left")}
             aria-label="Previous speaker"
-            className="w-10 h-10 rounded-full border border-line flex items-center justify-center text-rust hover:bg-coral hover:text-white hover:border-coral transition-colors"
+            className="w-10 h-10 py-3.5 rounded-full border border-line flex items-center justify-center text-rust hover:bg-coral hover:text-white hover:border-coral transition-colors"
           >
             <ChevronIcon direction="left" />
           </button>
@@ -129,11 +134,11 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
             type="button"
             onClick={() => scrollBy("right")}
             aria-label="Next speaker"
-            className="w-10 h-10 rounded-full border border-line flex items-center justify-center text-rust hover:bg-coral hover:text-white hover:border-coral transition-colors"
+            className="w-10 h-10 py-3.5 rounded-full border border-line flex items-center justify-center text-rust hover:bg-coral hover:text-white hover:border-coral transition-colors"
           >
             <ChevronIcon direction="right" />
           </button>
-        </div>
+        </div> */}
       </div>
     </section>
   );

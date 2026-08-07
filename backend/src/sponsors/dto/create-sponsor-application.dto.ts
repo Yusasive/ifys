@@ -31,6 +31,14 @@ export class CreateSponsorApplicationDto {
 
   @IsOptional()
   @IsString()
+  websiteUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  budgetNote?: string;
+
+  @IsOptional()
+  @IsString()
   message?: string;
 
   @IsOptional()

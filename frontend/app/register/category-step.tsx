@@ -2,14 +2,13 @@
 
 import type { ReactElement } from "react";
 import type { Category, TicketProduct } from "@/lib/api";
-import { CATEGORY_LABELS, formatKobo } from "@/lib/format";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setCategory, setStep, setTier } from "@/lib/registration-slice";
 
-const CATEGORIES: { value: Category; description: string; icon: ReactElement }[] = [
+const CATEGORIES: { value: Category; label: string; icon: ReactElement }[] = [
   {
     value: "student",
-    description: "Currently enrolled at a college or university.",
+    label: "Student",
     icon: (
       <path
         strokeLinecap="round"
@@ -19,14 +18,25 @@ const CATEGORIES: { value: Category; description: string; icon: ReactElement }[]
     ),
   },
   {
-    value: "professional",
-    description: "Working in finance, tech, or an adjacent field.",
+    value: "founder",
+    label: "Founder",
     icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M4 9h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9Zm3 0V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2M4 13h16"
-      />
+      <>
+        <circle cx="12" cy="8" r="3.2" />
+        <path strokeLinecap="round" d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5" />
+      </>
+    ),
+  },
+  {
+    value: "professional",
+    label: "Working Professional",
+    icon: (
+      <>
+        <circle cx="9" cy="8" r="2.6" />
+        <path strokeLinecap="round" d="M4 20c0-2.9 2.2-5.2 5-5.2" />
+        <rect x="13" y="11" width="8" height="6.5" rx="1" />
+        <path strokeLinecap="round" d="M15.5 11V9.8a1.5 1.5 0 0 1 1.5-1.5h0a1.5 1.5 0 0 1 1.5 1.5V11" />
+      </>
     ),
   },
 ];
@@ -40,7 +50,7 @@ export function CategoryStep({ ticketProducts }: { ticketProducts: TicketProduct
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="w-full lg:w-[541px] lg:h-[421px] mx-auto bg-rust rounded-[10px] p-5 sm:p-9 lg:p-[36px] flex flex-col justify-center gap-4 sm:gap-6 lg:gap-[24px]">
       {CATEGORIES.map((c) => {
         const product = priceFor(c.value);
         return (
@@ -48,15 +58,16 @@ export function CategoryStep({ ticketProducts }: { ticketProducts: TicketProduct
             key={c.value}
             type="button"
             aria-pressed={selected === c.value}
+            aria-label={product ? `${c.label}, ${product.priceKobo / 100} ${product.currency}` : c.label}
             onClick={() => {
               dispatch(setCategory(c.value));
               dispatch(setTier("standard"));
               dispatch(setStep("details"));
             }}
-            className={`flex items-start gap-4 text-left border rounded-sm px-5 py-4 transition-colors ${
+            className={`flex items-center justify-center gap-2 sm:gap-3 rounded-full border px-3 sm:px-6 py-3 sm:py-5 text-white font-sans font-medium text-sm sm:text-lg lg:text-xl text-center transition-colors ${
               selected === c.value
-                ? "border-gold bg-cloud"
-                : "border-line hover:border-gold-deep"
+                ? "border-white bg-white/10"
+                : "border-white/70 hover:border-white hover:bg-white/5"
             }`}
           >
             <svg
@@ -64,25 +75,11 @@ export function CategoryStep({ ticketProducts }: { ticketProducts: TicketProduct
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
-              className={`w-7 h-7 mt-0.5 shrink-0 ${
-                selected === c.value ? "text-gold-deep" : "text-muted"
-              }`}
+              className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 shrink-0"
             >
               {c.icon}
             </svg>
-            <div className="flex-1">
-              <div className="flex items-baseline justify-between gap-3">
-                <div className="font-display text-2xl text-emerald">
-                  {CATEGORY_LABELS[c.value]}
-                </div>
-                {product && (
-                  <div className="font-mono text-base font-semibold text-gold-deep whitespace-nowrap">
-                    {formatKobo(product.priceKobo, product.currency)}
-                  </div>
-                )}
-              </div>
-              <div className="text-base text-emerald/70 mt-1">{c.description}</div>
-            </div>
+            {c.label}
           </button>
         );
       })}

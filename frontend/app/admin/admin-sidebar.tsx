@@ -17,8 +17,8 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
       onClick={onNavigate}
       className={
         active
-          ? "block px-3 py-2 rounded-sm text-sm font-medium bg-emerald text-paper"
-          : "block px-3 py-2 rounded-sm text-sm text-ink hover:bg-paper-2"
+          ? "block px-3.5 py-2 rounded-full text-sm font-semibold bg-emerald text-white shadow-sm"
+          : "block px-3.5 py-2 rounded-full text-sm text-ink hover:bg-gold/15 hover:text-forest transition-colors"
       }
     >
       {item.label}

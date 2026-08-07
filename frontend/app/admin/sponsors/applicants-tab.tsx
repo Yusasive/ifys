@@ -23,7 +23,7 @@ const STATUS_LABEL: Record<SponsorApplicationStatus, string> = {
 const STATUS_STYLE: Record<SponsorApplicationStatus, string> = {
   pending: "bg-gold/10 text-gold-deep",
   approved: "bg-emerald/10 text-emerald",
-  rejected: "bg-red-100 text-red-700",
+  rejected: "bg-rust/10 text-rust",
 };
 
 export function ApplicantsTab() {
@@ -103,7 +103,7 @@ export function ApplicantsTab() {
           onChange={(e) =>
             setStatusFilter(e.target.value as SponsorApplicationStatus | "all")
           }
-          className="border border-line rounded-sm px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+          className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
         >
           <option value="all">All</option>
           <option value="pending">Pending</option>
@@ -112,7 +112,7 @@ export function ApplicantsTab() {
         </select>
       </div>
 
-      <div className="border border-line rounded-sm bg-white overflow-x-auto">
+      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -142,10 +142,10 @@ export function ApplicantsTab() {
                     <img
                       src={application.logoUrl}
                       alt={application.organizationName}
-                      className="w-10 h-10 rounded-sm object-contain bg-paper-2"
+                      className="w-10 h-10 rounded-lg object-contain bg-paper-2"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-sm bg-paper-2" />
+                    <div className="w-10 h-10 rounded-lg bg-paper-2" />
                   )}
                 </td>
                 <td className="px-4 py-2">{application.organizationName}</td>
@@ -160,7 +160,7 @@ export function ApplicantsTab() {
                 </td>
                 <td className="px-4 py-2">
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-sm ${STATUS_STYLE[application.status]}`}
+                    className={`text-xs px-2.5 py-0.5 rounded-full ${STATUS_STYLE[application.status]}`}
                   >
                     {STATUS_LABEL[application.status]}
                   </span>
@@ -178,7 +178,7 @@ export function ApplicantsTab() {
                       <button
                         disabled={busyId === application.id}
                         onClick={() => void handleReject(application)}
-                        className="text-sm text-red-700 underline disabled:opacity-50"
+                        className="text-sm text-rust underline disabled:opacity-50"
                       >
                         Reject
                       </button>

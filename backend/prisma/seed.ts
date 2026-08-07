@@ -17,7 +17,7 @@ const DEV_ADMIN_USERS = [
 const PLACEHOLDER_PRICING_KOBO = {
   student: { standard: 500000, premium: 500000 }, // NGN 5,000
   founder: { standard: 1000000, premium: 1000000 }, // NGN 10,000
-  professional: { standard: 5000000, premium: 5000000 }, // NGN 50,000
+  professional: { standard: 1000000, premium: 1000000 }, // NGN 10,000
 } as const;
 
 async function main() {
@@ -45,11 +45,21 @@ async function main() {
 
   for (const category of ['student', 'founder', 'professional'] as const) {
     for (const tier of ['standard', 'premium'] as const) {
+      const cardFields =
+        tier === 'standard' && category === 'student'
+          ? { cardPriceLabel: '5K', cardNote: '*30% discount for early birds' }
+          : tier === 'standard' && (category === 'professional' || category === 'founder')
+            ? { cardPriceLabel: '10K', cardNote: '*30% discount for early birds' }
+            : {};
+
       await prisma.ticketProduct.upsert({
         where: {
           eventId_category_tier: { eventId: event.id, category, tier },
         },
-        update: {},
+        update: {
+          priceKobo: PLACEHOLDER_PRICING_KOBO[category][tier],
+          ...cardFields,
+        },
         create: {
           eventId: event.id,
           category,
@@ -57,12 +67,7 @@ async function main() {
           priceKobo: PLACEHOLDER_PRICING_KOBO[category][tier],
           currency: 'NGN',
           perksJson: tier === 'premium' ? { placeholder: true } : {},
-          ...(tier === 'standard' && category === 'student'
-            ? { cardPriceLabel: '5K', cardNote: '*30% discount for early birds' }
-            : {}),
-          ...(tier === 'standard' && category === 'professional'
-            ? { cardPriceLabel: '10K', cardNote: '*30% discount for early birds' }
-            : {}),
+          ...cardFields,
         },
       });
     }

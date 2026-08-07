@@ -176,7 +176,7 @@ export default function AdminRegistrationsPage() {
   if (loadError) {
     return (
       <main className="max-w-6xl mx-auto px-6 py-8">
-        <p className="border border-red-300 bg-red-50 text-red-700 rounded-sm px-4 py-3 text-sm">
+        <p className="border border-rust/30 bg-rust/10 text-rust rounded-xl px-4 py-3 text-sm">
           {loadError}
         </p>
       </main>
@@ -189,7 +189,7 @@ export default function AdminRegistrationsPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-8">
-      <h1 className="font-display text-2xl mb-6">Registrations</h1>
+      <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Registrations</h1>
 
       <div className="flex flex-wrap items-end gap-3 mb-4">
         <label className="flex flex-col gap-1">
@@ -201,7 +201,7 @@ export default function AdminRegistrationsPage() {
               setSearch(e.target.value);
             }}
             placeholder="Name or email"
-            className="border border-line rounded-sm px-3 py-1.5 text-sm"
+            className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -212,7 +212,7 @@ export default function AdminRegistrationsPage() {
               setPage(1);
               setStatus(e.target.value);
             }}
-            className="border border-line rounded-sm px-3 py-1.5 text-sm"
+            className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
           >
             <option value="">All</option>
             <option value="pending_payment">Pending payment</option>
@@ -230,7 +230,7 @@ export default function AdminRegistrationsPage() {
               setPage(1);
               setCategory(e.target.value);
             }}
-            className="border border-line rounded-sm px-3 py-1.5 text-sm"
+            className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
           >
             <option value="">All</option>
             <option value="student">Student</option>
@@ -243,7 +243,7 @@ export default function AdminRegistrationsPage() {
           <button
             onClick={() => void handleExport()}
             disabled={exportState === "queued" || exportState === "waiting" || exportState === "active"}
-            className="border border-ink px-4 py-1.5 rounded-sm text-sm disabled:opacity-50"
+            className="border border-emerald text-emerald px-4 py-1.5 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
           >
             {exportState && exportState !== "completed" ? "Exporting…" : "Export CSV"}
           </button>
@@ -256,19 +256,19 @@ export default function AdminRegistrationsPage() {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="bg-paper-2 border border-line rounded-sm px-4 py-2 flex items-center gap-3 mb-3 text-sm">
+        <div className="bg-gold/10 border border-gold/30 rounded-2xl px-4 py-2 flex items-center gap-3 mb-3 text-sm">
           <span>{selectedIds.size} selected</span>
           <button
             disabled={bulkBusy}
             onClick={() => void runBulk(markPaid, "marked paid")}
-            className="bg-emerald text-paper px-3 py-1 rounded-sm disabled:opacity-50"
+            className="bg-emerald text-paper px-4 py-1.5 rounded-full hover:bg-forest transition-colors disabled:opacity-50"
           >
             Mark paid
           </button>
           <button
             disabled={bulkBusy}
             onClick={() => void runBulk(resendTicket, "tickets resent")}
-            className="border border-ink px-3 py-1 rounded-sm disabled:opacity-50"
+            className="border border-emerald text-emerald px-4 py-1.5 rounded-full hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
           >
             Resend ticket
           </button>
@@ -278,7 +278,7 @@ export default function AdminRegistrationsPage() {
         </div>
       )}
 
-      <div className="border border-line rounded-sm overflow-x-auto bg-white">
+      <div className="border border-line rounded-2xl overflow-x-auto bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -358,14 +358,14 @@ export default function AdminRegistrationsPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="border border-line px-3 py-1 rounded-sm disabled:opacity-40"
+            className="border border-line px-4 py-1.5 rounded-full disabled:opacity-40 hover:bg-paper-2 transition-colors"
           >
             Previous
           </button>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="border border-line px-3 py-1 rounded-sm disabled:opacity-40"
+            className="border border-line px-4 py-1.5 rounded-full disabled:opacity-40 hover:bg-paper-2 transition-colors"
           >
             Next
           </button>

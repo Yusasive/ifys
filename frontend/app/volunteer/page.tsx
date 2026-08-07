@@ -11,8 +11,17 @@ import {
   VolunteerTeam,
 } from "@/lib/api";
 import { SiteHeader } from "../site-header";
+import { FormBackButton } from "../form-back-button";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
+
+function SendIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 shrink-0">
+      <path d="M21.44 2.56a.75.75 0 0 0-.8-.17L2.9 9.24a.75.75 0 0 0 .04 1.4l7.06 2.53 2.53 7.06a.75.75 0 0 0 1.4.04l6.85-17.74a.75.75 0 0 0-.34-.97ZM11.2 12.7 4.86 10.4l13.4-5.17-7.06 7.47Zm2.09 6.94-2.3-6.34 7.47-7.06-5.17 13.4Z" />
+    </svg>
+  );
+}
 
 const OCCUPATIONAL_STATUSES = [
   { value: "student", label: "Student" },
@@ -37,7 +46,7 @@ const COMMIT_OPTIONS = [
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-mono text-sm font-semibold uppercase tracking-widest text-emerald/60 mt-2 mb-1">
+    <h2 className="font-mono text-sm font-semibold uppercase tracking-widest text-rust mt-2 mb-1">
       {children}
     </h2>
   );
@@ -65,15 +74,19 @@ function TextField({
         {label}
         {!required && <span className="text-muted font-normal"> (optional)</span>}
       </span>
-      <input
-        required={required}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`bg-cloud border rounded-sm px-3 py-3 text-base text-emerald placeholder:text-muted/60 focus:outline-none focus:border-gold ${
-          invalid ? "border-red-500" : "border-line"
+      <div
+        className={`flex items-center rounded-full border bg-white px-4 sm:px-5 py-3 sm:py-4 focus-within:border-rust ${
+          invalid ? "border-red-500" : "border-rust/70"
         }`}
-      />
+      >
+        <input
+          required={required}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 min-w-0 bg-transparent text-sm sm:text-lg text-emerald placeholder:text-emerald/50 focus:outline-none"
+        />
+      </div>
       {invalid && <span className="text-sm text-red-600">Required</span>}
     </label>
   );
@@ -107,8 +120,8 @@ function TextAreaField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={3}
-        className={`bg-cloud border rounded-sm px-3 py-3 text-base text-emerald placeholder:text-muted/60 focus:outline-none focus:border-gold ${
-          invalid ? "border-red-500" : "border-line"
+        className={`bg-white border rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-lg text-emerald placeholder:text-emerald/50 focus:outline-none focus:border-rust ${
+          invalid ? "border-red-500" : "border-rust/70"
         }`}
       />
       {invalid && <span className="text-sm text-red-600">Required</span>}
@@ -138,6 +151,7 @@ function RadioGroup<T extends string>({
               required
               checked={value === opt.value}
               onChange={() => onChange(opt.value)}
+              className="accent-rust"
             />
             {opt.label}
           </label>
@@ -174,7 +188,12 @@ function CheckboxGroup({
       <div className="flex flex-col gap-1.5">
         {options.map((opt) => (
           <label key={opt} className="flex items-center gap-2 text-base text-emerald">
-            <input type="checkbox" checked={values.includes(opt)} onChange={() => toggle(opt)} />
+            <input
+              type="checkbox"
+              checked={values.includes(opt)}
+              onChange={() => toggle(opt)}
+              className="accent-rust"
+            />
             {opt}
           </label>
         ))}
@@ -278,9 +297,10 @@ export default function VolunteerPage() {
     return (
       <div className="flex-1 flex flex-col">
         <SiteHeader showJoinTeam={false} />
-        <main className="bg-islamic-pattern text-emerald flex-1 flex flex-col items-center justify-center px-4 py-20 text-center">
+        <main className="relative bg-white text-emerald flex-1 flex flex-col items-center justify-center px-4 pt-14 pb-10 text-center">
+          <FormBackButton />
           <div className="w-full max-w-lg">
-            <p className="font-mono text-sm sm:text-base font-semibold tracking-widest text-gold-deep uppercase mb-3">
+            <p className="font-mono text-sm sm:text-base font-semibold tracking-widest text-rust uppercase mb-3">
               Thank you
             </p>
             <h1 className="font-display text-4xl sm:text-5xl italic text-emerald mb-6">
@@ -292,7 +312,7 @@ export default function VolunteerPage() {
             </p>
             <Link
               href="/"
-              className="inline-block bg-gold text-ink font-semibold text-lg px-6 py-2 rounded-sm"
+              className="inline-block bg-rust text-white font-semibold text-base px-8 py-3 rounded-full hover:bg-rust/90 transition-colors"
             >
               Back to home
             </Link>
@@ -305,15 +325,10 @@ export default function VolunteerPage() {
   return (
     <div className="flex-1 flex flex-col">
       <SiteHeader showJoinTeam={false} />
-      <main className="bg-islamic-pattern text-emerald flex-1 flex flex-col items-center px-4 py-12 sm:py-20">
+      <main className="relative bg-white text-emerald flex-1 flex flex-col items-center px-4 pt-14 pb-10">
+        <FormBackButton />
         <div className="w-full max-w-2xl">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-emerald hover:bg-cloud mb-6"
-          >
-            ← Back to home
-          </Link>
-          <p className="font-mono text-sm sm:text-base font-semibold tracking-widest text-gold-deep uppercase mb-3">
+        <p className="font-mono text-sm sm:text-base font-semibold tracking-widest text-rust uppercase mb-3">
             Islamic Finance Youth Summit 2026
           </p>
           <h1 className="font-display text-5xl sm:text-6xl italic text-emerald mb-4">
@@ -530,15 +545,14 @@ export default function VolunteerPage() {
             </p>
           )}
 
-          <div className="flex justify-end mt-4">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-gold text-ink font-semibold text-lg px-6 py-2 rounded-sm disabled:opacity-40"
-            >
-              {submitting ? "Submitting…" : "Submit application"}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="flex items-center justify-center gap-2 sm:gap-3 mx-auto w-full max-w-sm bg-rust text-white font-semibold text-base sm:text-xl rounded-full py-4 sm:py-5 mt-4 hover:bg-rust/90 transition-colors disabled:opacity-40"
+          >
+            <SendIcon />
+            {submitting ? "Submitting…" : "Submit application"}
+          </button>
         </form>
         </div>
       </main>

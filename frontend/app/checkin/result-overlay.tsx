@@ -12,10 +12,10 @@ export function ResultOverlay({ result }: { result: DisplayResult }) {
   if (result.result === "valid_first_use") {
     return (
       <div className="fixed inset-0 bg-emerald flex flex-col items-center justify-center text-center px-8 z-50">
-        <div className="text-8xl mb-6">&#10003;</div>
+        <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">&#10003;</div>
         <p className="text-sm uppercase tracking-widest mb-2 opacity-80">Valid, first entry</p>
-        <h1 className="font-display text-4xl mb-2">{result.attendee.fullName}</h1>
-        <p className="text-lg opacity-90">
+        <h1 className="font-bricolage font-semibold text-2xl sm:text-4xl mb-2 break-words max-w-full">{result.attendee.fullName}</h1>
+        <p className="text-base sm:text-lg opacity-90">
           {CATEGORY_LABELS[result.attendee.category] ?? result.attendee.category} ·{" "}
           {TIER_LABELS[result.attendee.tier] ?? result.attendee.tier}
         </p>
@@ -29,10 +29,10 @@ export function ResultOverlay({ result }: { result: DisplayResult }) {
   if (result.result === "recorded_offline") {
     return (
       <div className="fixed inset-0 bg-gold flex flex-col items-center justify-center text-center px-8 z-50 text-black">
-        <div className="text-8xl mb-6">&#8635;</div>
+        <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">&#8635;</div>
         <p className="text-sm uppercase tracking-widest mb-2 opacity-70">Recorded, will sync</p>
-        <h1 className="font-display text-4xl mb-2">{result.attendee.fullName}</h1>
-        <p className="text-lg opacity-80">
+        <h1 className="font-bricolage font-semibold text-2xl sm:text-4xl mb-2 break-words max-w-full">{result.attendee.fullName}</h1>
+        <p className="text-base sm:text-lg opacity-80">
           {CATEGORY_LABELS[result.attendee.category] ?? result.attendee.category} ·{" "}
           {TIER_LABELS[result.attendee.tier] ?? result.attendee.tier}
         </p>
@@ -43,10 +43,10 @@ export function ResultOverlay({ result }: { result: DisplayResult }) {
   if (result.result === "already_used") {
     return (
       <div className="fixed inset-0 bg-red-700 flex flex-col items-center justify-center text-center px-8 z-50">
-        <div className="text-8xl mb-6">&#10007;</div>
+        <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">&#10007;</div>
         <p className="text-sm uppercase tracking-widest mb-2 opacity-80">Already used</p>
-        <h1 className="font-display text-4xl mb-2">{result.attendee.fullName}</h1>
-        <p className="text-lg opacity-90">
+        <h1 className="font-bricolage font-semibold text-2xl sm:text-4xl mb-2 break-words max-w-full">{result.attendee.fullName}</h1>
+        <p className="text-base sm:text-lg opacity-90">
           First scanned at {formatTime(result.firstUsedAt)} · {result.firstUsedStation}
         </p>
       </div>
@@ -56,10 +56,10 @@ export function ResultOverlay({ result }: { result: DisplayResult }) {
   if (result.result === "already_used_offline") {
     return (
       <div className="fixed inset-0 bg-red-700 flex flex-col items-center justify-center text-center px-8 z-50">
-        <div className="text-8xl mb-6">&#10007;</div>
+        <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">&#10007;</div>
         <p className="text-sm uppercase tracking-widest mb-2 opacity-80">Already used</p>
-        <h1 className="font-display text-4xl mb-2">{result.attendee.fullName}</h1>
-        <p className="text-lg opacity-90">Recorded locally. This station already checked them in.</p>
+        <h1 className="font-bricolage font-semibold text-2xl sm:text-4xl mb-2 break-words max-w-full">{result.attendee.fullName}</h1>
+        <p className="text-base sm:text-lg opacity-90">Recorded locally. This station already checked them in.</p>
       </div>
     );
   }
@@ -67,19 +67,19 @@ export function ResultOverlay({ result }: { result: DisplayResult }) {
   if (result.result === "void") {
     return (
       <div className="fixed inset-0 bg-red-700 flex flex-col items-center justify-center text-center px-8 z-50">
-        <div className="text-8xl mb-6">&#10007;</div>
+        <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">&#10007;</div>
         <p className="text-sm uppercase tracking-widest mb-2 opacity-80">Voided</p>
-        <h1 className="font-display text-4xl mb-2">{result.attendee.fullName}</h1>
-        <p className="text-lg opacity-90">This ticket was cancelled. Do not admit.</p>
+        <h1 className="font-bricolage font-semibold text-2xl sm:text-4xl mb-2 break-words max-w-full">{result.attendee.fullName}</h1>
+        <p className="text-base sm:text-lg opacity-90">This ticket was cancelled. Do not admit.</p>
       </div>
     );
   }
 
   return (
     <div className="fixed inset-0 bg-red-700 flex flex-col items-center justify-center text-center px-8 z-50">
-      <div className="text-8xl mb-6">&#10007;</div>
+      <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">&#10007;</div>
       <p className="text-sm uppercase tracking-widest mb-2 opacity-80">Not found</p>
-      <h1 className="font-display text-3xl">No ticket matches this code.</h1>
+      <h1 className="font-bricolage font-semibold text-2xl sm:text-3xl">No ticket matches this code.</h1>
     </div>
   );
 }

@@ -140,16 +140,16 @@ export default function AdminCouponsPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <Link
         href="/admin/registrations"
-        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
       >
         ← Back to registrations
       </Link>
 
-      <h1 className="font-display text-2xl mb-6">Coupons</h1>
+      <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Coupons</h1>
 
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="border border-line rounded-sm bg-white p-6 mb-8 flex flex-col gap-4"
+        className="border border-line rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
@@ -159,7 +159,7 @@ export default function AdminCouponsPage() {
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
               placeholder="e.g. EARLYBIRD30"
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold uppercase"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors uppercase"
             />
           </label>
 
@@ -168,7 +168,7 @@ export default function AdminCouponsPage() {
             <select
               value={form.discountType}
               onChange={(e) => setForm({ ...form, discountType: e.target.value as CouponDiscountType })}
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             >
               <option value="percent">Percent off</option>
               <option value="fixed">Fixed amount off (NGN)</option>
@@ -186,7 +186,7 @@ export default function AdminCouponsPage() {
               max={form.discountType === "percent" ? 100 : undefined}
               value={form.discountValue}
               onChange={(e) => setForm({ ...form, discountValue: Number(e.target.value) })}
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
 
@@ -198,7 +198,7 @@ export default function AdminCouponsPage() {
               value={form.maxRedemptions}
               onChange={(e) => setForm({ ...form, maxRedemptions: e.target.value })}
               placeholder="Unlimited"
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
 
@@ -208,7 +208,7 @@ export default function AdminCouponsPage() {
               type="datetime-local"
               value={form.expiresAt}
               onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
         </div>
@@ -226,7 +226,7 @@ export default function AdminCouponsPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="self-start bg-ink text-paper font-medium px-6 py-2 rounded-sm disabled:opacity-50"
+            className="self-start bg-coral text-white font-semibold px-6 py-2.5 rounded-full hover:bg-coral-deep transition-colors disabled:opacity-50"
           >
             {submitting ? (editingId ? "Saving…" : "Adding…") : editingId ? "Save changes" : "Add coupon"}
           </button>
@@ -238,7 +238,7 @@ export default function AdminCouponsPage() {
         </div>
       </form>
 
-      <div className="border border-line rounded-sm bg-white overflow-x-auto">
+      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -266,7 +266,7 @@ export default function AdminCouponsPage() {
                   </td>
                   <td className="px-4 py-2">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-sm ${
+                      className={`text-xs px-2.5 py-0.5 rounded-full ${
                         coupon.isActive ? "bg-emerald/10 text-emerald" : "bg-paper-2 text-muted"
                       }`}
                     >
@@ -279,7 +279,7 @@ export default function AdminCouponsPage() {
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(coupon.id)}
-                      className="text-sm text-red-700 underline"
+                      className="text-sm text-rust underline"
                     >
                       Delete
                     </button>
@@ -293,7 +293,7 @@ export default function AdminCouponsPage() {
                         <button
                           disabled={deleting}
                           onClick={() => void handleDelete(coupon)}
-                          className="bg-red-700 text-white px-3 py-1 rounded-sm text-sm disabled:opacity-50"
+                          className="bg-rust text-white px-3 py-1 rounded-full text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
                         >
                           Confirm delete
                         </button>

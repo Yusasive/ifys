@@ -166,16 +166,16 @@ export default function AdminSpeakersPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <Link
         href="/admin/registrations"
-        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
       >
         ← Back to registrations
       </Link>
 
-      <h1 className="font-display text-2xl mb-6">Speakers</h1>
+      <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Speakers</h1>
 
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="border border-line rounded-sm bg-white p-6 mb-8 flex flex-col gap-4"
+        className="border border-line rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
@@ -184,7 +184,7 @@ export default function AdminSpeakersPage() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -193,7 +193,7 @@ export default function AdminSpeakersPage() {
               required
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -202,7 +202,7 @@ export default function AdminSpeakersPage() {
               value={form.tag}
               onChange={(e) => setForm({ ...form, tag: e.target.value })}
               placeholder="e.g. Keynote Speaker"
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -213,7 +213,7 @@ export default function AdminSpeakersPage() {
               onChange={(e) =>
                 setForm({ ...form, displayOrder: Number(e.target.value) })
               }
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
         </div>
@@ -224,7 +224,7 @@ export default function AdminSpeakersPage() {
             value={form.bio}
             onChange={(e) => setForm({ ...form, bio: e.target.value })}
             rows={3}
-            className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+            className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
           />
         </label>
 
@@ -237,7 +237,7 @@ export default function AdminSpeakersPage() {
               const file = e.target.files?.[0];
               if (file) void handlePhotoChange(file);
             }}
-            className="text-sm text-emerald file:mr-3 file:rounded-sm file:border file:border-line file:bg-cloud file:px-3 file:py-1.5 file:text-emerald"
+            className="text-sm text-emerald file:mr-3 file:rounded-full file:border file:border-line file:bg-cloud file:px-3 file:py-1.5 file:text-emerald"
           />
           {photoUploading && (
             <span className="text-sm text-muted">Uploading…</span>
@@ -260,7 +260,7 @@ export default function AdminSpeakersPage() {
           <button
             type="submit"
             disabled={submitting || photoUploading}
-            className="self-start bg-ink text-paper font-medium px-6 py-2 rounded-sm disabled:opacity-50"
+            className="self-start bg-coral text-white font-semibold px-6 py-2.5 rounded-full hover:bg-coral-deep transition-colors disabled:opacity-50"
           >
             {submitting
               ? editingId
@@ -282,7 +282,7 @@ export default function AdminSpeakersPage() {
         </div>
       </form>
 
-      <div className="border border-line rounded-sm bg-white overflow-x-auto">
+      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -318,7 +318,7 @@ export default function AdminSpeakersPage() {
                   <td className="px-4 py-2">{speaker.displayOrder}</td>
                   <td className="px-4 py-2">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-sm ${
+                      className={`text-xs px-2.5 py-0.5 rounded-full ${
                         speaker.isActive
                           ? "bg-emerald/10 text-emerald"
                           : "bg-paper-2 text-muted"
@@ -336,7 +336,7 @@ export default function AdminSpeakersPage() {
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(speaker.id)}
-                      className="text-sm text-red-700 underline"
+                      className="text-sm text-rust underline"
                     >
                       Delete
                     </button>
@@ -352,7 +352,7 @@ export default function AdminSpeakersPage() {
                         <button
                           disabled={deleting}
                           onClick={() => void handleDelete(speaker)}
-                          className="bg-red-700 text-white px-3 py-1 rounded-sm text-sm disabled:opacity-50"
+                          className="bg-rust text-white px-3 py-1 rounded-full text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
                         >
                           Confirm delete
                         </button>

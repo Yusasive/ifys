@@ -141,6 +141,12 @@ export function fetchRegistration(id: string, token: string) {
   );
 }
 
+// A direct download link (not a request<T> JSON call) — the browser
+// navigates/downloads this URL itself, same auth model as fetchRegistration.
+export function ticketPdfUrl(registrationId: string, token: string): string {
+  return `${API_BASE_URL}/registrations/${registrationId}/ticket.pdf?token=${encodeURIComponent(token)}`;
+}
+
 export function createCheckout(registrationId: string, token: string) {
   return request<{ authorizationUrl: string; reference: string }>(
     `/registrations/${registrationId}/checkout?token=${encodeURIComponent(token)}`,
@@ -165,7 +171,7 @@ export function listSpeakers(eventSlug: string) {
   );
 }
 
-export type SponsorType = "sponsor" | "partner";
+export type SponsorType = "sponsor" | "partner" | "exhibitor";
 
 export interface Sponsor {
   id: string;
@@ -190,6 +196,8 @@ export interface CreateSponsorApplicationPayload {
   contactName: string;
   email: string;
   phone?: string;
+  websiteUrl?: string;
+  budgetNote?: string;
   message?: string;
   logoKey?: string;
 }

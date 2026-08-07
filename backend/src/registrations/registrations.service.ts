@@ -1,9 +1,9 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import * as QRCode from 'qrcode';
 import { Prisma } from '../generated/prisma/client';
@@ -11,6 +11,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { CouponsService } from '../coupons/coupons.service';
+import { CATEGORY_LABELS, TIER_LABELS } from '../email/labels';
+import { generateTicketPdf } from '../email/ticket-pdf';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { UpdateTicketProductDto } from './dto/update-ticket-product.dto';
 import { StudentIdUploadUrlDto } from './dto/upload-url.dto';
@@ -19,15 +21,6 @@ import {
   validateRegistrationFormData,
 } from './form-validation';
 
-function isPrismaUniqueConstraintError(err: unknown): boolean {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    err.code === 'P2002'
-  );
-}
-
 @Injectable()
 export class RegistrationsService {
   constructor(
@@ -35,6 +28,7 @@ export class RegistrationsService {
     private readonly storage: StorageService,
     private readonly coupons: CouponsService,
     private readonly auditLog: AuditLogService,
+    private readonly config: ConfigService,
   ) {}
 
   async listTicketProducts(eventSlug: string) {
@@ -113,10 +107,11 @@ export class RegistrationsService {
       ? (await this.coupons.findRedeemableCoupon(event.id, dto.couponCode)).id
       : null;
 
-    const attendee = await this.prisma.attendee.upsert({
-      where: { email: dto.email },
-      update: { fullName: dto.fullName, phone: dto.phone },
-      create: { fullName: dto.fullName, email: dto.email, phone: dto.phone },
+    // A new Attendee row per registration — the same email can register
+    // (and buy multiple tickets) more than once, so attendee identity is
+    // scoped to the registration, not deduplicated globally by email.
+    const attendee = await this.prisma.attendee.create({
+      data: { fullName: dto.fullName, email: dto.email, phone: dto.phone },
     });
 
     const studentIdFileUrl =
@@ -124,27 +119,18 @@ export class RegistrationsService {
         ? (dto.formData.studentIdFileKey as string)
         : null;
 
-    try {
-      return await this.prisma.registration.create({
-        data: {
-          eventId: event.id,
-          attendeeId: attendee.id,
-          ticketProductId: ticketProduct.id,
-          formDataJson: dto.formData as Prisma.InputJsonValue,
-          studentIdFileUrl,
-          status: 'pending_payment',
-          couponId,
-        },
-        include: { ticketProduct: true, attendee: true },
-      });
-    } catch (err: unknown) {
-      if (isPrismaUniqueConstraintError(err)) {
-        throw new ConflictException(
-          'This email has already registered for this event.',
-        );
-      }
-      throw err;
-    }
+    return this.prisma.registration.create({
+      data: {
+        eventId: event.id,
+        attendeeId: attendee.id,
+        ticketProductId: ticketProduct.id,
+        formDataJson: dto.formData as Prisma.InputJsonValue,
+        studentIdFileUrl,
+        status: 'pending_payment',
+        couponId,
+      },
+      include: { ticketProduct: true, attendee: true },
+    });
   }
 
   async findById(id: string, token?: string) {
@@ -182,6 +168,52 @@ export class RegistrationsService {
         qrDataUrl,
       },
     };
+  }
+
+  // Same auth model as findById: the lookup token is the only thing that
+  // proves the caller is allowed to see this registration's ticket, so a
+  // wrong/missing token gets the same 404 as a nonexistent id.
+  async getTicketPdf(
+    id: string,
+    token: string | undefined,
+  ): Promise<{ pdf: Buffer; ticketCode: string }> {
+    const registration = await this.prisma.registration.findUnique({
+      where: { id },
+      include: {
+        ticketProduct: true,
+        attendee: true,
+        ticket: true,
+        event: true,
+      },
+    });
+    if (
+      !registration ||
+      !matchesLookupToken(registration.lookupToken, token) ||
+      !registration.ticket
+    ) {
+      throw new NotFoundException('Registration not found');
+    }
+
+    const qrPngBuffer = await QRCode.toBuffer(registration.ticket.qrSecret, {
+      width: 360,
+      margin: 1,
+    });
+    const pdf = await generateTicketPdf(
+      {
+        fullName: registration.attendee.fullName,
+        categoryLabel: CATEGORY_LABELS[registration.ticketProduct.category],
+        tierLabel: TIER_LABELS[registration.ticketProduct.tier],
+        eventName: registration.event.name,
+        venue: registration.event.venue,
+        startsAt: registration.event.startsAt,
+        ticketCode: registration.ticket.ticketCode,
+        ticketId: registration.ticket.id,
+        supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
+      },
+      qrPngBuffer,
+    );
+
+    return { pdf, ticketCode: registration.ticket.ticketCode };
   }
 
   async listAdminTicketProducts(eventSlug: string) {

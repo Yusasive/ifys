@@ -69,7 +69,7 @@ export default function RegistrationDetailPage() {
       <main className="max-w-3xl mx-auto px-6 py-8">
         <button
           onClick={() => router.push("/admin/registrations")}
-          className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+          className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
         >
           ← Back to registrations
         </button>
@@ -82,15 +82,15 @@ export default function RegistrationDetailPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <button
         onClick={() => router.push("/admin/registrations")}
-        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
       >
         ← Back to registrations
       </button>
 
-        <div className="border border-line rounded-sm bg-white p-6 mb-6">
+        <div className="border border-line rounded-2xl bg-white p-6 mb-6 shadow-sm">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h1 className="font-display text-2xl">{registration.attendee.fullName}</h1>
+              <h1 className="font-bricolage font-bold text-2xl text-forest">{registration.attendee.fullName}</h1>
               <p className="text-sm text-muted">
                 {registration.attendee.email} · {registration.attendee.phone}
               </p>
@@ -194,7 +194,7 @@ export default function RegistrationDetailPage() {
                   "Marked as paid and ticket issued.",
                 )
               }
-              className="border border-ink px-4 py-2 rounded-sm text-sm disabled:opacity-50"
+              className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
             >
               Mark as paid
             </button>
@@ -208,7 +208,7 @@ export default function RegistrationDetailPage() {
                   "Ticket email resent.",
                 )
               }
-              className="border border-ink px-4 py-2 rounded-sm text-sm disabled:opacity-50"
+              className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
             >
               Resend ticket
             </button>
@@ -217,7 +217,7 @@ export default function RegistrationDetailPage() {
             <button
               disabled={busy}
               onClick={() => setShowVoidConfirm(true)}
-              className="border border-red-700 text-red-700 px-4 py-2 rounded-sm text-sm disabled:opacity-50"
+              className="border border-rust text-rust px-4 py-2 rounded-full text-sm hover:bg-rust hover:text-white transition-colors disabled:opacity-50"
             >
               Void ticket
             </button>
@@ -225,7 +225,7 @@ export default function RegistrationDetailPage() {
         </div>
 
         {showVoidConfirm && (
-          <div className="mt-4 border border-red-300 rounded-sm p-4 bg-red-50">
+          <div className="mt-4 border border-rust/30 rounded-xl p-4 bg-rust/10">
             <p className="text-sm mb-3">
               Voiding a ticket cannot be undone. Re-enter your password to confirm.
             </p>
@@ -235,7 +235,7 @@ export default function RegistrationDetailPage() {
                 value={voidPassword}
                 onChange={(e) => setVoidPassword(e.target.value)}
                 placeholder="Your password"
-                className="border border-line rounded-sm px-3 py-1.5 text-sm flex-1"
+                className="border border-line rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold flex-1"
               />
               <button
                 disabled={busy || !voidPassword}
@@ -246,7 +246,7 @@ export default function RegistrationDetailPage() {
                     setVoidPassword("");
                   }, "Ticket voided.")
                 }
-                className="bg-red-700 text-white px-4 py-1.5 rounded-sm text-sm disabled:opacity-50"
+                className="bg-rust text-white px-4 py-1.5 rounded-full text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
               >
                 Confirm void
               </button>

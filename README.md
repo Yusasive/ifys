@@ -33,3 +33,4 @@ See "Open items to raise with the user" at the bottom of [`milestone.md`](./mile
 
 Organizer (full dashboard access): organizer@ifysummit.ng / dev-organizer-pw
 Door staff (check-in only, redirects to /checkin): doorstaff@ifysummit.ng / dev-doorstaff-pw
+superadmin@ifysummit.ng / dev-superadmin-pw

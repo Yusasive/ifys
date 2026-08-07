@@ -69,6 +69,7 @@ enum AdminRole {
 enum SponsorType {
   sponsor
   partner
+  exhibitor
 }
 
 enum SponsorApplicationStatus {
@@ -215,6 +216,8 @@ model SponsorApplication {
   contactName      String                   @map("contact_name")
   email            String
   phone            String?
+  websiteUrl       String?                  @map("website_url")
+  budgetNote       String?                  @map("budget_note")
   message          String?
   logoKey          String?                  @map("logo_key")
   status           SponsorApplicationStatus @default(pending)
@@ -254,10 +257,11 @@ model VolunteerApplication {
 model Attendee {
   id            String         @id @default(uuid())
   fullName      String         @map("full_name")
-  email         String         @unique
+  email         String
   phone         String
   registrations Registration[]
 
+  @@index([email])
   @@map("attendees")
 }
 

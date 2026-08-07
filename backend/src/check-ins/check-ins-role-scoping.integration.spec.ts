@@ -20,6 +20,7 @@ describe('Check-in role scoping and rate limiting (integration)', () => {
   let tickets: TicketsService;
   let organizerToken: string;
   let doorStaffToken: string;
+  let superAdminToken: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -49,6 +50,12 @@ describe('Check-in role scoping and rate limiting (integration)', () => {
       .post('/auth/login')
       .send({ email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw' });
     doorStaffToken = extractSessionToken(doorStaffLogin);
+
+    const superAdminLogin = await request(httpServer).post('/auth/login').send({
+      email: 'superadmin@ifysummit.ng',
+      password: 'dev-superadmin-pw',
+    });
+    superAdminToken = extractSessionToken(superAdminLogin);
   });
 
   afterAll(async () => {
@@ -107,6 +114,18 @@ describe('Check-in role scoping and rate limiting (integration)', () => {
     const res = await request(httpServer)
       .get('/checkin/status')
       .set('Authorization', `Bearer ${doorStaffToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('checkedIn');
+    expect(res.body).toHaveProperty('totalTickets');
+  });
+
+  // super_admin is a superset of organizer everywhere else in the admin
+  // API (see admin.controller.ts's @Roles('organizer', 'super_admin'))
+  // — check-in must not be the one place that locks super_admin out.
+  it('allows a super admin to read live status counts', async () => {
+    const res = await request(httpServer)
+      .get('/checkin/status')
+      .set('Authorization', `Bearer ${superAdminToken}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('checkedIn');
     expect(res.body).toHaveProperty('totalTickets');

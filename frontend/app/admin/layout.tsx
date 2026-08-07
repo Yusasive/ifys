@@ -6,7 +6,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <AdminAuthProvider>
       <ToastProvider>
-        <div className="min-h-screen bg-paper text-ink font-sans">
+        <div className="min-h-screen bg-white text-ink font-sans">
           <AdminShell>{children}</AdminShell>
         </div>
       </ToastProvider>

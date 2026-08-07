@@ -21,7 +21,7 @@ export function HeroSection() {
         </p>
       </div>
 
-      <div>
+      <div className="mt-12 lg:mt-18">
         <div className="aspect-[1440/988] w-full relative overflow-hidden">
           <Image
             src="/hero.png"

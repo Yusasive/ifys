@@ -153,7 +153,7 @@ export function DirectoryTab() {
     <>
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="border border-line rounded-sm bg-white p-6 mb-8 flex flex-col gap-4"
+        className="border border-line rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
@@ -163,10 +163,11 @@ export function DirectoryTab() {
               onChange={(e) =>
                 setForm({ ...form, type: e.target.value as SponsorType })
               }
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             >
               <option value="sponsor">Sponsor</option>
               <option value="partner">Partner</option>
+              <option value="exhibitor">Exhibitor</option>
             </select>
           </label>
           <label className="flex flex-col gap-1">
@@ -175,7 +176,7 @@ export function DirectoryTab() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -185,7 +186,7 @@ export function DirectoryTab() {
               value={form.websiteUrl}
               onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
               placeholder="https://"
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -196,7 +197,7 @@ export function DirectoryTab() {
               onChange={(e) =>
                 setForm({ ...form, displayOrder: Number(e.target.value) })
               }
-              className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+              className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             />
           </label>
         </div>
@@ -210,7 +211,7 @@ export function DirectoryTab() {
               const file = e.target.files?.[0];
               if (file) void handleLogoChange(file);
             }}
-            className="text-sm text-emerald file:mr-3 file:rounded-sm file:border file:border-line file:bg-cloud file:px-3 file:py-1.5 file:text-emerald"
+            className="text-sm text-emerald file:mr-3 file:rounded-full file:border file:border-line file:bg-cloud file:px-3 file:py-1.5 file:text-emerald"
           />
           {logoUploading && <span className="text-sm text-muted">Uploading…</span>}
           {logoKey && !logoUploading && (
@@ -231,7 +232,7 @@ export function DirectoryTab() {
           <button
             type="submit"
             disabled={submitting || logoUploading}
-            className="self-start bg-ink text-paper font-medium px-6 py-2 rounded-sm disabled:opacity-50"
+            className="self-start bg-coral text-white font-semibold px-6 py-2.5 rounded-full hover:bg-coral-deep transition-colors disabled:opacity-50"
           >
             {submitting
               ? editingId
@@ -249,7 +250,7 @@ export function DirectoryTab() {
         </div>
       </form>
 
-      <div className="border border-line rounded-sm bg-white overflow-x-auto">
+      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -272,10 +273,10 @@ export function DirectoryTab() {
                       <img
                         src={sponsor.logoUrl}
                         alt={sponsor.name}
-                        className="w-10 h-10 rounded-sm object-contain bg-paper-2"
+                        className="w-10 h-10 rounded-lg object-contain bg-paper-2"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-sm bg-paper-2" />
+                      <div className="w-10 h-10 rounded-lg bg-paper-2" />
                     )}
                   </td>
                   <td className="px-4 py-2">{sponsor.name}</td>
@@ -283,7 +284,7 @@ export function DirectoryTab() {
                   <td className="px-4 py-2">{sponsor.displayOrder}</td>
                   <td className="px-4 py-2">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-sm ${
+                      className={`text-xs px-2.5 py-0.5 rounded-full ${
                         sponsor.isActive
                           ? "bg-emerald/10 text-emerald"
                           : "bg-paper-2 text-muted"
@@ -301,7 +302,7 @@ export function DirectoryTab() {
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(sponsor.id)}
-                      className="text-sm text-red-700 underline"
+                      className="text-sm text-rust underline"
                     >
                       Delete
                     </button>
@@ -317,7 +318,7 @@ export function DirectoryTab() {
                         <button
                           disabled={deleting}
                           onClick={() => void handleDelete(sponsor)}
-                          className="bg-red-700 text-white px-3 py-1 rounded-sm text-sm disabled:opacity-50"
+                          className="bg-rust text-white px-3 py-1 rounded-full text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
                         >
                           Confirm delete
                         </button>

@@ -74,16 +74,16 @@ export default function AdminUsersPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <Link
         href="/admin/registrations"
-        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
       >
         ← Back to registrations
       </Link>
 
-      <h1 className="font-display text-2xl mb-6">Admin & door staff accounts</h1>
+      <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Admin & door staff accounts</h1>
 
         <form
           onSubmit={(e) => void handleSubmit(e)}
-          className="border border-line rounded-sm bg-white p-6 mb-8 flex flex-col gap-4"
+          className="border border-line rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="flex flex-col gap-1">
@@ -92,7 +92,7 @@ export default function AdminUsersPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+                className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
               />
             </label>
             <label className="flex flex-col gap-1">
@@ -102,7 +102,7 @@ export default function AdminUsersPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+                className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
               />
             </label>
             <label className="flex flex-col gap-1">
@@ -113,7 +113,7 @@ export default function AdminUsersPage() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+                className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
               />
             </label>
             <label className="flex flex-col gap-1">
@@ -121,7 +121,7 @@ export default function AdminUsersPage() {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as CreatableAdminRole)}
-                className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+                className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
               >
                 <option value="door_staff">Door staff (check-in only)</option>
                 <option value="organizer">Organizer (full access)</option>
@@ -132,13 +132,13 @@ export default function AdminUsersPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="self-start bg-ink text-paper font-medium px-6 py-2 rounded-sm disabled:opacity-50"
+            className="self-start bg-coral text-white font-semibold px-6 py-2.5 rounded-full hover:bg-coral-deep transition-colors disabled:opacity-50"
           >
             {submitting ? "Creating…" : "Create account"}
           </button>
         </form>
 
-        <div className="border border-line rounded-sm bg-white overflow-x-auto">
+        <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">

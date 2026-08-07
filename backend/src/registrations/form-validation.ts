@@ -51,8 +51,6 @@ export function validateRegistrationFormData(
   switch (category) {
     case 'student':
       requireString(data, 'institution', errors);
-      requireString(data, 'courseOfStudy', errors);
-      requireString(data, 'levelOrYear', errors);
       requireString(data, 'studentIdFileKey', errors);
       break;
     case 'founder':
@@ -62,7 +60,6 @@ export function validateRegistrationFormData(
       checkOptionalLinkedin(data, errors);
       break;
     case 'professional':
-      requireString(data, 'organization', errors);
       requireString(data, 'role', errors);
       requireString(data, 'industry', errors);
       checkOptionalLinkedin(data, errors);

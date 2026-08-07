@@ -39,7 +39,7 @@ const FAQS = [
 export function FaqSection() {
   return (
     <section id="faq" className="bg-islamic-pattern">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+      <div className=" mx-auto px-4 lg:px-28  py-16 sm:py-24">
         <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase mb-4 text-center">
           Frequently Asked Questions
         </p>
@@ -51,7 +51,7 @@ export function FaqSection() {
           {FAQS.map((faq) => (
             <details
               key={faq.question}
-              className="group bg-white border border-line/50 rounded-2xl px-5 sm:px-8 py-5 sm:py-6 shadow-[0_1px_2px_rgba(16,32,29,0.06)] open:shadow-md transition-shadow"
+              className="group bg-white border rounded-2xl px-5 sm:px-8 py-5 sm:py-6 shadow-[0_1px_2px_rgba(16,32,29,0.06)] open:shadow-md transition-shadow"
             >
               <summary className="flex items-center justify-between gap-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-bricolage font-bold text-base sm:text-xl text-forest">
                 {faq.question}
@@ -62,10 +62,16 @@ export function FaqSection() {
                   strokeWidth="2"
                   className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-forest transition-transform duration-200 group-open:rotate-180"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 9l6 6 6-6"
+                  />
                 </svg>
               </summary>
-              <p className="text-sm sm:text-base text-forest/70 leading-relaxed mt-4">{faq.answer}</p>
+              <p className="text-sm sm:text-base text-forest/70 leading-relaxed mt-4">
+                {faq.answer}
+              </p>
             </details>
           ))}
         </div>

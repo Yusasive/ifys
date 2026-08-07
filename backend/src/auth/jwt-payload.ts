@@ -10,6 +10,12 @@ export interface JwtPayload {
   // AdminUser.tokenVersion at issue-time — bumping the DB column
   // force-invalidates every token issued before the bump.
   tv: number;
+  // Per-session CSRF token, minted at login and handed back in the login/me
+  // response body. The frontend echoes it as the X-CSRF-Token header on
+  // mutating requests; CsrfGuard compares it against this signed claim
+  // instead of a second cookie, so it works even when the API and the
+  // frontend are served from different origins.
+  csrf: string;
   // Added by jsonwebtoken on sign/verify, not set by us directly.
   iat?: number;
   exp?: number;

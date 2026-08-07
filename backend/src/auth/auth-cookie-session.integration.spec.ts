@@ -58,7 +58,7 @@ describe('Cookie-based admin session (integration)', () => {
     throw new Error(`cookie ${name} not found`);
   }
 
-  it('login sets httpOnly session + readable CSRF cookies and never returns the token in the body', async () => {
+  it('login sets an httpOnly session cookie, returns the CSRF token in the body, and never returns the access token in the body', async () => {
     const res = await request(httpServer)
       .post('/auth/login')
       .send({ email: 'organizer@ifysummit.ng', password: 'dev-organizer-pw' });
@@ -68,14 +68,12 @@ describe('Cookie-based admin session (integration)', () => {
     expect((res.body as { user: { email: string } }).user.email).toBe(
       'organizer@ifysummit.ng',
     );
+    expect(typeof (res.body as { csrfToken: string }).csrfToken).toBe('string');
 
     const cookies = cookiesFrom(res);
     const sessionCookie = cookies.find((c) => c.startsWith('admin_session='));
-    const csrfCookie = cookies.find((c) => c.startsWith('csrf_token='));
     expect(sessionCookie).toBeDefined();
     expect(sessionCookie).toMatch(/HttpOnly/i);
-    expect(csrfCookie).toBeDefined();
-    expect(csrfCookie).not.toMatch(/HttpOnly/i);
   });
 
   it('rejects a mutating admin request over cookie auth without a matching CSRF header', async () => {
@@ -86,12 +84,7 @@ describe('Cookie-based admin session (integration)', () => {
     const sessionCookie = cookies
       .find((c) => c.startsWith('admin_session='))!
       .split(';')[0];
-    const csrfCookie = cookies
-      .find((c) => c.startsWith('csrf_token='))!
-      .split(';')[0];
-    const csrfToken = extract(cookies, 'csrf_token');
-
-    const cookieHeader = `${sessionCookie}; ${csrfCookie}`;
+    const csrfToken = (login.body as { csrfToken: string }).csrfToken;
 
     const fixture = await createPaidCheckoutFixture(prisma, {
       orderStatus: 'pending',
@@ -99,18 +92,18 @@ describe('Cookie-based admin session (integration)', () => {
     try {
       const withoutHeader = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/mark-paid`)
-        .set('Cookie', cookieHeader);
+        .set('Cookie', sessionCookie);
       expect(withoutHeader.status).toBe(403);
 
       const withWrongHeader = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/mark-paid`)
-        .set('Cookie', cookieHeader)
+        .set('Cookie', sessionCookie)
         .set('X-CSRF-Token', 'not-the-real-token');
       expect(withWrongHeader.status).toBe(403);
 
       const withCorrectHeader = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/mark-paid`)
-        .set('Cookie', cookieHeader)
+        .set('Cookie', sessionCookie)
         .set('X-CSRF-Token', csrfToken);
       expect(withCorrectHeader.status).toBe(201);
     } finally {

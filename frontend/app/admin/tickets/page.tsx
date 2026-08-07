@@ -63,7 +63,7 @@ function TicketProductCard({
   return (
     <form
       onSubmit={(e) => void handleSave(e)}
-      className="border border-line rounded-sm bg-white p-6 flex flex-col gap-4"
+      className="border border-line rounded-2xl bg-white p-6 flex flex-col gap-4 shadow-sm"
     >
       <h2 className="font-display text-xl">{CATEGORY_LABELS[product.category]}</h2>
 
@@ -75,7 +75,7 @@ function TicketProductCard({
             min={0}
             value={priceNaira}
             onChange={(e) => setPriceNaira(e.target.value)}
-            className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+            className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
           />
         </label>
 
@@ -88,7 +88,7 @@ function TicketProductCard({
             value={discountPercent}
             onChange={(e) => setDiscountPercent(e.target.value)}
             placeholder="e.g. 30"
-            className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+            className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
           />
         </label>
 
@@ -98,7 +98,7 @@ function TicketProductCard({
             type="datetime-local"
             value={discountExpiresAt}
             onChange={(e) => setDiscountExpiresAt(e.target.value)}
-            className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+            className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
           />
         </label>
 
@@ -108,7 +108,7 @@ function TicketProductCard({
             value={cardPriceLabel}
             onChange={(e) => setCardPriceLabel(e.target.value)}
             placeholder='e.g. "5K"'
-            className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+            className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
           />
         </label>
       </div>
@@ -119,7 +119,7 @@ function TicketProductCard({
           value={cardNote}
           onChange={(e) => setCardNote(e.target.value)}
           placeholder="e.g. *30% discount for early birds"
-          className="border border-line rounded-sm px-3 py-2 focus:outline-none focus:border-gold"
+          className="border border-line rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
         />
       </label>
 
@@ -131,7 +131,7 @@ function TicketProductCard({
       <button
         type="submit"
         disabled={saving}
-        className="self-start bg-ink text-paper font-medium px-6 py-2 rounded-sm disabled:opacity-50"
+        className="self-start bg-coral text-white font-semibold px-6 py-2.5 rounded-full hover:bg-coral-deep transition-colors disabled:opacity-50"
       >
         {saving ? "Saving…" : "Save changes"}
       </button>
@@ -180,12 +180,12 @@ export default function AdminTicketsPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <Link
         href="/admin/registrations"
-        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
       >
         ← Back to registrations
       </Link>
 
-      <h1 className="font-display text-2xl mb-2">Tickets</h1>
+      <h1 className="font-bricolage font-bold text-2xl text-forest mb-2">Tickets</h1>
       <p className="text-sm text-muted mb-6">
         Manage pricing, early-bird discounts, and the copy shown on each ticket card on the public site.
       </p>

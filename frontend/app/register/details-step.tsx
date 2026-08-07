@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import type { ReactElement } from "react";
 import { requestStudentIdUploadUrl, uploadStudentIdFile } from "@/lib/api";
+import { CATEGORY_LABELS } from "@/lib/format";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   setContactField,
@@ -9,18 +11,100 @@ import {
   setStep,
   setStudentIdFile,
 } from "@/lib/registration-slice";
-import { BackButton } from "./back-button";
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function PersonIcon() {
   return (
-    <h2 className="font-mono text-sm font-semibold uppercase tracking-widest text-emerald/60 mt-2 mb-1">
-      {children}
-    </h2>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <circle cx="12" cy="8" r="3.4" />
+      <path strokeLinecap="round" d="M5 20c0-3.6 3.1-6.3 7-6.3s7 2.7 7 6.3" />
+    </svg>
   );
 }
 
-function TextField({
-  label,
+function EnvelopeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5v10.5a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V6.75Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m3.75 6.75 8.25 6.75 8.25-6.75" />
+    </svg>
+  );
+}
+
+function PhoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6.5 3.5h2l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v2a2 2 0 0 1-2 2C10.5 17.5 6.5 13.5 4.5 7.5a2 2 0 0 1 2-4Z"
+      />
+    </svg>
+  );
+}
+
+function InstitutionIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M4 21V10m16 11V10M3 10l9-6 9 6M6 10v7m4-7v7m4-7v7m4-7v7" />
+    </svg>
+  );
+}
+
+function BadgeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <circle cx="12" cy="10" r="2.5" />
+      <path strokeLinecap="round" d="M7.5 17c0-2 2-3.2 4.5-3.2s4.5 1.2 4.5 3.2" />
+    </svg>
+  );
+}
+
+function IndustryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21V10l6 4v-4l6 4V6l6 4v11H3Z" />
+    </svg>
+  );
+}
+
+function LinkedInIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 10.5v6M7.5 7.75v.01M11.5 16.5v-3.5c0-1.4 1-2 2-2s2 .8 2 2.2v3.3" />
+    </svg>
+  );
+}
+
+function CloudUploadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6 shrink-0">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M7 18a4 4 0 0 1-.5-7.97A5 5 0 0 1 16.2 8.02 4 4 0 0 1 17 16h-1"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 12v7m0-7 2.5 2.5M12 12l-2.5 2.5" />
+    </svg>
+  );
+}
+
+function TicketIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1.5a1.5 1.5 0 0 0 0 3V15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1.5a1.5 1.5 0 0 0 0-3V9Z"
+      />
+      <path strokeLinecap="round" strokeDasharray="2 2" d="M9 7v10" />
+    </svg>
+  );
+}
+
+function PillField({
+  icon,
   value,
   onChange,
   type = "text",
@@ -28,32 +112,33 @@ function TextField({
   showError,
   placeholder,
 }: {
-  label: string;
+  icon: ReactElement;
   value: string;
   onChange: (value: string) => void;
   type?: string;
   required?: boolean;
   showError?: boolean;
-  placeholder?: string;
+  placeholder: string;
 }) {
   const invalid = showError && required && !value.trim();
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-base font-medium text-emerald/75">
-        {label}
-        {!required && <span className="text-muted font-normal"> (optional)</span>}
-      </span>
-      <input
-        required={required}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`bg-cloud border rounded-sm px-3 py-3 text-base text-emerald placeholder:text-muted/60 focus:outline-none focus:border-gold ${
-          invalid ? "border-red-500" : "border-line"
+      <div
+        className={`flex items-center gap-2 sm:gap-3 rounded-full border bg-white px-4 sm:px-5 py-3 sm:py-4 text-rust focus-within:border-rust ${
+          invalid ? "border-red-500" : "border-rust/70"
         }`}
-      />
-      {invalid && <span className="text-sm text-red-600">Required</span>}
+      >
+        {icon}
+        <input
+          required={required}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 min-w-0 bg-transparent text-sm sm:text-lg text-emerald placeholder:text-emerald/70 focus:outline-none"
+        />
+      </div>
+      {invalid && <span className="text-sm text-red-600 pl-5">Required</span>}
     </label>
   );
 }
@@ -83,10 +168,10 @@ export function DetailsStep() {
   const canContinue =
     fullName.trim() && email.trim() && phone.trim() &&
     (category === "student"
-      ? formData.institution && formData.courseOfStudy && formData.levelOrYear && registration.studentIdFileKey
-      : formData[category === "founder" ? "startupName" : "organization"] &&
-        formData.role &&
-        formData.industry);
+      ? formData.institution && registration.studentIdFileKey
+      : category === "founder"
+        ? formData.startupName && formData.role && formData.industry
+        : formData.role && formData.industry);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -101,102 +186,76 @@ export function DetailsStep() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-      <SectionHeading>Contact information</SectionHeading>
-      <TextField
-        label="Full name"
+      <h2 className="font-plex text-base lg:text-lg font-semibold uppercase tracking-[0.15em] text-forest text-center mb-4">
+        {category && CATEGORY_LABELS[category]}&rsquo;s Ticket
+      </h2>
+
+      <PillField
+        icon={<PersonIcon />}
         value={fullName}
         onChange={(v) => dispatch(setContactField({ field: "fullName", value: v }))}
         showError={attemptedSubmit}
-        placeholder="e.g. Yusuf Abdullahi"
+        placeholder="Full Name (As it should appear on the event badge)"
       />
-      <TextField
-        label="Email"
+      <PillField
+        icon={<EnvelopeIcon />}
         type="email"
         value={email}
         onChange={(v) => dispatch(setContactField({ field: "email", value: v }))}
         showError={attemptedSubmit}
-        placeholder="you@example.com"
+        placeholder="Email Address"
       />
-      <TextField
-        label="Phone"
+      <PillField
+        icon={<PhoneIcon />}
         type="tel"
         value={phone}
         onChange={(v) => dispatch(setContactField({ field: "phone", value: v }))}
         showError={attemptedSubmit}
-        placeholder="080X XXX XXXX"
+        placeholder="Phone Number"
       />
 
       {category === "student" && (
         <>
-          <SectionHeading>Student details</SectionHeading>
-          <TextField
-            label="Institution"
+          <PillField
+            icon={<InstitutionIcon />}
             value={formData.institution ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "institution", value: v }))}
             showError={attemptedSubmit}
-            placeholder="e.g. University of Ilorin"
+            placeholder="Institution Name"
           />
-          <TextField
-            label="Course of study"
-            value={formData.courseOfStudy ?? ""}
-            onChange={(v) => dispatch(setFormField({ field: "courseOfStudy", value: v }))}
-            showError={attemptedSubmit}
-            placeholder="e.g. Economics"
-          />
-          <TextField
-            label="Level / year"
-            value={formData.levelOrYear ?? ""}
-            onChange={(v) => dispatch(setFormField({ field: "levelOrYear", value: v }))}
-            showError={attemptedSubmit}
-            placeholder="e.g. 300 level"
-          />
-          <label className="flex flex-col gap-1">
-            <span className="text-base font-medium text-emerald/75">Student ID (image or PDF)</span>
+
+          <label className="flex flex-col gap-1 mt-2 mx-auto w-full max-w-md">
             <div
-              className={`border border-dashed rounded-sm px-4 py-4 flex items-center gap-3 ${
-                showStudentIdError ? "border-red-500" : "border-line"
+              className={`relative flex items-center justify-center gap-2 sm:gap-3 rounded-full border bg-white px-4 sm:px-6 py-3 sm:py-4 text-rust ${
+                showStudentIdError ? "border-red-500" : "border-rust/70"
               }`}
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="w-6 h-6 shrink-0 text-muted"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 16V4m0 0-4 4m4-4 4 4M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"
-                />
-              </svg>
-              <div className="flex-1">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,application/pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void handleStudentIdUpload(file);
-                  }}
-                  className="text-base text-emerald file:mr-3 file:rounded-sm file:border file:border-line file:bg-cloud file:px-3 file:py-1.5 file:text-emerald"
-                />
-                {uploading && <span className="text-sm text-muted block mt-1">Uploading…</span>}
-                {studentIdFileName && !uploading && (
-                  <span className="text-sm text-gold-deep block mt-1">Uploaded: {studentIdFileName}</span>
-                )}
-                {uploadError && <span className="text-sm text-red-600 block mt-1">{uploadError}</span>}
-              </div>
+              <CloudUploadIcon />
+              <span className="text-sm sm:text-lg text-emerald text-center truncate min-w-0">
+                {studentIdFileName ?? "Student ID Card (Upload for Verification)"}
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,application/pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleStudentIdUpload(file);
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
             </div>
-            {showStudentIdError && <span className="text-sm text-red-600">Required</span>}
+            {uploading && <span className="text-sm text-muted pl-5">Uploading…</span>}
+            {uploadError && <span className="text-sm text-red-600 pl-5">{uploadError}</span>}
+            {showStudentIdError && <span className="text-sm text-red-600 pl-5">Required</span>}
           </label>
         </>
       )}
 
       {(category === "founder" || category === "professional") && (
         <>
-          <SectionHeading>{category === "founder" ? "Founder details" : "Professional details"}</SectionHeading>
-          <TextField
-            label={category === "founder" ? "Startup / company name" : "Organization"}
+          <PillField
+            icon={<InstitutionIcon />}
+            required={category === "founder"}
             value={formData[category === "founder" ? "startupName" : "organization"] ?? ""}
             onChange={(v) =>
               dispatch(
@@ -207,42 +266,46 @@ export function DetailsStep() {
               )
             }
             showError={attemptedSubmit}
-            placeholder={category === "founder" ? "e.g. Acme Fintech" : "e.g. Acme Bank"}
+            placeholder={
+              category === "founder"
+                ? "StartUp/Organization Name (As it should appear on the badge)"
+                : "Organization/Company Name (Optional)"
+            }
           />
-          <TextField
-            label="Role"
+          <PillField
+            icon={<BadgeIcon />}
             value={formData.role ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "role", value: v }))}
             showError={attemptedSubmit}
-            placeholder={category === "founder" ? "e.g. Co-founder & CEO" : "e.g. Product Manager"}
+            placeholder={category === "founder" ? "Founder Role/Position" : "Job Title/Position"}
           />
-          <TextField
-            label="Industry"
+          <PillField
+            icon={<IndustryIcon />}
             value={formData.industry ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "industry", value: v }))}
             showError={attemptedSubmit}
-            placeholder="e.g. Fintech"
+            placeholder="Industry/Sector"
           />
-          <TextField
-            label="LinkedIn"
+          <PillField
+            icon={<LinkedInIcon />}
             type="url"
             required={false}
             value={formData.linkedin ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "linkedin", value: v }))}
-            placeholder="linkedin.com/in/username"
+            placeholder="LinkedIn Profile (Optional)"
           />
         </>
       )}
 
-      <div className="flex justify-between items-center mt-4">
-        <BackButton onClick={() => dispatch(setStep("category"))} />
-        <button
-          type="submit"
-          className="bg-gold text-ink font-semibold text-lg px-6 py-2 rounded-sm"
-        >
-          Review
-        </button>
-      </div>
+      <button
+        type="submit"
+        className="flex mx-auto w-full max-w-md items-center justify-center gap-2 sm:gap-3 bg-rust text-white font-semibold text-base sm:text-xl rounded-full py-4 sm:py-5 mt-4 hover:bg-rust/90 transition-colors"
+      >
+        <TicketIcon />
+        Get Ticket
+      </button>
+
+    
     </form>
   );
 }

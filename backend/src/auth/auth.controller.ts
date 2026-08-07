@@ -11,7 +11,6 @@ import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
-import { CSRF_COOKIE } from './csrf.guard';
 import { CurrentUser } from './current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import {
@@ -46,16 +45,12 @@ export class AuthController {
       path: '/',
       maxAge: result.expiresInSeconds * 1000,
     });
-    // Readable by frontend JS on purpose — double-submit CSRF pattern.
-    res.cookie(CSRF_COOKIE, result.csrfToken, {
-      httpOnly: false,
-      secure: isProd,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: result.expiresInSeconds * 1000,
-    });
 
-    return { user: result.user };
+    // Returned in the body, not a cookie: the frontend may be served from a
+    // different origin than the API, and a cookie set by the API's origin
+    // isn't readable via document.cookie from another one. The frontend
+    // keeps this in memory and echoes it as the X-CSRF-Token header.
+    return { user: result.user, csrfToken: result.csrfToken };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -67,7 +62,6 @@ export class AuthController {
     const exp = req.user.exp ?? Math.floor(Date.now() / 1000);
     await this.auth.logout(req.user.jti, exp);
     res.clearCookie(SESSION_COOKIE, { path: '/' });
-    res.clearCookie(CSRF_COOKIE, { path: '/' });
     return { ok: true };
   }
 
@@ -81,6 +75,7 @@ export class AuthController {
         email: user.email,
         role: user.role,
       },
+      csrfToken: user.csrf,
     };
   }
 }

@@ -25,7 +25,14 @@ export function SiteHeader({
     <header className="sticky top-0 z-50 bg-white backdrop-blur-xl backdrop-saturate-150 border-b border-white/40 shadow-[0_8px_32px_-16px_rgba(16,32,29,0.35)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <Image src="/logo1.png" alt="Islamic Finance Youth Summit" width={949} height={290} className="h-8 w-auto" priority />
+          <Image
+            src="/logo1.png"
+            alt="Islamic Finance Youth Summit"
+            width={949}
+            height={290}
+            className="h-8 w-auto"
+            priority
+          />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
@@ -62,15 +69,29 @@ export function SiteHeader({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="lg:hidden p-2 -mr-2 text-emerald"
+          className="lg:hidden p-2 py-3.5 -mr-2 text-emerald"
           aria-label="Toggle navigation menu"
           aria-expanded={open}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="w-6 h-6"
+          >
             {open ? (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 6l12 12M18 6L6 18"
+              />
             ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 7h16M4 12h16M4 17h16"
+              />
             )}
           </svg>
         </button>

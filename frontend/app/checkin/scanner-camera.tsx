@@ -78,7 +78,7 @@ export function ScannerCamera({
   }, []);
 
   return (
-    <div className="relative w-full aspect-square max-w-md mx-auto bg-ink rounded-sm overflow-hidden border border-line">
+    <div className="relative w-full aspect-square max-w-md mx-auto bg-ink rounded-[20px] overflow-hidden border border-rust/30">
       <video ref={videoRef} muted playsInline className="w-full h-full object-cover" />
       <canvas ref={canvasRef} className="hidden" />
       {cameraError && (
@@ -86,7 +86,7 @@ export function ScannerCamera({
           {cameraError}
         </div>
       )}
-      <div className="absolute inset-6 border-2 border-gold-light rounded-sm pointer-events-none" />
+      <div className="absolute inset-6 border-2 border-salmon rounded-[16px] pointer-events-none" />
     </div>
   );
 }

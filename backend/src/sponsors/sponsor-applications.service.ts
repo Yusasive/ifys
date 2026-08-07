@@ -59,6 +59,8 @@ export class SponsorApplicationsService {
         contactName: dto.contactName,
         email: dto.email,
         phone: dto.phone,
+        websiteUrl: dto.websiteUrl,
+        budgetNote: dto.budgetNote,
         message: dto.message,
         logoKey: dto.logoKey,
         status: 'pending',

@@ -94,18 +94,18 @@ export default function AdminNewsletterPage() {
     <main className="max-w-3xl mx-auto px-6 py-8">
       <Link
         href="/admin/registrations"
-        className="inline-flex items-center gap-1 border border-line rounded-sm px-3 py-1.5 text-sm text-ink hover:bg-paper-2 mb-6"
+        className="inline-flex items-center gap-1 border border-line rounded-full px-4 py-1.5 text-sm text-ink hover:bg-paper-2 transition-colors mb-6"
       >
         ← Back to registrations
       </Link>
 
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl">Newsletter subscribers</h1>
+        <h1 className="font-bricolage font-bold text-2xl text-forest">Newsletter subscribers</h1>
         <div className="flex items-center gap-3">
           {exportState === "completed" && exportUrl ? (
             <a
               href={exportUrl}
-              className="border border-ink px-4 py-2 rounded-sm text-sm"
+              className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors"
             >
               Download CSV
             </a>
@@ -114,7 +114,7 @@ export default function AdminNewsletterPage() {
               type="button"
               onClick={() => void handleExport()}
               disabled={exportState !== null && exportState !== "completed"}
-              className="border border-ink px-4 py-2 rounded-sm text-sm disabled:opacity-50"
+              className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
             >
               {exportState && exportState !== "completed"
                 ? "Preparing export…"
@@ -124,7 +124,7 @@ export default function AdminNewsletterPage() {
         </div>
       </div>
 
-      <div className="border border-line rounded-sm bg-white overflow-x-auto">
+      <div className="border border-line rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -152,7 +152,7 @@ export default function AdminNewsletterPage() {
                   <td className="px-4 py-2">
                     <button
                       onClick={() => setDeleteConfirmId(subscriber.id)}
-                      className="text-sm text-red-700 underline"
+                      className="text-sm text-rust underline"
                     >
                       Delete
                     </button>
@@ -168,7 +168,7 @@ export default function AdminNewsletterPage() {
                         <button
                           disabled={deleting}
                           onClick={() => void handleDelete(subscriber)}
-                          className="bg-red-700 text-white px-3 py-1 rounded-sm text-sm disabled:opacity-50"
+                          className="bg-rust text-white px-3 py-1 rounded-full text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
                         >
                           Confirm delete
                         </button>

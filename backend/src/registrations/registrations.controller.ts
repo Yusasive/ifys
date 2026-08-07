@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { RegistrationsService } from './registrations.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { StudentIdUploadUrlDto } from './dto/upload-url.dto';
@@ -25,5 +26,23 @@ export class RegistrationsController {
   @Get(':id')
   findById(@Param('id') id: string, @Query('token') token?: string) {
     return this.registrations.findById(id, token);
+  }
+
+  @Get(':id/ticket.pdf')
+  async getTicketPdf(
+    @Param('id') id: string,
+    @Query('token') token: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { pdf, ticketCode } = await this.registrations.getTicketPdf(
+      id,
+      token,
+    );
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="ticket-${ticketCode}.pdf"`,
+      'Content-Length': pdf.length,
+    });
+    res.send(pdf);
   }
 }

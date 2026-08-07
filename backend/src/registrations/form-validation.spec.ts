@@ -7,8 +7,6 @@ describe('validateRegistrationFormData', () => {
   describe('student', () => {
     const valid = {
       institution: 'University of Ilorin',
-      courseOfStudy: 'Economics',
-      levelOrYear: '300',
       studentIdFileKey: 'student-ids/abc123.jpg',
     };
 
@@ -34,12 +32,7 @@ describe('validateRegistrationFormData', () => {
         expect(err).toBeInstanceOf(FormValidationError);
         expect(
           Object.keys((err as FormValidationError).fieldErrors).sort(),
-        ).toEqual([
-          'courseOfStudy',
-          'institution',
-          'levelOrYear',
-          'studentIdFileKey',
-        ]);
+        ).toEqual(['institution', 'studentIdFileKey']);
       }
     });
   });
@@ -100,16 +93,21 @@ describe('validateRegistrationFormData', () => {
       ).not.toThrow();
     });
 
-    it.each(['organization', 'role', 'industry'])(
-      'rejects a missing %s',
-      (field) => {
-        const rest = { ...valid } as Record<string, string>;
-        delete rest[field];
-        expect(() =>
-          validateRegistrationFormData('professional', rest),
-        ).toThrow(FormValidationError);
-      },
-    );
+    it('accepts a professional form without organization', () => {
+      const rest = { ...valid } as Record<string, string>;
+      delete rest.organization;
+      expect(() =>
+        validateRegistrationFormData('professional', rest),
+      ).not.toThrow();
+    });
+
+    it.each(['role', 'industry'])('rejects a missing %s', (field) => {
+      const rest = { ...valid } as Record<string, string>;
+      delete rest[field];
+      expect(() => validateRegistrationFormData('professional', rest)).toThrow(
+        FormValidationError,
+      );
+    });
   });
 
   it('rejects non-object formData', () => {

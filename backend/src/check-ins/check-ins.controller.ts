@@ -11,7 +11,7 @@ import { SyncDto } from './dto/sync.dto';
 
 @Controller('checkin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('door_staff', 'organizer')
+@Roles('door_staff', 'organizer', 'super_admin')
 export class CheckInsController {
   constructor(private readonly checkIns: CheckInsService) {}
 

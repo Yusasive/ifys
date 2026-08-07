@@ -10,7 +10,7 @@ const EXPLORE_LINKS = [
 const MORE_LINKS = [
   { href: "/#faq", label: "FAQ" },
   { href: "/#sponsors", label: "Sponsors" },
-  { href: "mailto:contact@ifysummit.com?subject=Join%20Our%20Team", label: "Join Our Team" },
+  { href: "/volunteer", label: "Join Our Team" },
 ];
 
 const SOCIALS = [
@@ -105,7 +105,7 @@ export function SiteFooter() {
             </p>
             <a
               href="mailto:contact@ifysummit.com"
-              className="block text-white hover:text-white transition-colors mb-5 break-all"
+              className="block text-white hover:text-white transition-colors mb-5"
             >
               contact@ifysummit.com
             </a>

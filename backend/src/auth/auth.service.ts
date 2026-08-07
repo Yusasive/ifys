@@ -48,6 +48,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    const csrfToken = randomBytes(32).toString('hex');
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -55,6 +56,7 @@ export class AuthService {
       role: user.role,
       jti: randomUUID(),
       tv: user.tokenVersion,
+      csrf: csrfToken,
     };
     const accessToken = await this.jwt.signAsync(payload);
     const decoded = this.jwt.decode<{ exp: number }>(accessToken);
@@ -62,7 +64,7 @@ export class AuthService {
 
     return {
       accessToken,
-      csrfToken: randomBytes(32).toString('hex'),
+      csrfToken,
       expiresInSeconds,
       user: {
         id: user.id,

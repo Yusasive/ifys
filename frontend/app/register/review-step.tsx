@@ -17,8 +17,6 @@ import { BackButton } from "./back-button";
 
 const FIELD_LABELS: Record<string, string> = {
   institution: "Institution",
-  courseOfStudy: "Course of study",
-  levelOrYear: "Level / year",
   startupName: "Startup / company name",
   organization: "Organization",
   role: "Role",
@@ -121,13 +119,19 @@ export function ReviewStep({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="border border-line rounded-sm p-5 bg-cloud">
-        <div className="flex items-start justify-between mb-4">
-          <div className="font-display text-2xl text-emerald">{registration.fullName}</div>
+      <h2 className="font-plex text-base sm:text-lg font-semibold uppercase tracking-[0.15em] text-forest text-center mb-2">
+        Review Your Ticket
+      </h2>
+
+      <div className="border border-rust/30 rounded-[20px] p-5 sm:p-6 bg-white overflow-hidden">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="font-sans font-semibold text-xl sm:text-2xl text-emerald break-words min-w-0">
+            {registration.fullName}
+          </div>
           <button
             type="button"
             onClick={() => dispatch(setStep("details"))}
-            className="text-sm font-semibold text-gold-deep underline shrink-0"
+            className="text-sm font-semibold text-rust underline shrink-0"
           >
             Edit
           </button>
@@ -136,14 +140,14 @@ export function ReviewStep({
           {contactRows.map(([label, value]) => (
             <div key={label} className="contents">
               <dt className="text-emerald/60 font-medium">{label}</dt>
-              <dd className="text-emerald text-right">{value}</dd>
+              <dd className="text-emerald text-right break-all">{value}</dd>
             </div>
           ))}
         </dl>
 
         {detailRows.length > 0 && (
           <>
-            <div className="border-t border-line my-4" />
+            <div className="border-t border-rust/20 my-4" />
             <dl className="grid grid-cols-2 gap-y-1.5 text-base">
               {detailRows.map(([label, value]) => (
                 <div key={label} className="contents">
@@ -156,17 +160,17 @@ export function ReviewStep({
         )}
       </div>
 
-      <div className="border border-line rounded-sm p-5 bg-cloud">
+      <div className="border border-rust/30 rounded-[20px] p-5 sm:p-6 bg-white overflow-hidden">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="font-display text-xl text-emerald">
+            <div className="font-sans font-semibold text-lg sm:text-xl text-emerald">
               {registration.category && CATEGORY_LABELS[registration.category]}
             </div>
           </div>
           <button
             type="button"
             onClick={() => dispatch(setStep("category"))}
-            className="text-sm font-semibold text-gold-deep underline shrink-0"
+            className="text-sm font-semibold text-rust underline shrink-0"
           >
             Edit
           </button>
@@ -176,20 +180,20 @@ export function ReviewStep({
           <ul className="text-base text-emerald/70 flex flex-col gap-1 mb-4">
             {tierPerks(registration.tier).map((perk) => (
               <li key={perk} className="flex items-start gap-2">
-                <span className="text-gold-deep mt-0.5">✓</span>
+                <span className="text-rust mt-0.5">✓</span>
                 <span>{perk}</span>
               </li>
             ))}
           </ul>
         )}
 
-        <div className="border-t border-line pt-3 flex flex-col gap-2">
+        <div className="border-t border-rust/20 pt-3 flex flex-col gap-2">
           <label htmlFor="coupon-code" className="text-sm font-medium text-emerald/70">
             Coupon code (optional)
           </label>
           {appliedCoupon ? (
-            <div className="flex items-center justify-between bg-gold/10 border border-gold/40 rounded-sm px-3 py-2">
-              <span className="text-sm font-semibold text-gold-deep">
+            <div className="flex items-center justify-between gap-3 bg-rust/10 border border-rust/40 rounded-full px-4 py-2.5">
+              <span className="text-sm font-semibold text-rust break-words min-w-0">
                 {appliedCoupon.code} applied — {formatKobo(appliedCoupon.discountKobo, product?.currency ?? "NGN")} off
               </span>
               <button
@@ -209,13 +213,13 @@ export function ReviewStep({
                 placeholder="Enter code"
                 aria-describedby={couponError ? "coupon-error" : undefined}
                 aria-invalid={couponError ? true : undefined}
-                className="flex-1 border border-line rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-gold"
+                className="flex-1 border border-rust/70 rounded-full px-4 py-2.5 text-sm text-emerald focus:outline-none focus:border-rust"
               />
               <button
                 type="button"
                 onClick={() => void handleApplyCoupon()}
                 disabled={couponChecking || !couponInput.trim()}
-                className="border border-line rounded-sm px-4 py-2 text-sm font-semibold text-emerald disabled:opacity-40"
+                className="border border-rust/70 rounded-full px-5 py-2.5 text-sm font-semibold text-rust hover:bg-rust hover:text-white transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-rust"
               >
                 {couponChecking ? "Checking…" : "Apply"}
               </button>
@@ -228,9 +232,9 @@ export function ReviewStep({
           )}
         </div>
 
-        <div className="border-t border-line mt-3 pt-3 flex items-baseline justify-between">
+        <div className="border-t border-rust/20 mt-3 pt-3 flex items-baseline justify-between">
           <span className="text-base font-medium text-emerald/70">Total</span>
-          <span className="font-mono text-2xl font-semibold text-gold-deep">
+          <span className="font-mono text-2xl font-semibold text-rust">
             {product &&
               formatKobo(
                 appliedCoupon ? appliedCoupon.finalPriceKobo : product.priceKobo,
@@ -265,7 +269,7 @@ export function ReviewStep({
           type="button"
           onClick={() => void handleSubmit()}
           disabled={submitting}
-          className="bg-gold text-ink font-semibold text-lg px-6 py-2 rounded-sm disabled:opacity-40"
+          className="bg-rust text-white font-semibold text-base sm:text-lg px-6 sm:px-8 py-2.5 sm:py-3 rounded-full hover:bg-rust/90 transition-colors disabled:opacity-40"
         >
           {submitting ? "Redirecting to payment…" : "Proceed to payment"}
         </button>

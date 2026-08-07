@@ -8,6 +8,7 @@ import { ScheduleSection } from "./schedule-section";
 import { TicketsSection } from "./tickets-section";
 import { SponsorsSection } from "./sponsors-section";
 import { OrganizedBySection } from "./organized-by-section";
+import { MerchandiseSection } from "./merchandise-section";
 import { FaqSection } from "./faq-section";
 import { NewsletterSection } from "./newsletter-section";
 import { VenueSection } from "./venue-section";
@@ -73,8 +74,9 @@ export default async function Home() {
         <TicketsSection ticketProducts={ticketProducts} />
         <SponsorsSection sponsors={sponsors} />
         <OrganizedBySection />
-        <FaqSection />
+        <MerchandiseSection />
         <VenueSection />
+        <FaqSection />
         <NewsletterSection />
       </main>
       <SiteFooter />

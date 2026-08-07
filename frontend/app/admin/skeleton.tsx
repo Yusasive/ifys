@@ -1,12 +1,12 @@
 export function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`bg-paper-2 animate-pulse rounded-sm ${className}`} />;
+  return <div className={`bg-paper-2 animate-pulse rounded-lg ${className}`} />;
 }
 
 export function StatCardsSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="border border-line rounded-sm p-4 bg-white">
+        <div key={i} className="border border-line rounded-2xl p-4 bg-white shadow-sm">
           <Skeleton className="h-3 w-20 mb-3" />
           <Skeleton className="h-7 w-12" />
         </div>
@@ -33,7 +33,7 @@ export function TableRowsSkeleton({ rows = 5, cols }: { rows?: number; cols: num
 
 export function DetailCardSkeleton() {
   return (
-    <div className="border border-line rounded-sm bg-white p-6 mb-6">
+    <div className="border border-line rounded-2xl bg-white p-6 mb-6 shadow-sm">
       <div className="flex items-start justify-between mb-4">
         <div>
           <Skeleton className="h-6 w-48 mb-2" />

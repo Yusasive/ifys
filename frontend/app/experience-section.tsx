@@ -99,7 +99,7 @@ function ExperienceArrows({ id, arrows, viewBoxHeight }: { id: string; arrows: s
 
 export function ExperienceSection() {
   return (
-    <section className="bg-islamic-pattern">
+    <section className="bg-islamic-pattern pb-16 sm:pb-24">
       <div className="mx-auto px-4 sm:px-6 pt-16 sm:pt-24 text-center">
         <p className="font-plex text-lg lg:text-2xl font-normal leading-[48px] tracking-normal text-rust uppercase text-center mb-4">
           Summit Experience
@@ -111,14 +111,14 @@ export function ExperienceSection() {
         </h2>
       </div>
 
-      <div className="relative w-full max-w-6xl mx-auto aspect-[1646/594] mt-14 mb-16 hidden sm:block">
+      <div className="relative w-full max-w-6xl mx-auto aspect-[1646/594] mt-14 hidden sm:block">
         <ExperienceArrows id="exp-arrowhead-desktop" arrows={DESKTOP_ARROWS} viewBoxHeight={DESKTOP_VIEWBOX_H} />
         {DESKTOP_PILLS.map((pill) => (
           <ExperiencePill key={pill.label} pill={pill} />
         ))}
       </div>
 
-      <div className="relative w-full max-w-sm mx-auto aspect-[3/4] mt-12 mb-16 px-2 sm:hidden">
+      <div className="relative w-full max-w-sm mx-auto aspect-[3/4] mt-12 px-2 sm:hidden">
         <ExperienceArrows id="exp-arrowhead-mobile" arrows={MOBILE_ARROWS} viewBoxHeight={MOBILE_VIEWBOX_H} />
         {MOBILE_PILLS.map((pill) => (
           <ExperiencePill key={pill.label} pill={pill} />

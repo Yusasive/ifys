@@ -14,6 +14,7 @@ export const TIER_LABELS: Record<Tier, string> = {
 export const SPONSOR_TYPE_LABELS: Record<SponsorType, string> = {
   sponsor: 'sponsor',
   partner: 'partner',
+  exhibitor: 'exhibitor',
 };
 
 export const VOLUNTEER_TEAMS = [
