@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/admin-api";
@@ -9,12 +9,20 @@ import { ApiError } from "@/lib/api";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { setSession } = useAdminAuth();
+  const { session, loading, setSession } = useAdminAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Landing here with a still-valid session (stale bookmark, back button)
+  // should bounce straight into the app rather than showing the form again.
+  useEffect(() => {
+    if (!loading && session) {
+      router.replace(session.user.role === "door_staff" ? "/checkin" : "/admin");
+    }
+  }, [loading, session, router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -34,6 +42,8 @@ export default function AdminLoginPage() {
       setSubmitting(false);
     }
   }
+
+  if (loading || session) return null;
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 bg-forest">

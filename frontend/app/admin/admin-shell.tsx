@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAdminAuth } from "@/lib/admin-auth-context";
 import { AdminSidebarNav } from "./admin-sidebar";
 
@@ -43,6 +43,7 @@ function SignOutFooter() {
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAdminAuth();
+  const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -58,7 +59,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     };
   }, [drawerOpen]);
 
-  if (loading || !session) {
+  // The login page is the one route in this tree a signed-in user can still
+  // land on (stale bookmark, back button) — it must never show the
+  // logged-in chrome around it, regardless of session state.
+  if (pathname === "/admin/login" || loading || !session) {
     return <>{children}</>;
   }
 
