@@ -169,9 +169,7 @@ export function DetailsStep() {
     fullName.trim() && email.trim() && phone.trim() &&
     (category === "student"
       ? formData.institution && registration.studentIdFileKey
-      : category === "founder"
-        ? formData.startupName && formData.role && formData.industry
-        : formData.role && formData.industry);
+      : formData.role && formData.industry);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -187,7 +185,7 @@ export function DetailsStep() {
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       <h2 className="font-plex text-base lg:text-lg font-semibold uppercase tracking-[0.15em] text-forest text-center mb-4">
-        {category && CATEGORY_LABELS[category]}&rsquo;s Ticket
+        {category && CATEGORY_LABELS[category]} Ticket
       </h2>
 
       <PillField
@@ -251,33 +249,22 @@ export function DetailsStep() {
         </>
       )}
 
-      {(category === "founder" || category === "professional") && (
+      {(category === "regular" || category === "professional") && (
         <>
           <PillField
             icon={<InstitutionIcon />}
-            required={category === "founder"}
-            value={formData[category === "founder" ? "startupName" : "organization"] ?? ""}
-            onChange={(v) =>
-              dispatch(
-                setFormField({
-                  field: category === "founder" ? "startupName" : "organization",
-                  value: v,
-                }),
-              )
-            }
+            required={false}
+            value={formData.organization ?? ""}
+            onChange={(v) => dispatch(setFormField({ field: "organization", value: v }))}
             showError={attemptedSubmit}
-            placeholder={
-              category === "founder"
-                ? "StartUp/Organization Name (As it should appear on the badge)"
-                : "Organization/Company Name (Optional)"
-            }
+            placeholder="Organization/Startup Name (Optional)"
           />
           <PillField
             icon={<BadgeIcon />}
             value={formData.role ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "role", value: v }))}
             showError={attemptedSubmit}
-            placeholder={category === "founder" ? "Founder Role/Position" : "Job Title/Position"}
+            placeholder="Job Title/Position"
           />
           <PillField
             icon={<IndustryIcon />}

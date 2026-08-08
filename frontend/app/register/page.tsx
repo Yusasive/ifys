@@ -1,6 +1,7 @@
 import { fetchTicketProducts } from "@/lib/api";
 import { RegistrationWizard } from "./registration-wizard";
 import { RegisterBackButton } from "./register-back-button";
+import { SiteFooter } from "../site-footer";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 
@@ -12,11 +13,14 @@ export default async function RegisterPage() {
   const { event, ticketProducts } = await fetchTicketProducts(EVENT_SLUG);
 
   return (
-    <main className="relative bg-white text-emerald flex-1 flex flex-col items-center px-4 pt-24 pb-10 sm:pt-14 sm:pb-14">
-      <RegisterBackButton className="lg:left-56" />
-      <div className="w-full max-w-3xl">
-        <RegistrationWizard eventSlug={event.slug} ticketProducts={ticketProducts} />
-      </div>
-    </main>
+    <>
+      <main className="relative bg-white text-emerald flex-1 flex flex-col items-center px-4 pt-24 pb-10 sm:pt-14 sm:pb-14">
+        <RegisterBackButton className="lg:left-56" />
+        <div className="w-full max-w-3xl">
+          <RegistrationWizard eventSlug={event.slug} ticketProducts={ticketProducts} />
+        </div>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

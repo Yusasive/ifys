@@ -11,12 +11,14 @@ const DEV_ADMIN_USERS = [
   { name: 'Dev Door Staff', email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw', role: 'door_staff' as const },
 ];
 
-// PLACEHOLDER pricing — PRD §9: NextIF owns final pricing per category+tier
-// and exact Premium perks before build sign-off. Values below unblock M1
-// development only; do not treat as real prices.
-const PLACEHOLDER_PRICING_KOBO = {
+// Launch pricing: Student 5k, Regular 7.5k, Professional/Founders/
+// Entrepreneurs 10k. `founder` is kept only so the seed can still deactivate
+// it below — its rows exist purely for historical registrations to resolve
+// against and are never active/selectable.
+const PRICING_KOBO = {
   student: { standard: 500000, premium: 500000 }, // NGN 5,000
-  founder: { standard: 1000000, premium: 1000000 }, // NGN 10,000
+  regular: { standard: 750000, premium: 750000 }, // NGN 7,500
+  founder: { standard: 1000000, premium: 1000000 }, // NGN 10,000 (retired)
   professional: { standard: 1000000, premium: 1000000 }, // NGN 10,000
 } as const;
 
@@ -43,30 +45,36 @@ async function main() {
     },
   });
 
-  for (const category of ['student', 'founder', 'professional'] as const) {
+  for (const category of ['student', 'regular', 'founder', 'professional'] as const) {
     for (const tier of ['standard', 'premium'] as const) {
       const cardFields =
         tier === 'standard' && category === 'student'
           ? { cardPriceLabel: '5K', cardNote: '*30% discount for early birds' }
-          : tier === 'standard' && (category === 'professional' || category === 'founder')
-            ? { cardPriceLabel: '10K', cardNote: '*30% discount for early birds' }
-            : {};
+          : tier === 'standard' && category === 'regular'
+            ? { cardPriceLabel: '7.5K', cardNote: '*30% discount for early birds' }
+            : tier === 'standard' && category === 'professional'
+              ? { cardPriceLabel: '10K', cardNote: '*30% discount for early birds' }
+              : {};
 
       await prisma.ticketProduct.upsert({
         where: {
           eventId_category_tier: { eventId: event.id, category, tier },
         },
         update: {
-          priceKobo: PLACEHOLDER_PRICING_KOBO[category][tier],
+          priceKobo: PRICING_KOBO[category][tier],
+          // `founder` is retired — never (re-)activated by the seed, even
+          // on re-run. Every other category is active.
+          isActive: category !== 'founder',
           ...cardFields,
         },
         create: {
           eventId: event.id,
           category,
           tier,
-          priceKobo: PLACEHOLDER_PRICING_KOBO[category][tier],
+          priceKobo: PRICING_KOBO[category][tier],
           currency: 'NGN',
           perksJson: tier === 'premium' ? { placeholder: true } : {},
+          isActive: category !== 'founder',
           ...cardFields,
         },
       });
@@ -87,7 +95,7 @@ async function main() {
   }
 
   await prisma.$disconnect();
-  console.log(`Seeded event "${event.slug}" with 6 ticket products.`);
+  console.log(`Seeded event "${event.slug}" with 8 ticket products.`);
   console.log('Seeded dev admin users (DEV ONLY, not real credentials):');
   for (const admin of DEV_ADMIN_USERS) {
     console.log(`  ${admin.role}: ${admin.email} / ${admin.password}`);

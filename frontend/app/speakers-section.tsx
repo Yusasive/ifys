@@ -44,7 +44,7 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
 
   return (
     <section id="speakers" className="bg-islamic-pattern">
-      <div className="py-8 lg:py-14">
+      <div className="py-4 lg:py-8">
         <div className="mx-auto px-4 sm:px-6 text-center mb-12 sm:mb-14">
           <p className="font-plex text-lg lg:text-2xl font-normal leading-[48px] tracking-normal text-rust uppercase text-center mb-4">
             Meet Our Speakers

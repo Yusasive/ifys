@@ -1,6 +1,6 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
-export type Category = "student" | "founder" | "professional";
+export type Category = "student" | "regular" | "founder" | "professional";
 export type Tier = "standard" | "premium";
 
 export interface TicketProduct {

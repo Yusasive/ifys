@@ -13,6 +13,11 @@ datasource db {
 
 enum Category {
   student
+  regular
+  // Retired as a selectable category — folded into `professional`
+  // ("Professional/Founders/Entrepreneurs"). Kept in the enum, and its
+  // TicketProduct rows kept inactive rather than deleted, purely so
+  // historical registrations that reference it still resolve.
   founder
   professional
 }

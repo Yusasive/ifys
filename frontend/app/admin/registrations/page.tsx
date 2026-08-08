@@ -234,8 +234,9 @@ export default function AdminRegistrationsPage() {
           >
             <option value="">All</option>
             <option value="student">Student</option>
-            <option value="founder">Founder / Entrepreneur</option>
-            <option value="professional">Working Professional</option>
+            <option value="regular">Regular</option>
+            <option value="professional">Professional / Founders / Entrepreneurs</option>
+            <option value="founder">Founder / Entrepreneur (legacy)</option>
           </select>
         </label>
 

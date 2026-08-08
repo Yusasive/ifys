@@ -27,7 +27,7 @@ export function VenueSection() {
         </p>
       </div>
 
-      <div className="relative w-full aspect-[1440/1080] overflow-hidden">
+      <div className="relative w-full min-h-[560px] sm:min-h-0 sm:aspect-[1440/1080] overflow-hidden">
         <Image
           src="/location-bg.png"
           alt="Ilorin Innovation Hub, Multipurpose Hall"
@@ -37,8 +37,8 @@ export function VenueSection() {
           style={{ top: -10 }}
         />
 
-        <div className="absolute inset-0 flex flex-col items-center justify-between py-10 lg:py-14 px-4 text-center">
-          <div className="flex flex-col items-center gap-3 text-forest">
+        <div className="absolute inset-0 flex flex-col items-center justify-between gap-6 py-10 lg:py-14 px-4 text-center">
+          <div className="flex flex-col items-center gap-2 sm:gap-3 text-forest">
             <PinIcon />
             <p className="font-sans font-bold text-base sm:text-[32px] lg:leading-[1.2] lg:leading-[48px] tracking-normal text-center">
               Ilorin Innovation Hub,
@@ -50,7 +50,7 @@ export function VenueSection() {
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-3 text-white">
+          <div className="flex flex-col items-center gap-2 sm:gap-3 text-white">
             <CalendarIcon />
             <p className="font-sans font-bold text-lg sm:text-[48px] leading-[1.2] sm:leading-[48px] tracking-normal text-center max-w-xs sm:max-w-none">
               Saturday, 7th of November, <br /> 2026

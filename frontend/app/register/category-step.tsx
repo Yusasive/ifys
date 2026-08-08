@@ -18,8 +18,8 @@ const CATEGORIES: { value: Category; label: string; icon: ReactElement }[] = [
     ),
   },
   {
-    value: "founder",
-    label: "Founder",
+    value: "regular",
+    label: "Regular",
     icon: (
       <>
         <circle cx="12" cy="8" r="3.2" />
@@ -29,7 +29,7 @@ const CATEGORIES: { value: Category; label: string; icon: ReactElement }[] = [
   },
   {
     value: "professional",
-    label: "Working Professional",
+    label: "Founder/Working Professional",
     icon: (
       <>
         <circle cx="9" cy="8" r="2.6" />

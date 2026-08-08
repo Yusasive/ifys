@@ -2,8 +2,10 @@ import { Category, SponsorType, Tier } from '../generated/prisma/enums';
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   student: 'Student',
+  regular: 'Regular',
+  // Retired — see the `founder` comment in schema.prisma's Category enum.
   founder: 'Founder / Entrepreneur',
-  professional: 'Working Professional',
+  professional: 'Professional / Founders / Entrepreneurs',
 };
 
 export const TIER_LABELS: Record<Tier, string> = {

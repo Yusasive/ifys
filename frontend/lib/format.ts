@@ -16,8 +16,10 @@ export function formatKobo(priceKobo: number, currency: string): string {
 
 export const CATEGORY_LABELS: Record<string, string> = {
   student: "Student",
+  regular: "Regular",
+  // Retired — kept only so historical registrations display correctly.
   founder: "Founder / Entrepreneur",
-  professional: "Working Professional",
+  professional: "Professional / Founders / Entrepreneurs",
 };
 
 export const TIER_LABELS: Record<string, string> = {

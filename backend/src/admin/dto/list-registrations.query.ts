@@ -9,7 +9,7 @@ const STATUSES = [
   'refunded',
   'cancelled',
 ] as const;
-const CATEGORIES = ['student', 'founder', 'professional'] as const;
+const CATEGORIES = ['student', 'regular', 'founder', 'professional'] as const;
 const TIERS = ['standard', 'premium'] as const;
 const SORT_FIELDS = ['createdAt', 'fullName', 'status'] as const;
 const SORT_ORDERS = ['asc', 'desc'] as const;

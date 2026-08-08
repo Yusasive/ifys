@@ -54,11 +54,15 @@ export function validateRegistrationFormData(
       requireString(data, 'studentIdFileKey', errors);
       break;
     case 'founder':
+      // Retired category — no longer selectable at registration, but the
+      // validator is kept so any stray/legacy caller doesn't hit an
+      // unhandled case.
       requireString(data, 'startupName', errors);
       requireString(data, 'role', errors);
       requireString(data, 'industry', errors);
       checkOptionalLinkedin(data, errors);
       break;
+    case 'regular':
     case 'professional':
       requireString(data, 'role', errors);
       requireString(data, 'industry', errors);

@@ -2,12 +2,21 @@ import Link from "next/link";
 import type { TicketProduct } from "@/lib/api";
 import { formatKobo } from "@/lib/format";
 
-const LABELS: Record<string, string> = { student: "Students", professional: "Professionals" };
-const TONES: Record<string, "forest" | "rust"> = { student: "forest", professional: "rust" };
-const ORDER: Record<string, number> = { student: 0, professional: 1 };
+const LABELS: Record<string, string> = {
+  student: "Students",
+  regular: "Regular",
+  professional: "Professionals / Founders",
+};
+const TONES: Record<string, "forest" | "salmon" | "rust"> = {
+  student: "forest",
+  regular: "salmon",
+  professional: "rust",
+};
+const ORDER: Record<string, number> = { student: 0, regular: 1, professional: 2 };
 
 const TONE_STYLES = {
   forest: { header: "bg-forest", border: "border-forest", text: "text-forest" },
+  salmon: { header: "bg-salmon", border: "border-salmon", text: "text-salmon" },
   rust: { header: "bg-rust", border: "border-rust", text: "text-rust" },
 };
 
@@ -29,14 +38,14 @@ function cardNote(product: TicketProduct): string | null {
 
 export function TicketsSection({ ticketProducts }: { ticketProducts: TicketProduct[] }) {
   const tickets = ticketProducts
-    .filter((p) => (p.category === "student" || p.category === "professional") && p.tier === "standard" && p.isActive)
+    .filter((p) => p.category in LABELS && p.tier === "standard" && p.isActive)
     .sort((a, b) => ORDER[a.category] - ORDER[b.category]);
 
   if (tickets.length === 0) return null;
 
   return (
     <section id="tickets" className="bg-islamic-pattern">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+      <div className="mx-auto px-4 sm:px-6 py-10 lg:py-16">
         <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase mb-4 text-center">
           Tickets
         </p>
@@ -44,7 +53,7 @@ export function TicketsSection({ ticketProducts }: { ticketProducts: TicketProdu
           Register for the Islamic Finance Youth Summit
         </h2>
 
-        <div className="grid sm:grid-cols-2 gap-6 mb-10">
+        <div className="grid sm:grid-cols-3 gap-6 mb-10">
           {tickets.map((product) => {
             const tone = TONE_STYLES[TONES[product.category]];
             const note = cardNote(product);
