@@ -309,4 +309,53 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
       await fixture.teardown();
     }
   });
+
+  // Paystack adds its own fee on top of the requested amount for some
+  // channels (international cards, certain bank transfers) — that's
+  // legitimate and gains an attacker nothing, so it must settle normally
+  // rather than getting stuck exactly like an underpayment would.
+  it('settles the order and issues a ticket when the verified amount is higher than expected', async () => {
+    const fixture = await createPaidCheckoutFixture(prisma);
+    try {
+      const overpaidAmount = fixture.order.amountMinor + 25381;
+      stubVerifyFetch({
+        status: 'success',
+        reference: fixture.order.providerReference,
+        amount: overpaidAmount,
+        currency: fixture.order.currency,
+      });
+      const { emailQueue, enqueueMock } = makeEmailQueueSpy();
+      const payments = new PaymentsService(
+        prisma,
+        config,
+        paystack,
+        tickets,
+        emailQueue,
+        coupons,
+      );
+
+      const body = chargeSuccessBody(
+        fixture.order.providerReference,
+        overpaidAmount,
+      );
+      const signature = signBody(body);
+
+      await payments.handlePaystackWebhook(Buffer.from(body), signature);
+
+      const order = await prisma.order.findUniqueOrThrow({
+        where: { id: fixture.order.id },
+      });
+      expect(order.status).toBe('paid');
+      expect(order.paidAt).not.toBeNull();
+      expect(order.amountMinor).toBe(overpaidAmount);
+
+      const ticketCount = await prisma.ticket.count({
+        where: { registrationId: fixture.registration.id },
+      });
+      expect(ticketCount).toBe(1);
+      expect(enqueueMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await fixture.teardown();
+    }
+  });
 });

@@ -216,17 +216,22 @@ export class PaymentsService {
       return;
     }
 
-    // Checked before the order is claimed as paid — a mismatched amount
-    // must never reach the ticket-issuing code path below, no matter how
-    // it happened (a discount-calc bug, a downgraded/tampered Paystack
-    // transaction, a stale reference reused for a cheaper item).
-    if (verified.amountMinor !== order.amountMinor) {
+    // Only underpayment is rejected — a discount-calc bug, a
+    // downgraded/tampered Paystack transaction, or a stale reference
+    // reused for a cheaper item must never reach the ticket-issuing code
+    // path below. Overpayment is allowed through: Paystack adds its own
+    // fee on top of the requested amount for some channels (international
+    // cards, certain bank transfers), which is legitimate and gains an
+    // attacker nothing, so blocking it only creates stuck orders for
+    // paying customers. amountMinor is updated to what was actually
+    // collected so the record matches reality.
+    if (verified.amountMinor < order.amountMinor) {
       await this.prisma.order.updateMany({
         where: { providerReference: reference, status: 'pending' },
         data: { status: 'amount_mismatch' },
       });
       this.logger.error(
-        `Amount mismatch for order ${order.id}: expected ${order.amountMinor}, got ${verified.amountMinor} — held for review, no ticket issued`,
+        `Underpayment for order ${order.id}: expected ${order.amountMinor}, got ${verified.amountMinor} — held for review, no ticket issued`,
       );
       return;
     }
@@ -238,7 +243,11 @@ export class PaymentsService {
     // gets count 0, treated as an idempotent no-op.
     const claim = await this.prisma.order.updateMany({
       where: { providerReference: reference, status: 'pending' },
-      data: { status: 'paid', paidAt: new Date() },
+      data: {
+        status: 'paid',
+        paidAt: new Date(),
+        amountMinor: verified.amountMinor,
+      },
     });
 
     if (claim.count === 0) {
