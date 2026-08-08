@@ -2,19 +2,23 @@ import Image from "next/image";
 
 function PinIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-12 h-12 sm:w-14 sm:h-14">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21.5s7-6.2 7-12.2a7 7 0 1 0-14 0c0 6 7 12.2 7 12.2Z" />
-      <circle cx="12" cy="9.3" r="2.6" />
-    </svg>
+    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-4 border-salmon flex items-center justify-center">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6 sm:w-7 sm:h-7">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21.5s7-6.2 7-12.2a7 7 0 1 0-14 0c0 6 7 12.2 7 12.2Z" />
+        <circle cx="12" cy="9.3" r="2.6" />
+      </svg>
+    </div>
   );
 }
 
 function CalendarIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-12 h-12 sm:w-14 sm:h-14">
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path strokeLinecap="round" d="M8 3v4M16 3v4M3 10h18" />
-    </svg>
+    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-4 border-salmon flex items-center justify-center">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6 sm:w-7 sm:h-7">
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path strokeLinecap="round" d="M8 3v4M16 3v4M3 10h18" />
+      </svg>
+    </div>
   );
 }
 
@@ -48,6 +52,14 @@ export function VenueSection() {
             <p className="font-sans font-bold text-xl sm:text-[48px] leading-[1.1] sm:leading-[48px] tracking-normal text-center uppercase">
               Ilorin, Nigeria
             </p>
+            <a
+              href="https://maps.google.com/maps?q=8.481993,4.5771468"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-sans font-medium text-base sm:text-2xl leading-tight sm:leading-[50px] tracking-normal text-center text-white underline hover:text-white/80 transition-colors"
+            >
+              View on Map
+            </a>
           </div>
 
           <div className="flex flex-col items-center gap-2 sm:gap-3 text-white">
