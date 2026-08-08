@@ -56,7 +56,7 @@ export function VenueSection() {
               href="https://maps.google.com/maps?q=8.481993,4.5771468"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-sans font-medium text-base sm:text-2xl leading-tight sm:leading-[50px] tracking-normal text-center text-white underline hover:text-white/80 transition-colors"
+              className="mt-1 inline-flex items-center justify-center rounded-full bg-salmon px-6 sm:px-8 py-2 sm:py-3 font-sans font-medium text-base sm:text-2xl leading-tight sm:leading-[50px] tracking-normal text-center text-white hover:bg-salmon/90 transition-colors"
             >
               View on Map
             </a>
