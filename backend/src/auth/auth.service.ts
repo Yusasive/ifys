@@ -33,8 +33,12 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto): Promise<LoginResult> {
-    const user = await this.prisma.adminUser.findUnique({
-      where: { email: dto.email },
+    // Case-insensitive: LoginDto normalizes the typed email to lowercase,
+    // but a row created before that normalization existed (or created with
+    // stray casing some other way) may still be stored mixed-case —
+    // findUnique would exact-match-fail against it forever otherwise.
+    const user = await this.prisma.adminUser.findFirst({
+      where: { email: { equals: dto.email, mode: 'insensitive' } },
     });
     // Deliberately identical error for "no such user" and "wrong password"
     // — don't let the login endpoint reveal which admin emails exist.

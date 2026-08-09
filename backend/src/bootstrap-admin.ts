@@ -38,6 +38,10 @@ export async function bootstrapSuperAdminIfNeeded(app: INestApplication) {
   }
 
   const prisma = app.get(PrismaService);
+  // Email is stored/looked-up lowercase everywhere else (see
+  // NormalizeEmail + auth.service.login's case-insensitive match) — match
+  // that here too, whatever casing was typed into the constant above.
+  const email = BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase();
 
   // Never let a bootstrap hiccup (a transient DB error, a unique-violation
   // race with another instance, anything) block the app from starting —
@@ -45,15 +49,15 @@ export async function bootstrapSuperAdminIfNeeded(app: INestApplication) {
   // an uncaught rejection here would crash the process before it can even
   // serve a health check.
   try {
-    const existing = await prisma.adminUser.findUnique({
-      where: { email: BOOTSTRAP_ADMIN_EMAIL },
+    const existing = await prisma.adminUser.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
     });
     if (existing) return;
 
     await prisma.adminUser.create({
       data: {
         name: BOOTSTRAP_ADMIN_NAME,
-        email: BOOTSTRAP_ADMIN_EMAIL,
+        email,
         passwordHash: await bcrypt.hash(BOOTSTRAP_ADMIN_PASSWORD, 10),
         role: 'super_admin',
       },

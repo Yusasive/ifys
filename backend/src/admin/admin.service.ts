@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -18,6 +19,7 @@ import { StorageService } from '../storage/storage.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
+import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { ExportQueue } from './export.queue';
 
@@ -275,8 +277,12 @@ export class AdminService {
   // organizer-facing action, audit-logged like every other admin action
   // that changes who can do what.
   async createAdminUser(dto: CreateAdminUserDto, actorId: string) {
-    const existing = await this.prisma.adminUser.findUnique({
-      where: { email: dto.email },
+    // Case-insensitive: dto.email is already lowercased by
+    // CreateAdminUserDto's @NormalizeEmail, but check case-insensitively
+    // anyway so this can't create a case-variant duplicate of a row that
+    // predates that normalization.
+    const existing = await this.prisma.adminUser.findFirst({
+      where: { email: { equals: dto.email, mode: 'insensitive' } },
     });
     if (existing) {
       throw new ConflictException('An account with this email already exists.');
@@ -341,6 +347,100 @@ export class AdminService {
       orderBy: { createdAt: 'desc' },
     });
     return { users };
+  }
+
+  async updateAdminUser(id: string, dto: UpdateAdminUserDto, actorId: string) {
+    const existing = await this.prisma.adminUser.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Admin user not found');
+    }
+    // super_admin accounts are seed/bootstrap-only — never editable (and
+    // never assignable as a target role; UpdateAdminUserDto's @IsIn already
+    // rejects role: 'super_admin' in the request body) through this API.
+    if (existing.role === 'super_admin') {
+      throw new ForbiddenException(
+        'super_admin accounts cannot be modified through this endpoint',
+      );
+    }
+
+    if (dto.email && dto.email.toLowerCase() !== existing.email.toLowerCase()) {
+      const emailTaken = await this.prisma.adminUser.findFirst({
+        where: { email: { equals: dto.email, mode: 'insensitive' } },
+      });
+      if (emailTaken) {
+        throw new ConflictException(
+          'An account with this email already exists.',
+        );
+      }
+    }
+
+    const roleChanged = dto.role !== undefined && dto.role !== existing.role;
+
+    const updated = await this.prisma.adminUser.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        email: dto.email,
+        role: dto.role,
+      },
+    });
+
+    // A role change must take effect immediately, not next time their JWT
+    // happens to expire — bump tokenVersion so their current session (still
+    // carrying the old role claim) is rejected on its next request and they
+    // have to log in again to get a token reflecting the new role.
+    if (roleChanged) {
+      await this.auth.revokeAllSessions(id);
+    }
+
+    await this.auditLog.record({
+      actorId,
+      action: 'update_admin_user',
+      targetType: 'admin_user',
+      targetId: updated.id,
+      metadata: {
+        email: updated.email,
+        role: updated.role,
+        ...(roleChanged && { previousRole: existing.role }),
+      },
+    });
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      role: updated.role,
+      createdAt: updated.createdAt,
+      mustChangePassword: updated.mustChangePassword,
+    };
+  }
+
+  async deleteAdminUser(id: string, actorId: string) {
+    if (id === actorId) {
+      throw new BadRequestException('You cannot delete your own account');
+    }
+
+    const existing = await this.prisma.adminUser.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Admin user not found');
+    }
+    if (existing.role === 'super_admin') {
+      throw new ForbiddenException(
+        'super_admin accounts cannot be deleted through this endpoint',
+      );
+    }
+
+    await this.prisma.adminUser.delete({ where: { id } });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'delete_admin_user',
+      targetType: 'admin_user',
+      targetId: id,
+      metadata: { email: existing.email, role: existing.role },
+    });
+
+    return { deleted: true };
   }
 
   async getEventSettings(eventSlug: string) {

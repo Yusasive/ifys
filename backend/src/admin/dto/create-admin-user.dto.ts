@@ -1,5 +1,6 @@
 import { IsEmail, IsIn, IsString, MinLength } from 'class-validator';
 import { AdminRole } from '../../generated/prisma/enums';
+import { NormalizeEmail } from '../../auth/normalize-email.decorator';
 
 const ROLES: AdminRole[] = ['organizer', 'door_staff'];
 
@@ -8,6 +9,7 @@ export class CreateAdminUserDto {
   @MinLength(1)
   name!: string;
 
+  @NormalizeEmail()
   @IsEmail()
   email!: string;
 

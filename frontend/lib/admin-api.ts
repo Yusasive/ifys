@@ -239,6 +239,22 @@ export function createAdminUser(input: {
   });
 }
 
+export function updateAdminUser(
+  id: string,
+  input: Partial<{ name: string; email: string; role: CreatableAdminRole }>,
+) {
+  return adminRequest<AdminUserListItem>(`/admin/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteAdminUser(id: string) {
+  return adminRequest<{ deleted: true }>(`/admin/users/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export interface SpeakerInput {
   name: string;
   role: string;
