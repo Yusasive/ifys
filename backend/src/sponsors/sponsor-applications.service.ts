@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { SponsorApplicationEmailQueue } from '../email/sponsor-application-email.queue';
@@ -43,12 +47,28 @@ export class SponsorApplicationsService {
     };
   }
 
+  async getStatus(eventSlug: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { slug: eventSlug },
+      select: { sponsorshipApplicationsPaused: true },
+    });
+    if (!event) {
+      throw new NotFoundException(`No event found for slug "${eventSlug}"`);
+    }
+    return { paused: event.sponsorshipApplicationsPaused };
+  }
+
   async create(dto: CreateSponsorApplicationDto) {
     const event = await this.prisma.event.findUnique({
       where: { slug: dto.eventSlug },
     });
     if (!event) {
       throw new NotFoundException(`No event found for slug "${dto.eventSlug}"`);
+    }
+    if (event.sponsorshipApplicationsPaused) {
+      throw new BadRequestException(
+        'Sponsorship applications are not currently open',
+      );
     }
 
     const application = await this.prisma.sponsorApplication.create({

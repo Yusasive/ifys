@@ -3,8 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
+import { PauseToggle } from "../pause-toggle";
 import { ApplicantsTab } from "./applicants-tab";
 import { DirectoryTab } from "./directory-tab";
+
+const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 
 type Tab = "directory" | "applicants";
 
@@ -24,6 +27,12 @@ export default function AdminSponsorsPage() {
       </Link>
 
       <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Partners & Sponsors</h1>
+
+      <PauseToggle
+        eventSlug={EVENT_SLUG}
+        field="sponsorshipApplicationsPaused"
+        label="Sponsorship applications"
+      />
 
       <div className="flex gap-2 border-b border-emerald/20 mb-6">
         <button

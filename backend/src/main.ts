@@ -4,11 +4,14 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { bootstrapSuperAdminIfNeeded } from './bootstrap-admin';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
+
+  await bootstrapSuperAdminIfNeeded(app);
 
   // M6: security headers on every response. Behind a reverse proxy in
   // production, `trust proxy` is required for req.ip (and therefore

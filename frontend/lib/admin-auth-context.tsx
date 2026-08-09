@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AdminUser, fetchCurrentUser, logout as logoutRequest } from "./admin-api";
 import { ApiError } from "./api";
 
@@ -72,16 +72,24 @@ export function useAdminAuth() {
 
 // Redirects to /admin/login when there's no session once the initial
 // /auth/me check has finished — avoids a flash-redirect before we've even
-// checked whether a session exists.
+// checked whether a session exists. Also forces a stop at
+// /admin/change-password for accounts still on a temp password, before
+// they can reach any other admin page.
 export function useRequireAdminAuth() {
   const { session, loading } = useAdminAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && !session) {
+    if (loading) return;
+    if (!session) {
       router.replace("/admin/login");
+      return;
     }
-  }, [loading, session, router]);
+    if (session.user.mustChangePassword && pathname !== "/admin/change-password") {
+      router.replace("/admin/change-password");
+    }
+  }, [loading, session, pathname, router]);
 
   return { session, loading };
 }

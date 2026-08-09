@@ -16,6 +16,10 @@ export interface JwtPayload {
   // instead of a second cookie, so it works even when the API and the
   // frontend are served from different origins.
   csrf: string;
+  // Snapshot of AdminUser.mustChangePassword at issue-time — lets guards/
+  // the frontend gate on it without a DB round trip. Refreshed into a new
+  // token by POST /auth/change-password once cleared.
+  mustChangePassword: boolean;
   // Added by jsonwebtoken on sign/verify, not set by us directly.
   iat?: number;
   exp?: number;

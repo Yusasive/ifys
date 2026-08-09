@@ -48,6 +48,7 @@ export class RegistrationsService {
         venue: event.venue,
         startsAt: event.startsAt,
         slug: event.slug,
+        ticketPurchasingPaused: event.ticketPurchasingPaused,
       },
       ticketProducts: event.ticketProducts,
     };
@@ -82,6 +83,9 @@ export class RegistrationsService {
     });
     if (!event) {
       throw new NotFoundException(`No event found for slug "${dto.eventSlug}"`);
+    }
+    if (event.ticketPurchasingPaused) {
+      throw new BadRequestException('Ticket purchasing is not currently open');
     }
 
     const ticketProduct = await this.prisma.ticketProduct.findUnique({

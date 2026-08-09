@@ -145,15 +145,27 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-2">Name</th>
                 <th className="px-4 py-2">Email</th>
                 <th className="px-4 py-2">Role</th>
+                <th className="px-4 py-2">Status</th>
               </tr>
             </thead>
             <tbody>
-              {!usersLoaded && <TableRowsSkeleton rows={3} cols={3} />}
+              {!usersLoaded && <TableRowsSkeleton rows={3} cols={4} />}
               {users.map((u) => (
                 <tr key={u.id} className="border-b border-emerald/20 last:border-0">
                   <td className="px-4 py-2">{u.name}</td>
                   <td className="px-4 py-2 text-sage">{u.email}</td>
                   <td className="px-4 py-2 font-mono text-xs">{u.role}</td>
+                  <td className="px-4 py-2">
+                    {u.mustChangePassword ? (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-gold/10 text-gold-deep">
+                        Awaiting first login
+                      </span>
+                    ) : (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald/10 text-emerald">
+                        Active
+                      </span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

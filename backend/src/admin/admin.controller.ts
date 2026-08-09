@@ -39,6 +39,7 @@ import { VolunteerApplicationsService } from '../volunteers/volunteer-applicatio
 import { AdminService } from './admin.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
+import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { VoidTicketDto } from './dto/void-ticket.dto';
 
 @Controller('admin')
@@ -115,6 +116,20 @@ export class AdminController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.admin.createAdminUser(dto, user.sub);
+  }
+
+  @Get('event-settings')
+  getEventSettings(@Query('event') eventSlug: string) {
+    return this.admin.getEventSettings(eventSlug);
+  }
+
+  @Patch('event-settings')
+  updateEventSettings(
+    @Query('event') eventSlug: string,
+    @Body() dto: UpdateEventSettingsDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.updateEventSettings(eventSlug, dto, user.sub);
   }
 
   @Get('speakers')

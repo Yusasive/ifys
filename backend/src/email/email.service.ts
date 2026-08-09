@@ -6,6 +6,10 @@ import { createTransport, Transporter } from 'nodemailer';
 import type { Attachment } from 'nodemailer/lib/mailer';
 import * as QRCode from 'qrcode';
 import {
+  AdminAccountEmailData,
+  renderAdminAccountCreatedHtml,
+} from './admin-account-email-template';
+import {
   NewsletterEmailData,
   renderNewsletterConfirmationHtml,
 } from './newsletter-email-template';
@@ -179,6 +183,17 @@ export class EmailService {
       attachments: this.brandLogoAttachment(),
     });
     this.logger.log(`Volunteer application approved email sent to ${to}`);
+  }
+
+  async sendAdminAccountCreatedEmail(to: string, data: AdminAccountEmailData) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: 'Your admin dashboard account',
+      html: renderAdminAccountCreatedHtml(data),
+      attachments: this.brandLogoAttachment(),
+    });
+    this.logger.log(`Admin account email sent to ${to}`);
   }
 
   async sendVolunteerApplicationRejectedEmail(

@@ -2,22 +2,35 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuthService } from '../auth/auth.service';
+import { EmailService } from '../email/email.service';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
+import { AdminRole } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
+import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { ExportQueue } from './export.queue';
+
+const ROLE_LABELS: Record<AdminRole, string> = {
+  organizer: 'Organizer',
+  door_staff: 'Door staff',
+  super_admin: 'Super admin',
+};
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
@@ -26,6 +39,8 @@ export class AdminService {
     private readonly auditLog: AuditLogService,
     private readonly auth: AuthService,
     private readonly exportQueue: ExportQueue,
+    private readonly email: EmailService,
+    private readonly config: ConfigService,
   ) {}
 
   async listRegistrations(query: ListRegistrationsQueryDto) {
@@ -273,6 +288,7 @@ export class AdminService {
         email: dto.email,
         passwordHash: await bcrypt.hash(dto.password, 10),
         role: dto.role,
+        mustChangePassword: true,
       },
     });
 
@@ -284,12 +300,31 @@ export class AdminService {
       metadata: { email: user.email, role: user.role },
     });
 
+    // Best-effort: the account exists either way, so a flaky SMTP send
+    // shouldn't fail account creation — the temp password can still be
+    // handed over out-of-band if this fails.
+    try {
+      await this.email.sendAdminAccountCreatedEmail(user.email, {
+        name: user.name,
+        email: user.email,
+        password: dto.password,
+        roleLabel: ROLE_LABELS[user.role],
+        loginUrl: `${this.config.getOrThrow<string>('FRONTEND_ORIGIN')}/admin/login`,
+        supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Failed to send account-created email to ${user.email}: ${String(err)}`,
+      );
+    }
+
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       createdAt: user.createdAt,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 
@@ -301,9 +336,62 @@ export class AdminService {
         email: true,
         role: true,
         createdAt: true,
+        mustChangePassword: true,
       },
       orderBy: { createdAt: 'desc' },
     });
     return { users };
+  }
+
+  async getEventSettings(eventSlug: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { slug: eventSlug },
+      select: {
+        ticketPurchasingPaused: true,
+        volunteerApplicationsPaused: true,
+        sponsorshipApplicationsPaused: true,
+      },
+    });
+    if (!event) {
+      throw new NotFoundException(`No event found for slug "${eventSlug}"`);
+    }
+    return event;
+  }
+
+  async updateEventSettings(
+    eventSlug: string,
+    dto: UpdateEventSettingsDto,
+    actorId: string,
+  ) {
+    const event = await this.prisma.event.findUnique({
+      where: { slug: eventSlug },
+    });
+    if (!event) {
+      throw new NotFoundException(`No event found for slug "${eventSlug}"`);
+    }
+
+    const updated = await this.prisma.event.update({
+      where: { id: event.id },
+      data: {
+        ticketPurchasingPaused: dto.ticketPurchasingPaused,
+        volunteerApplicationsPaused: dto.volunteerApplicationsPaused,
+        sponsorshipApplicationsPaused: dto.sponsorshipApplicationsPaused,
+      },
+      select: {
+        ticketPurchasingPaused: true,
+        volunteerApplicationsPaused: true,
+        sponsorshipApplicationsPaused: true,
+      },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'update_event_settings',
+      targetType: 'event',
+      targetId: event.id,
+      metadata: dto as Record<string, unknown>,
+    });
+
+    return updated;
   }
 }

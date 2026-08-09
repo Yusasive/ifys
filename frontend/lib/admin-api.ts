@@ -28,6 +28,7 @@ export interface AdminUser {
   name: string;
   email: string;
   role: AdminRole;
+  mustChangePassword: boolean;
 }
 
 const SAFE_METHODS = new Set(["GET", "HEAD", undefined]);
@@ -75,6 +76,15 @@ export async function logout() {
 
 export async function fetchCurrentUser() {
   const result = await adminRequest<{ user: AdminUser; csrfToken: string }>("/auth/me");
+  csrfToken = result.csrfToken;
+  return { user: result.user };
+}
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const result = await adminRequest<{ user: AdminUser; csrfToken: string }>(
+    "/auth/change-password",
+    { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) },
+  );
   csrfToken = result.csrfToken;
   return { user: result.user };
 }
@@ -358,6 +368,28 @@ export function rejectSponsorApplication(id: string) {
   return adminRequest<SponsorApplication>(
     `/admin/sponsor-applications/${id}/reject`,
     { method: "POST" },
+  );
+}
+
+export interface EventSettings {
+  ticketPurchasingPaused: boolean;
+  volunteerApplicationsPaused: boolean;
+  sponsorshipApplicationsPaused: boolean;
+}
+
+export function getEventSettings(eventSlug: string) {
+  return adminRequest<EventSettings>(
+    `/admin/event-settings?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
+export function updateEventSettings(
+  eventSlug: string,
+  input: Partial<EventSettings>,
+) {
+  return adminRequest<EventSettings>(
+    `/admin/event-settings?event=${encodeURIComponent(eventSlug)}`,
+    { method: "PATCH", body: JSON.stringify(input) },
   );
 }
 

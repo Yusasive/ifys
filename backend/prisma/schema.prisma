@@ -119,6 +119,14 @@ model Event {
   coupons               Coupon[]
   volunteerApplications VolunteerApplication[]
 
+  // Independent admin-toggleable pause switches — when true, the public
+  // form/checkout for that flow shows a "not currently accepting" state
+  // instead of the real form (TicketProduct.isActive controls individual
+  // products; this is the coarser "close the whole flow" switch).
+  ticketPurchasingPaused        Boolean @default(false) @map("ticket_purchasing_paused")
+  volunteerApplicationsPaused   Boolean @default(false) @map("volunteer_applications_paused")
+  sponsorshipApplicationsPaused Boolean @default(false) @map("sponsorship_applications_paused")
+
   @@map("events")
 }
 
@@ -372,6 +380,11 @@ model AdminUser {
   // suspected compromise) — checked against the `tv` claim on each request.
   tokenVersion Int       @default(0) @map("token_version")
   createdAt    DateTime  @default(now()) @map("created_at")
+  // Set true when a super_admin creates the account (temp password) —
+  // cleared once the user completes POST /auth/change-password. Bootstrap
+  // accounts (seed/bootstrap-admin.ts) leave this false since whoever runs
+  // those already chose the real password directly.
+  mustChangePassword Boolean @default(false) @map("must_change_password")
 
   @@map("admin_users")
 }

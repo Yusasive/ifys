@@ -23,6 +23,7 @@ export interface EventSummary {
   venue: string;
   startsAt: string;
   slug: string;
+  ticketPurchasingPaused: boolean;
 }
 
 export interface ApiFieldError {
@@ -54,6 +55,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export function fetchTicketProducts(eventSlug: string) {
   return request<{ event: EventSummary; ticketProducts: TicketProduct[] }>(
     `/registrations/ticket-products?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
+export function fetchVolunteerApplicationStatus(eventSlug: string) {
+  return request<{ paused: boolean }>(
+    `/volunteer-applications/status?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
+export function fetchSponsorApplicationStatus(eventSlug: string) {
+  return request<{ paused: boolean }>(
+    `/sponsor-applications/status?event=${encodeURIComponent(eventSlug)}`,
   );
 }
 

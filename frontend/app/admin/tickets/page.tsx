@@ -7,6 +7,7 @@ import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError, TicketProduct } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
+import { PauseToggle } from "../pause-toggle";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 
@@ -189,6 +190,8 @@ export default function AdminTicketsPage() {
       <p className="text-sm text-sage mb-6">
         Manage pricing, early-bird discounts, and the copy shown on each ticket card on the public site.
       </p>
+
+      <PauseToggle eventSlug={EVENT_SLUG} field="ticketPurchasingPaused" label="Ticket purchasing" />
 
       {!loaded && <p className="text-sm text-sage">Loading…</p>}
 

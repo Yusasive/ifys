@@ -3,9 +3,14 @@
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/admin-api";
+import { AdminUser, login } from "@/lib/admin-api";
 import { useAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
+
+function postLoginPath(user: AdminUser): string {
+  if (user.mustChangePassword) return "/admin/change-password";
+  return user.role === "door_staff" ? "/checkin" : "/admin";
+}
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -20,7 +25,7 @@ export default function AdminLoginPage() {
   // should bounce straight into the app rather than showing the form again.
   useEffect(() => {
     if (!loading && session) {
-      router.replace(session.user.role === "door_staff" ? "/checkin" : "/admin");
+      router.replace(postLoginPath(session.user));
     }
   }, [loading, session, router]);
 
@@ -31,7 +36,7 @@ export default function AdminLoginPage() {
     try {
       const { user } = await login(email, password);
       setSession({ user });
-      router.replace(user.role === "door_staff" ? "/checkin" : "/admin");
+      router.replace(postLoginPath(user));
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setError("Too many login attempts. Please wait a minute and try again.");

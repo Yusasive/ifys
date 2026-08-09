@@ -10,8 +10,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
-import { AuthService } from './auth.service';
+import { AuthService, LoginResult } from './auth.service';
+import { CsrfGuard } from './csrf.guard';
 import { CurrentUser } from './current-user.decorator';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import {
   JwtAuthGuard,
@@ -27,6 +29,17 @@ export class AuthController {
     private readonly config: ConfigService,
   ) {}
 
+  private setSessionCookie(res: Response, result: LoginResult) {
+    const isProd = this.config.get('NODE_ENV') === 'production';
+    res.cookie(SESSION_COOKIE, result.accessToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: result.expiresInSeconds * 1000,
+    });
+  }
+
   // Brute-force guard on the one endpoint that lets an attacker test
   // admin passwords — same pattern as check-ins' scan-code throttle.
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -36,20 +49,31 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.auth.login(dto);
-    const isProd = this.config.get('NODE_ENV') === 'production';
-
-    res.cookie(SESSION_COOKIE, result.accessToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: result.expiresInSeconds * 1000,
-    });
+    this.setSessionCookie(res, result);
 
     // Returned in the body, not a cookie: the frontend may be served from a
     // different origin than the API, and a cookie set by the API's origin
     // isn't readable via document.cookie from another one. The frontend
     // keeps this in memory and echoes it as the X-CSRF-Token header.
+    return { user: result.user, csrfToken: result.csrfToken };
+  }
+
+  // Self-service — currentPassword re-auth means no extra role check is
+  // needed (any signed-in admin can only ever change their own password,
+  // via req.user.sub, never someone else's).
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @Post('change-password')
+  async changePassword(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: ChangePasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.auth.changePassword(
+      req.user.sub,
+      dto.currentPassword,
+      dto.newPassword,
+    );
+    this.setSessionCookie(res, result);
     return { user: result.user, csrfToken: result.csrfToken };
   }
 
@@ -74,6 +98,7 @@ export class AuthController {
         name: user.name,
         email: user.email,
         role: user.role,
+        mustChangePassword: user.mustChangePassword,
       },
       csrfToken: user.csrf,
     };

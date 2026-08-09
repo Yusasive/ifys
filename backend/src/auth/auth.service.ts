@@ -16,6 +16,7 @@ export interface LoginResult {
     name: string;
     email: string;
     role: string;
+    mustChangePassword: boolean;
   };
 }
 
@@ -48,6 +49,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    return this.mintSession(user);
+  }
+
+  // Shared by login and changePassword — both need to sign a fresh JWT for
+  // a given AdminUser row and shape it into the same response contract.
+  private async mintSession(user: {
+    id: string;
+    name: string;
+    email: string;
+    role: JwtPayload['role'];
+    tokenVersion: number;
+    mustChangePassword: boolean;
+  }): Promise<LoginResult> {
     const csrfToken = randomBytes(32).toString('hex');
     const payload: JwtPayload = {
       sub: user.id,
@@ -57,6 +71,7 @@ export class AuthService {
       jti: randomUUID(),
       tv: user.tokenVersion,
       csrf: csrfToken,
+      mustChangePassword: user.mustChangePassword,
     };
     const accessToken = await this.jwt.signAsync(payload);
     const decoded = this.jwt.decode<{ exp: number }>(accessToken);
@@ -71,6 +86,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role,
+        mustChangePassword: user.mustChangePassword,
       },
     };
   }
@@ -106,5 +122,42 @@ export class AuthService {
     });
     if (!user) return false;
     return bcrypt.compare(password, user.passwordHash);
+  }
+
+  // Self-service password change — used both for the forced first-login
+  // flow (mustChangePassword) and a voluntary change later. Bumps
+  // tokenVersion (invalidates every other outstanding session for this
+  // user, e.g. one left signed in on another device with the old
+  // password) and immediately mints a replacement so the caller's own
+  // session keeps working instead of being logged out by its own request.
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<LoginResult> {
+    const user = await this.prisma.adminUser.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Invalid session');
+    }
+    const passwordMatches = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash,
+    );
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const updated = await this.prisma.adminUser.update({
+      where: { id: userId },
+      data: {
+        passwordHash: await bcrypt.hash(newPassword, 10),
+        mustChangePassword: false,
+        tokenVersion: { increment: 1 },
+      },
+    });
+
+    return this.mintSession(updated);
   }
 }

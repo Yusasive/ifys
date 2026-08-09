@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { VolunteerApplicationEmailQueue } from '../email/volunteer-application-email.queue';
 import { VolunteerApplicationStatus } from '../generated/prisma/enums';
@@ -30,12 +34,28 @@ export class VolunteerApplicationsService {
     return { applications: event.volunteerApplications };
   }
 
+  async getStatus(eventSlug: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { slug: eventSlug },
+      select: { volunteerApplicationsPaused: true },
+    });
+    if (!event) {
+      throw new NotFoundException(`No event found for slug "${eventSlug}"`);
+    }
+    return { paused: event.volunteerApplicationsPaused };
+  }
+
   async create(dto: CreateVolunteerApplicationDto) {
     const event = await this.prisma.event.findUnique({
       where: { slug: dto.eventSlug },
     });
     if (!event) {
       throw new NotFoundException(`No event found for slug "${dto.eventSlug}"`);
+    }
+    if (event.volunteerApplicationsPaused) {
+      throw new BadRequestException(
+        'Volunteer applications are not currently open',
+      );
     }
 
     const application = await this.prisma.volunteerApplication.create({

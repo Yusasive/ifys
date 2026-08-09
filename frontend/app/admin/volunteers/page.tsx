@@ -12,6 +12,7 @@ import {
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError, VOLUNTEER_TEAMS } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { PauseToggle } from "../pause-toggle";
 import { TableRowsSkeleton } from "../skeleton";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
@@ -118,6 +119,12 @@ export default function AdminVolunteersPage() {
       </Link>
 
       <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Volunteer applicants</h1>
+
+      <PauseToggle
+        eventSlug={EVENT_SLUG}
+        field="volunteerApplicationsPaused"
+        label="Volunteer applications"
+      />
 
       <div className="flex items-center gap-2 mb-4">
         <span className="text-sm text-sage">Status</span>
