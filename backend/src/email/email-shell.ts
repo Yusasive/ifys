@@ -9,6 +9,19 @@ export const INK = '#10201D';
 export const LINE = '#CABB9C';
 export const MUTED = '#6D6353';
 
+// Any user-supplied string interpolated into an email's HTML must go
+// through this first — unescaped, a `<`/`>`/`&` in e.g. a temp password
+// can silently truncate or mangle what actually renders, so what the
+// recipient copies out doesn't match what was hashed and stored.
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function renderEmailShell(opts: {
   eventName: string;
   bodyHtml: string;
