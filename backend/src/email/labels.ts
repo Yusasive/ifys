@@ -1,4 +1,9 @@
-import { Category, SponsorType, Tier } from '../generated/prisma/enums';
+import {
+  AdminRole,
+  Category,
+  SponsorType,
+  Tier,
+} from '../generated/prisma/enums';
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   student: 'Student',
@@ -17,6 +22,12 @@ export const SPONSOR_TYPE_LABELS: Record<SponsorType, string> = {
   sponsor: 'sponsor',
   partner: 'partner',
   exhibitor: 'exhibitor',
+};
+
+export const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
+  organizer: 'Organizer',
+  door_staff: 'Door staff',
+  super_admin: 'Super admin',
 };
 
 export const VOLUNTEER_TEAMS = [

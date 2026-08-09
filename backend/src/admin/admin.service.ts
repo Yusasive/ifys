@@ -7,13 +7,11 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuthService } from '../auth/auth.service';
-import { EmailService } from '../email/email.service';
+import { AdminAccountEmailQueue } from '../email/admin-account-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
-import { AdminRole } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { TicketsService } from '../tickets/tickets.service';
@@ -22,12 +20,6 @@ import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { ExportQueue } from './export.queue';
-
-const ROLE_LABELS: Record<AdminRole, string> = {
-  organizer: 'Organizer',
-  door_staff: 'Door staff',
-  super_admin: 'Super admin',
-};
 
 @Injectable()
 export class AdminService {
@@ -41,8 +33,7 @@ export class AdminService {
     private readonly auditLog: AuditLogService,
     private readonly auth: AuthService,
     private readonly exportQueue: ExportQueue,
-    private readonly email: EmailService,
-    private readonly config: ConfigService,
+    private readonly adminAccountEmailQueue: AdminAccountEmailQueue,
   ) {}
 
   async listRegistrations(query: ListRegistrationsQueryDto) {
@@ -306,21 +297,23 @@ export class AdminService {
       metadata: { email: user.email, role: user.role },
     });
 
-    // Best-effort: the account exists either way, so a flaky SMTP send
-    // shouldn't fail account creation — the temp password can still be
-    // handed over out-of-band if this fails.
+    // Queued, not awaited inline — the account exists either way, and a
+    // slow/unreachable SMTP server must never delay this response (this
+    // endpoint is called synchronously from the admin dashboard). Same
+    // rationale as every other transactional email in this app; see
+    // AdminAccountEmailQueue for why this one additionally drops the job
+    // from Redis immediately instead of the default keep-forever behavior
+    // (its payload carries the plaintext temp password).
     try {
-      await this.email.sendAdminAccountCreatedEmail(user.email, {
+      await this.adminAccountEmailQueue.enqueue({
         name: user.name,
         email: user.email,
         password: dto.password,
-        roleLabel: ROLE_LABELS[user.role],
-        loginUrl: `${this.config.getOrThrow<string>('FRONTEND_ORIGIN')}/admin/login`,
-        supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
+        role: user.role,
       });
     } catch (err) {
       this.logger.warn(
-        `Failed to send account-created email to ${user.email}: ${String(err)}`,
+        `Failed to queue account-created email for ${user.email}: ${String(err)}`,
       );
     }
 
