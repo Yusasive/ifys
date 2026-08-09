@@ -1,5 +1,5 @@
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -11,7 +11,16 @@ async function bootstrap() {
     rawBody: true,
   });
 
-  await bootstrapSuperAdminIfNeeded(app);
+  // Optional, best-effort step — must never be able to stop the API from
+  // starting (an uncaught rejection here, before app.listen(), would crash
+  // the process and fail every health check).
+  try {
+    await bootstrapSuperAdminIfNeeded(app);
+  } catch (err) {
+    new Logger('Bootstrap').error(
+      `bootstrapSuperAdminIfNeeded failed: ${String(err)}`,
+    );
+  }
 
   // M6: security headers on every response. Behind a reverse proxy in
   // production, `trust proxy` is required for req.ip (and therefore

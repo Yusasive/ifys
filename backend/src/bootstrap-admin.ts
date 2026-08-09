@@ -39,12 +39,17 @@ export async function bootstrapSuperAdminIfNeeded(app: INestApplication) {
 
   const prisma = app.get(PrismaService);
 
-  const existing = await prisma.adminUser.findUnique({
-    where: { email: BOOTSTRAP_ADMIN_EMAIL },
-  });
-  if (existing) return;
-
+  // Never let a bootstrap hiccup (a transient DB error, a unique-violation
+  // race with another instance, anything) block the app from starting —
+  // this whole function only ever runs before app.listen() in main.ts, so
+  // an uncaught rejection here would crash the process before it can even
+  // serve a health check.
   try {
+    const existing = await prisma.adminUser.findUnique({
+      where: { email: BOOTSTRAP_ADMIN_EMAIL },
+    });
+    if (existing) return;
+
     await prisma.adminUser.create({
       data: {
         name: BOOTSTRAP_ADMIN_NAME,
@@ -53,14 +58,10 @@ export async function bootstrapSuperAdminIfNeeded(app: INestApplication) {
         role: 'super_admin',
       },
     });
+    logger.log(
+      `Bootstrapped first super_admin (${BOOTSTRAP_ADMIN_EMAIL}) — log in and rotate this password, then blank BOOTSTRAP_ADMIN_PASSWORD in bootstrap-admin.ts`,
+    );
   } catch (err) {
-    // Unique violation on email: another instance (or a manually created
-    // row) won the race — nothing left to do.
     logger.warn(`Skipped super_admin bootstrap: ${String(err)}`);
-    return;
   }
-
-  logger.log(
-    `Bootstrapped first super_admin (${BOOTSTRAP_ADMIN_EMAIL}) — log in and rotate this password, then blank BOOTSTRAP_ADMIN_PASSWORD in bootstrap-admin.ts`,
-  );
 }
