@@ -10,17 +10,19 @@ const logger = new Logger('BootstrapAdmin');
 // out) once the account exists — it's only read on the one boot where
 // admin_users is empty, and it sits in plaintext in git history otherwise.
 const BOOTSTRAP_ADMIN_NAME: string = 'Yusuf Abdullahi';
-const BOOTSTRAP_ADMIN_EMAIL: string = 'yusufabdullahi@2910.com';
+const BOOTSTRAP_ADMIN_EMAIL: string = 'yusufabdullahi2910@gmail.com';
 const BOOTSTRAP_ADMIN_PASSWORD: string = 'Yusasive2910@';
 
-// Runs on every boot (see main.ts). A brand-new deploy has zero rows in
-// admin_users, and POST /admin/users itself requires an existing
-// super_admin (see AdminController) — so nothing in the app can create the
-// first account. This closes that gap without any new infra: the very
-// first successful boot against an empty admin_users table creates one
-// super_admin from the constants above. Every boot after that is a no-op,
-// since the count check is no longer zero — safe to leave this file in
-// place (though you should still blank the password out once it's used).
+// Runs on every boot (see main.ts). POST /admin/users itself requires an
+// existing super_admin (see AdminController) — so nothing in the app can
+// create the very first account. This closes that gap without any new
+// infra: on boot, if BOOTSTRAP_ADMIN_EMAIL doesn't already have a row,
+// create one from the constants above. Gated on that specific email,
+// not on admin_users being empty overall — an unrelated row (a dev seed
+// run against this DB, an earlier partial attempt) must not block this
+// account from ever getting created. Once the row exists, every later
+// boot is a no-op — safe to leave this file in place (though you should
+// still blank the password out once it's used).
 export async function bootstrapSuperAdminIfNeeded(app: INestApplication) {
   if (
     BOOTSTRAP_ADMIN_EMAIL === 'CHANGE_ME@example.com' ||
@@ -37,8 +39,10 @@ export async function bootstrapSuperAdminIfNeeded(app: INestApplication) {
 
   const prisma = app.get(PrismaService);
 
-  const existingAdminCount = await prisma.adminUser.count();
-  if (existingAdminCount > 0) return;
+  const existing = await prisma.adminUser.findUnique({
+    where: { email: BOOTSTRAP_ADMIN_EMAIL },
+  });
+  if (existing) return;
 
   try {
     await prisma.adminUser.create({
