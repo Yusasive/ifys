@@ -157,7 +157,8 @@ export default function AdminTicketsPage() {
           setProducts(
             ticketProducts.filter(
               (p) =>
-                (p.category === "student" || p.category === "professional") && p.tier === "standard",
+                (p.category === "student" || p.category === "regular" || p.category === "professional") &&
+                p.tier === "standard",
             ),
           );
           setLoaded(true);
