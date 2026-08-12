@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Bricolage_Grotesque, IBM_Plex_Mono, Inter, Newsreader, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store-provider";
@@ -71,6 +72,11 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-ink text-paper">
         <StoreProvider>{children}</StoreProvider>
+        <Script
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "48d35a37c6ef4760a770fac4833c300b"}'
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
