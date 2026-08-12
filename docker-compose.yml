@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ify_dev_password
       POSTGRES_DB: ify_summit
     ports:
-      - "5433:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6380:6379"
+      - "6381:6379"
     volumes:
       - redis_data:/data
     healthcheck:
