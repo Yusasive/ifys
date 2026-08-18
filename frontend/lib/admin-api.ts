@@ -134,6 +134,8 @@ export interface RegistrationDetail extends RegistrationListItem {
   studentIdFileUrl: string | null;
   studentIdSignedUrl: string | null;
   order: { status: string; amountKobo: number; paidAt: string | null } | null;
+  cancellationReason: string | null;
+  pendingPaymentReminderSentAt: string | null;
   ticket:
     | {
         ticketCode: string;
@@ -181,6 +183,23 @@ export function voidTicket(registrationId: string, password: string) {
   });
 }
 
+export function cancelRegistration(
+  registrationId: string,
+  reason: string,
+  password: string,
+) {
+  return adminRequest(`/admin/registrations/${registrationId}/cancel`, {
+    method: "POST",
+    body: JSON.stringify({ reason, password }),
+  });
+}
+
+export function sendPendingPaymentReminder(registrationId: string) {
+  return adminRequest(`/admin/registrations/${registrationId}/send-reminder`, {
+    method: "POST",
+  });
+}
+
 export function requestExport() {
   return adminRequest<{ jobId: string }>("/admin/export", { method: "POST" });
 }
@@ -197,8 +216,22 @@ export interface NewsletterSubscriber {
   createdAt: string;
 }
 
-export function listNewsletterSubscribers() {
-  return adminRequest<NewsletterSubscriber[]>("/admin/newsletter");
+export interface NewsletterListParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export function listNewsletterSubscribers(params: NewsletterListParams = {}) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  return adminRequest<{
+    total: number;
+    page: number;
+    pageSize: number;
+    subscribers: NewsletterSubscriber[];
+  }>(`/admin/newsletter?${query.toString()}`);
 }
 
 export function deleteNewsletterSubscriber(id: string) {
@@ -223,8 +256,22 @@ export interface AdminUserListItem extends AdminUser {
   createdAt: string;
 }
 
-export function listAdminUsers() {
-  return adminRequest<{ users: AdminUserListItem[] }>("/admin/users");
+export interface AdminUsersListParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export function listAdminUsers(params: AdminUsersListParams = {}) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  return adminRequest<{
+    total: number;
+    page: number;
+    pageSize: number;
+    users: AdminUserListItem[];
+  }>(`/admin/users?${query.toString()}`);
 }
 
 export function createAdminUser(input: {
@@ -265,10 +312,25 @@ export interface SpeakerInput {
   isActive?: boolean;
 }
 
-export function listAdminSpeakers(eventSlug: string) {
-  return adminRequest<{ speakers: Speaker[] }>(
-    `/admin/speakers?event=${encodeURIComponent(eventSlug)}`,
-  );
+export interface SpeakersListParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export function listAdminSpeakers(
+  eventSlug: string,
+  params: SpeakersListParams = {},
+) {
+  const query = new URLSearchParams({ event: eventSlug });
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  return adminRequest<{
+    total: number;
+    page: number;
+    pageSize: number;
+    speakers: Speaker[];
+  }>(`/admin/speakers?${query.toString()}`);
 }
 
 export function createSpeaker(input: SpeakerInput & { eventSlug: string }) {
@@ -310,10 +372,25 @@ export interface SponsorInput {
   isActive?: boolean;
 }
 
-export function listAdminSponsors(eventSlug: string) {
-  return adminRequest<{ sponsors: Sponsor[] }>(
-    `/admin/sponsors?event=${encodeURIComponent(eventSlug)}`,
-  );
+export interface SponsorsListParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export function listAdminSponsors(
+  eventSlug: string,
+  params: SponsorsListParams = {},
+) {
+  const query = new URLSearchParams({ event: eventSlug });
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  return adminRequest<{
+    total: number;
+    page: number;
+    pageSize: number;
+    sponsors: Sponsor[];
+  }>(`/admin/sponsors?${query.toString()}`);
 }
 
 export function createSponsor(input: SponsorInput & { eventSlug: string }) {
@@ -363,15 +440,26 @@ export interface SponsorApplication {
   createdAt: string;
 }
 
+export interface SponsorApplicationsListParams {
+  status?: SponsorApplicationStatus;
+  page?: number;
+  pageSize?: number;
+}
+
 export function listSponsorApplications(
   eventSlug: string,
-  status?: SponsorApplicationStatus,
+  params: SponsorApplicationsListParams = {},
 ) {
   const query = new URLSearchParams({ event: eventSlug });
-  if (status) query.set("status", status);
-  return adminRequest<{ applications: SponsorApplication[] }>(
-    `/admin/sponsor-applications?${query.toString()}`,
-  );
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  return adminRequest<{
+    total: number;
+    page: number;
+    pageSize: number;
+    applications: SponsorApplication[];
+  }>(`/admin/sponsor-applications?${query.toString()}`);
 }
 
 export function approveSponsorApplication(id: string) {
@@ -511,27 +599,115 @@ export interface VolunteerApplication {
   createdAt: string;
 }
 
+export interface VolunteerApplicationsListParams {
+  status?: VolunteerApplicationStatus;
+  page?: number;
+  pageSize?: number;
+}
+
 export function listVolunteerApplications(
   eventSlug: string,
-  status?: VolunteerApplicationStatus,
+  params: VolunteerApplicationsListParams = {},
 ) {
   const query = new URLSearchParams({ event: eventSlug });
-  if (status) query.set("status", status);
-  return adminRequest<{ applications: VolunteerApplication[] }>(
-    `/admin/volunteer-applications?${query.toString()}`,
-  );
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  return adminRequest<{
+    total: number;
+    page: number;
+    pageSize: number;
+    applications: VolunteerApplication[];
+  }>(`/admin/volunteer-applications?${query.toString()}`);
 }
 
-export function approveVolunteerApplication(id: string) {
+export function approveVolunteerApplication(id: string, reason?: string) {
   return adminRequest<VolunteerApplication>(
     `/admin/volunteer-applications/${id}/approve`,
-    { method: "POST" },
+    { method: "POST", body: JSON.stringify({ reason }) },
   );
 }
 
-export function rejectVolunteerApplication(id: string) {
+export function rejectVolunteerApplication(id: string, reason: string) {
   return adminRequest<VolunteerApplication>(
     `/admin/volunteer-applications/${id}/reject`,
-    { method: "POST" },
+    { method: "POST", body: JSON.stringify({ reason }) },
   );
+}
+
+export interface BulkVolunteerApplicationResult {
+  succeeded: string[];
+  failed: { id: string; error: string }[];
+}
+
+export function bulkApproveVolunteerApplications(ids: string[], reason?: string) {
+  return adminRequest<BulkVolunteerApplicationResult>(
+    `/admin/volunteer-applications/bulk-approve`,
+    { method: "POST", body: JSON.stringify({ ids, reason }) },
+  );
+}
+
+export function bulkRejectVolunteerApplications(ids: string[], reason: string) {
+  return adminRequest<BulkVolunteerApplicationResult>(
+    `/admin/volunteer-applications/bulk-reject`,
+    { method: "POST", body: JSON.stringify({ ids, reason }) },
+  );
+}
+
+export interface AuditLogActor {
+  id: string;
+  name: string;
+  email: string;
+  role: AdminRole;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actorId: string;
+  actor: AuditLogActor | null;
+  action: string;
+  targetType: string;
+  targetId: string;
+  createdAt: string;
+  metadataJson: Record<string, unknown>;
+}
+
+export interface AuditLogListParams {
+  page?: number;
+  pageSize?: number;
+  action?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface AuditLogSystemListParams extends AuditLogListParams {
+  actorId?: string;
+}
+
+function buildAuditLogQuery(params: AuditLogSystemListParams) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  return query;
+}
+
+export function fetchAuditLog(params: AuditLogSystemListParams) {
+  const query = buildAuditLogQuery(params);
+  return adminRequest<{
+    total: number;
+    page: number;
+    pageSize: number;
+    entries: AuditLogEntry[];
+  }>(`/admin/audit-log?${query.toString()}`);
+}
+
+export function fetchMyActivity(params: AuditLogListParams) {
+  const query = buildAuditLogQuery(params);
+  return adminRequest<{
+    total: number;
+    page: number;
+    pageSize: number;
+    entries: AuditLogEntry[];
+  }>(`/admin/audit-log/me?${query.toString()}`);
 }

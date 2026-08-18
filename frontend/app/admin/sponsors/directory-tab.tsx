@@ -10,9 +10,11 @@ import {
 } from "@/lib/admin-api";
 import { ApiError, Sponsor, SponsorType } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
+const PAGE_SIZE = 50;
 
 const EMPTY_FORM = {
   type: "sponsor" as SponsorType,
@@ -24,6 +26,8 @@ const EMPTY_FORM = {
 
 export function DirectoryTab() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loaded, setLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -41,9 +45,13 @@ export function DirectoryTab() {
     let cancelled = false;
     async function load() {
       try {
-        const { sponsors: list } = await listAdminSponsors(EVENT_SLUG);
+        const { sponsors: list, total: listTotal } = await listAdminSponsors(
+          EVENT_SLUG,
+          { page, pageSize: PAGE_SIZE },
+        );
         if (!cancelled) {
           setSponsors(list);
+          setTotal(listTotal);
           setLoaded(true);
         }
       } catch (err) {
@@ -59,7 +67,7 @@ export function DirectoryTab() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reloadKey]);
+  }, [page, reloadKey]);
 
   function startEdit(sponsor: Sponsor) {
     setEditingId(sponsor.id);
@@ -148,6 +156,8 @@ export function DirectoryTab() {
       setDeleting(false);
     }
   }
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -338,6 +348,8 @@ export function DirectoryTab() {
           </tbody>
         </table>
       </div>
+
+      <PaginationFooter page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </>
   );
 }

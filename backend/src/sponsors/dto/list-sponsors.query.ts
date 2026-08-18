@@ -1,0 +1,20 @@
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
+
+// Same reasoning as ListSpeakersQueryDto: sponsors/partners directory is
+// manually ordered via displayOrder, so default to a larger page so
+// reordering across pages stays practical.
+export class ListSponsorsQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize: number = 50;
+}

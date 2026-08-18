@@ -6,10 +6,10 @@ import {
 import { randomUUID } from 'node:crypto';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { SponsorApplicationEmailQueue } from '../email/sponsor-application-email.queue';
-import { SponsorApplicationStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateSponsorApplicationDto } from './dto/create-sponsor-application.dto';
+import { ListSponsorApplicationsQueryDto } from './dto/list-sponsor-applications.query';
 import { SponsorApplicationUploadUrlDto } from './dto/sponsor-application-upload-url.dto';
 
 @Injectable()
@@ -21,23 +21,35 @@ export class SponsorApplicationsService {
     private readonly emailQueue: SponsorApplicationEmailQueue,
   ) {}
 
-  async listAdmin(eventSlug: string, status?: SponsorApplicationStatus) {
+  async listAdmin(eventSlug: string, query: ListSponsorApplicationsQueryDto) {
     const event = await this.prisma.event.findUnique({
       where: { slug: eventSlug },
-      include: {
-        sponsorApplications: {
-          where: status ? { status } : undefined,
-          orderBy: { createdAt: 'desc' },
-        },
-      },
     });
     if (!event) {
       throw new NotFoundException(`No event found for slug "${eventSlug}"`);
     }
 
+    const where = {
+      eventId: event.id,
+      ...(query.status && { status: query.status }),
+    };
+
+    const [total, applications] = await this.prisma.$transaction([
+      this.prisma.sponsorApplication.count({ where }),
+      this.prisma.sponsorApplication.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+    ]);
+
     return {
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
       applications: await Promise.all(
-        event.sponsorApplications.map(async (application) => ({
+        applications.map(async (application) => ({
           ...application,
           logoUrl: application.logoKey
             ? await this.storage.getDownloadUrl(application.logoKey)

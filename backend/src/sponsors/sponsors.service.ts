@@ -4,6 +4,7 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateSponsorDto } from './dto/create-sponsor.dto';
+import { ListSponsorsQueryDto } from './dto/list-sponsors.query';
 import { SponsorLogoUploadUrlDto } from './dto/sponsor-logo-upload-url.dto';
 import { UpdateSponsorDto } from './dto/update-sponsor.dto';
 
@@ -53,17 +54,30 @@ export class SponsorsService {
     };
   }
 
-  async listAdmin(eventSlug: string) {
+  async listAdmin(eventSlug: string, query: ListSponsorsQueryDto) {
     const event = await this.prisma.event.findUnique({
       where: { slug: eventSlug },
-      include: {
-        sponsors: { orderBy: { displayOrder: 'asc' } },
-      },
     });
     if (!event) {
       throw new NotFoundException(`No event found for slug "${eventSlug}"`);
     }
-    return { sponsors: await this.withLogoUrls(event.sponsors) };
+
+    const [total, sponsors] = await this.prisma.$transaction([
+      this.prisma.sponsor.count({ where: { eventId: event.id } }),
+      this.prisma.sponsor.findMany({
+        where: { eventId: event.id },
+        orderBy: { displayOrder: 'asc' },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+    ]);
+
+    return {
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+      sponsors: await this.withLogoUrls(sponsors),
+    };
   }
 
   async create(dto: CreateSponsorDto, actorId: string) {

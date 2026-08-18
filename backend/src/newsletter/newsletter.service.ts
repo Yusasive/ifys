@@ -6,6 +6,7 @@ import {
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { NewsletterEmailQueue } from '../email/newsletter-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
+import { ListNewsletterQueryDto } from './dto/list-newsletter.query';
 import { SubscribeNewsletterDto } from './dto/subscribe-newsletter.dto';
 
 function isPrismaUniqueConstraintError(err: unknown): boolean {
@@ -44,10 +45,17 @@ export class NewsletterService {
     }
   }
 
-  listAdmin() {
-    return this.prisma.newsletterSubscriber.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+  async listAdmin(query: ListNewsletterQueryDto) {
+    const [total, subscribers] = await this.prisma.$transaction([
+      this.prisma.newsletterSubscriber.count(),
+      this.prisma.newsletterSubscriber.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+    ]);
+
+    return { total, page: query.page, pageSize: query.pageSize, subscribers };
   }
 
   async remove(id: string, actorId: string) {

@@ -1,10 +1,11 @@
-import { INK, renderEmailShell } from './email-shell';
+import { escapeHtml, INK, renderEmailShell } from './email-shell';
 
 export interface VolunteerApplicationEmailData {
   fullName: string;
   teamLabel: string;
   eventName: string;
   supportEmail: string;
+  reason?: string;
 }
 
 function renderShellHtml(
@@ -39,8 +40,12 @@ export function renderVolunteerApplicationApprovedHtml(
 ): string {
   const body = `Hi ${data.fullName},<br /><br />
     Congratulations — you've been selected to join the ${data.teamLabel} for ${data.eventName}.
-    We'll be in touch shortly with orientation details and your event-day responsibilities.
-    Thank you for stepping up to volunteer.`;
+    ${
+      data.reason
+        ? `Next steps: ${escapeHtml(data.reason)}`
+        : `We'll be in touch shortly with orientation details and your event-day responsibilities.
+    Thank you for stepping up to volunteer.`
+    }`;
   return renderShellHtml("You're in!", body, data);
 }
 
@@ -50,6 +55,7 @@ export function renderVolunteerApplicationRejectedHtml(
   const body = `Hi ${data.fullName},<br /><br />
     Thank you for applying to volunteer for ${data.eventName}.
     After review, we're not able to bring you onto the ${data.teamLabel} at this time.
-    We appreciate your interest and hope to see you at the event.`;
+    We appreciate your interest and hope to see you at the event.
+    ${data.reason ? `<br /><br />Reason: ${escapeHtml(data.reason)}` : ''}`;
   return renderShellHtml('Application update', body, data);
 }

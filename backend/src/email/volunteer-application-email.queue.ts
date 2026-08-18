@@ -18,6 +18,7 @@ type VolunteerApplicationEmailKind = 'received' | 'approved' | 'rejected';
 interface VolunteerApplicationEmailJobData {
   applicationId: string;
   kind: VolunteerApplicationEmailKind;
+  reason?: string;
 }
 
 // Same reliability rationale as the other application-email queues: never
@@ -61,8 +62,12 @@ export class VolunteerApplicationEmailQueue
     this.connection.disconnect();
   }
 
-  async enqueue(applicationId: string, kind: VolunteerApplicationEmailKind) {
-    await this.queue.add('send', { applicationId, kind });
+  async enqueue(
+    applicationId: string,
+    kind: VolunteerApplicationEmailKind,
+    reason?: string,
+  ) {
+    await this.queue.add('send', { applicationId, kind, reason });
   }
 
   private async process(job: Job<VolunteerApplicationEmailJobData>) {
@@ -80,6 +85,7 @@ export class VolunteerApplicationEmailQueue
       teamLabel: team ? VOLUNTEER_TEAM_LABELS[team] : 'volunteer team',
       eventName: application.event.name,
       supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
+      reason: job.data.reason,
     };
 
     switch (job.data.kind) {

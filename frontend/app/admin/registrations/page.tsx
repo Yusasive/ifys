@@ -9,11 +9,13 @@ import {
   resendTicket,
   RegistrationListItem,
   requestExport,
+  sendPendingPaymentReminder,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
 import { formatDateTime, formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
+import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
 import { StatusBadge } from "../status-badge";
 
@@ -273,6 +275,13 @@ export default function AdminRegistrationsPage() {
           >
             Resend ticket
           </button>
+          <button
+            disabled={bulkBusy}
+            onClick={() => void runBulk(sendPendingPaymentReminder, "reminders sent")}
+            className="border border-emerald text-emerald px-4 py-1.5 rounded-full hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
+          >
+            Send reminder
+          </button>
           <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-sage underline">
             Clear
           </button>
@@ -353,27 +362,7 @@ export default function AdminRegistrationsPage() {
         </table>
       </div>
 
-      <div className="flex items-center justify-between mt-4 text-sm">
-        <span className="text-sage">
-          {total} total · page {page} of {totalPages}
-        </span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="border border-emerald/20 px-4 py-1.5 rounded-full disabled:opacity-40 hover:bg-emerald/5 transition-colors"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="border border-emerald/20 px-4 py-1.5 rounded-full disabled:opacity-40 hover:bg-emerald/5 transition-colors"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+      <PaginationFooter page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </main>
   );
 }

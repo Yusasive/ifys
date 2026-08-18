@@ -11,11 +11,13 @@ import * as bcrypt from 'bcryptjs';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuthService } from '../auth/auth.service';
 import { AdminAccountEmailQueue } from '../email/admin-account-email.queue';
+import { RegistrationReminderEmailQueue } from '../email/registration-reminder-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
+import { ListAdminUsersQueryDto } from './dto/list-admin-users.query';
 import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
@@ -34,6 +36,7 @@ export class AdminService {
     private readonly auth: AuthService,
     private readonly exportQueue: ExportQueue,
     private readonly adminAccountEmailQueue: AdminAccountEmailQueue,
+    private readonly reminderQueue: RegistrationReminderEmailQueue,
   ) {}
 
   async listRegistrations(query: ListRegistrationsQueryDto) {
@@ -255,6 +258,77 @@ export class AdminService {
     return { ticket: voided };
   }
 
+  // The soft-delete counterpart to voidTicket: cancels a registration that
+  // never got paid, so it stops appearing as an open pending order (and,
+  // like void, requires re-entering the current password — TRD §10's
+  // re-auth step for destructive actions).
+  async cancelRegistration(
+    id: string,
+    actorId: string,
+    reason: string,
+    password: string,
+  ) {
+    const passwordOk = await this.auth.verifyPassword(actorId, password);
+    if (!passwordOk) {
+      throw new UnauthorizedException('Incorrect password');
+    }
+
+    const registration = await this.prisma.registration.findUnique({
+      where: { id },
+    });
+    if (!registration) {
+      throw new NotFoundException('Registration not found');
+    }
+    if (registration.status !== 'pending_payment') {
+      throw new ConflictException(
+        'Only pending-payment registrations can be cancelled this way.',
+      );
+    }
+
+    const updated = await this.prisma.registration.update({
+      where: { id },
+      data: { status: 'cancelled', cancellationReason: reason },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'cancel_registration',
+      targetType: 'registration',
+      targetId: id,
+      metadata: { reason },
+    });
+
+    return updated;
+  }
+
+  // Immediate (undelayed) send of the same reminder email that's
+  // otherwise auto-queued 24h after registration — lets an organizer
+  // manually nudge someone without waiting for the scheduled job.
+  async sendPendingPaymentReminder(id: string, actorId: string) {
+    const registration = await this.prisma.registration.findUnique({
+      where: { id },
+    });
+    if (!registration) {
+      throw new NotFoundException('Registration not found');
+    }
+    if (registration.status !== 'pending_payment') {
+      throw new ConflictException(
+        'Only pending-payment registrations can be reminded.',
+      );
+    }
+
+    await this.reminderQueue.enqueue(id);
+
+    await this.auditLog.record({
+      actorId,
+      action: 'send_pending_payment_reminder',
+      targetType: 'registration',
+      targetId: id,
+    });
+
+    return { sent: true };
+  }
+
   requestExport() {
     return this.exportQueue.enqueue();
   }
@@ -327,19 +401,27 @@ export class AdminService {
     };
   }
 
-  async listAdminUsers() {
-    const users = await this.prisma.adminUser.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        mustChangePassword: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return { users };
+  async listAdminUsers(query: ListAdminUsersQueryDto) {
+    const select = {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      mustChangePassword: true,
+    };
+
+    const [total, users] = await this.prisma.$transaction([
+      this.prisma.adminUser.count(),
+      this.prisma.adminUser.findMany({
+        select,
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+    ]);
+
+    return { total, page: query.page, pageSize: query.pageSize, users };
   }
 
   async updateAdminUser(id: string, dto: UpdateAdminUserDto, actorId: string) {

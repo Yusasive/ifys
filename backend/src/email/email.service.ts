@@ -30,6 +30,10 @@ import {
   renderVolunteerApplicationRejectedHtml,
   VolunteerApplicationEmailData,
 } from './volunteer-application-email-template';
+import {
+  renderRegistrationPendingPaymentReminderHtml,
+  RegistrationReminderEmailData,
+} from './registration-reminder-email-template';
 
 @Injectable()
 export class EmailService {
@@ -208,5 +212,21 @@ export class EmailService {
       attachments: this.brandLogoAttachment(),
     });
     this.logger.log(`Volunteer application rejected email sent to ${to}`);
+  }
+
+  async sendRegistrationPendingPaymentReminderEmail(
+    to: string,
+    data: RegistrationReminderEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `Complete your registration — ${data.eventName}`,
+      html: renderRegistrationPendingPaymentReminderHtml(data),
+      attachments: this.brandLogoAttachment(),
+    });
+    this.logger.log(
+      `Registration pending-payment reminder email sent to ${to}`,
+    );
   }
 }

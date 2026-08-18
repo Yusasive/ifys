@@ -298,6 +298,14 @@ model Registration {
   // later, so historical orders stay accurate.
   discountAppliedKobo Int                @default(0) @map("discount_applied_kobo")
   createdAt           DateTime           @default(now()) @map("created_at")
+  // Set when an admin cancels a pending_payment registration (see
+  // AdminService.cancelRegistration) — the reason they typed in the
+  // cancel-registration modal.
+  cancellationReason  String?            @map("cancellation_reason")
+  // Timestamp of the last pending-payment reminder email sent (auto 24h job
+  // or manual "send reminder" click) — informational only, not used for
+  // idempotency (the 24h job is only ever enqueued once, at creation).
+  pendingPaymentReminderSentAt DateTime? @map("pending_payment_reminder_sent_at")
 
   event         Event         @relation(fields: [eventId], references: [id])
   attendee      Attendee      @relation(fields: [attendeeId], references: [id])
@@ -398,6 +406,12 @@ model AuditLog {
   createdAt    DateTime @default(now()) @map("created_at")
   metadataJson Json     @default("{}") @map("metadata_json")
 
+  // System-wide log filters/sorts by actorId + createdAt (and action);
+  // personal "my activity" log filters by actorId + createdAt.
+  @@index([actorId])
+  @@index([createdAt])
+  @@index([action])
+  @@index([targetType, targetId])
   @@map("audit_log")
 }
 

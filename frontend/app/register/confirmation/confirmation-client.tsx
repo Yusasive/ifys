@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { fetchRegistration, Registration, ticketPdfUrl, verifyRegistrationPayment } from "@/lib/api";
+import {
+  createCheckout,
+  fetchRegistration,
+  Registration,
+  ticketPdfUrl,
+  verifyRegistrationPayment,
+} from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 import { StatusCard } from "@/app/status-card";
 
@@ -43,7 +49,19 @@ export function ConfirmationClient() {
   const lookupToken = searchParams.get("token");
   const [state, setState] = useState<PollState>("polling");
   const [registration, setRegistration] = useState<Registration | null>(null);
+  const [resuming, setResuming] = useState(false);
   const attemptsRef = useRef(0);
+
+  async function resumePayment() {
+    if (!registrationId || !lookupToken || resuming) return;
+    setResuming(true);
+    try {
+      const { authorizationUrl } = await createCheckout(registrationId, lookupToken);
+      window.location.href = authorizationUrl;
+    } catch {
+      setResuming(false);
+    }
+  }
 
   useEffect(() => {
     if (!registrationId || !lookupToken) {
@@ -64,9 +82,9 @@ export function ConfirmationClient() {
       try {
         const reg = await fetchRegistration(registrationId, lookupToken);
         if (cancelled) return;
+        setRegistration(reg);
 
         if (reg.status === "paid") {
-          setRegistration(reg);
           setState("paid");
           return;
         }
@@ -114,13 +132,28 @@ export function ConfirmationClient() {
   }
 
   if (state === "timeout") {
+    const canResume = registration?.status === "pending_payment";
     return (
       <StatusCard
         eyebrow="Still Processing"
         subheading="This is taking a little longer than usual."
-        body="Your payment may still be confirming on our end. Check your email shortly. If nothing arrives in a few minutes, contact support."
+        body={
+          canResume
+            ? "Your payment hasn't gone through yet. You can pick up where you left off below."
+            : "Your payment may still be confirming on our end. Check your email shortly. If nothing arrives in a few minutes, contact support."
+        }
         icon="error"
-      />
+      >
+        {canResume && (
+          <button
+            onClick={() => void resumePayment()}
+            disabled={resuming}
+            className="inline-block bg-white text-forest px-6 py-2.5 rounded-full text-sm font-medium hover:bg-white/90 transition-colors disabled:opacity-50 mt-2"
+          >
+            {resuming ? "Redirecting…" : "Complete your payment"}
+          </button>
+        )}
+      </StatusCard>
     );
   }
 

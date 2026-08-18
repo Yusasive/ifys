@@ -10,9 +10,11 @@ import {
 } from "@/lib/admin-api";
 import { ApiError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
+const PAGE_SIZE = 20;
 
 const STATUS_LABEL: Record<SponsorApplicationStatus, string> = {
   pending: "Pending",
@@ -28,6 +30,8 @@ const STATUS_STYLE: Record<SponsorApplicationStatus, string> = {
 
 export function ApplicantsTab() {
   const [applications, setApplications] = useState<SponsorApplication[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loaded, setLoaded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<SponsorApplicationStatus | "all">(
     "pending",
@@ -41,12 +45,17 @@ export function ApplicantsTab() {
     let cancelled = false;
     async function load() {
       try {
-        const { applications: list } = await listSponsorApplications(
+        const { applications: list, total: listTotal } = await listSponsorApplications(
           EVENT_SLUG,
-          statusFilter === "all" ? undefined : statusFilter,
+          {
+            status: statusFilter === "all" ? undefined : statusFilter,
+            page,
+            pageSize: PAGE_SIZE,
+          },
         );
         if (!cancelled) {
           setApplications(list);
+          setTotal(listTotal);
           setLoaded(true);
         }
       } catch (err) {
@@ -62,7 +71,7 @@ export function ApplicantsTab() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, reloadKey]);
+  }, [statusFilter, page, reloadKey]);
 
   async function handleApprove(application: SponsorApplication) {
     setBusyId(application.id);
@@ -94,15 +103,18 @@ export function ApplicantsTab() {
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   return (
     <>
       <div className="flex items-center gap-2 mb-4">
         <span className="text-sm text-sage">Status</span>
         <select
           value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as SponsorApplicationStatus | "all")
-          }
+          onChange={(e) => {
+            setPage(1);
+            setStatusFilter(e.target.value as SponsorApplicationStatus | "all");
+          }}
           className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
         >
           <option value="all">All</option>
@@ -196,6 +208,8 @@ export function ApplicantsTab() {
           </tbody>
         </table>
       </div>
+
+      <PaginationFooter page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </>
   );
 }

@@ -12,6 +12,10 @@ import { StorageService } from '../storage/storage.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { CouponsService } from '../coupons/coupons.service';
 import { CATEGORY_LABELS, TIER_LABELS } from '../email/labels';
+import {
+  PENDING_PAYMENT_REMINDER_DELAY_MS,
+  RegistrationReminderEmailQueue,
+} from '../email/registration-reminder-email.queue';
 import { generateTicketPdf } from '../email/ticket-pdf';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { UpdateTicketProductDto } from './dto/update-ticket-product.dto';
@@ -29,6 +33,7 @@ export class RegistrationsService {
     private readonly coupons: CouponsService,
     private readonly auditLog: AuditLogService,
     private readonly config: ConfigService,
+    private readonly reminderQueue: RegistrationReminderEmailQueue,
   ) {}
 
   async listTicketProducts(eventSlug: string) {
@@ -123,7 +128,7 @@ export class RegistrationsService {
         ? (dto.formData.studentIdFileKey as string)
         : null;
 
-    return this.prisma.registration.create({
+    const registration = await this.prisma.registration.create({
       data: {
         eventId: event.id,
         attendeeId: attendee.id,
@@ -135,6 +140,16 @@ export class RegistrationsService {
       },
       include: { ticketProduct: true, attendee: true },
     });
+
+    // Every registration starts life pending_payment — queue the one
+    // automatic nudge (delayed 24h) here, at the single call site that
+    // ever creates a registration, rather than trying to catch this from
+    // the payments/webhook side.
+    await this.reminderQueue.enqueue(registration.id, {
+      delayMs: PENDING_PAYMENT_REMINDER_DELAY_MS,
+    });
+
+    return registration;
   }
 
   async findById(id: string, token?: string) {

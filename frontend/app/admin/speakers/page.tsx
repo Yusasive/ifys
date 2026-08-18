@@ -12,9 +12,11 @@ import {
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError, Speaker } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
+const PAGE_SIZE = 50;
 
 const EMPTY_FORM = {
   name: "",
@@ -28,6 +30,8 @@ const EMPTY_FORM = {
 export default function AdminSpeakersPage() {
   const { session, loading: authLoading } = useRequireAdminAuth();
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [speakersLoaded, setSpeakersLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -47,9 +51,13 @@ export default function AdminSpeakersPage() {
     async function load() {
       if (!session) return;
       try {
-        const { speakers: list } = await listAdminSpeakers(EVENT_SLUG);
+        const { speakers: list, total: listTotal } = await listAdminSpeakers(
+          EVENT_SLUG,
+          { page, pageSize: PAGE_SIZE },
+        );
         if (!cancelled) {
           setSpeakers(list);
+          setTotal(listTotal);
           setSpeakersLoaded(true);
         }
       } catch (err) {
@@ -65,7 +73,7 @@ export default function AdminSpeakersPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, reloadKey]);
+  }, [session, page, reloadKey]);
 
   function startEdit(speaker: Speaker) {
     setEditingId(speaker.id);
@@ -161,6 +169,8 @@ export default function AdminSpeakersPage() {
   }
 
   if (authLoading || !session) return null;
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-8">
@@ -372,6 +382,8 @@ export default function AdminSpeakersPage() {
           </tbody>
         </table>
       </div>
+
+      <PaginationFooter page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </main>
   );
 }

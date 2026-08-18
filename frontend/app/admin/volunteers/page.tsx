@@ -4,6 +4,8 @@ import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   approveVolunteerApplication,
+  bulkApproveVolunteerApplications,
+  bulkRejectVolunteerApplications,
   listVolunteerApplications,
   rejectVolunteerApplication,
   VolunteerApplication,
@@ -12,10 +14,13 @@ import {
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError, VOLUNTEER_TEAMS } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { PaginationFooter } from "../pagination-footer";
 import { PauseToggle } from "../pause-toggle";
+import { ReasonModal } from "../reason-modal";
 import { TableRowsSkeleton } from "../skeleton";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
+const PAGE_SIZE = 20;
 
 const TEAM_LABELS: Record<string, string> = Object.fromEntries(
   VOLUNTEER_TEAMS.map((t) => [t.value, t.label]),
@@ -36,6 +41,8 @@ const STATUS_STYLE: Record<VolunteerApplicationStatus, string> = {
 export default function AdminVolunteersPage() {
   const { session, loading: authLoading } = useRequireAdminAuth();
   const [applications, setApplications] = useState<VolunteerApplication[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loaded, setLoaded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<VolunteerApplicationStatus | "all">(
     "pending",
@@ -43,6 +50,14 @@ export default function AdminVolunteersPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [modalTarget, setModalTarget] = useState<
+    | { scope: "single"; mode: "approve" | "reject"; application: VolunteerApplication }
+    | { scope: "bulk"; mode: "approve" | "reject" }
+    | null
+  >(null);
+  const [modalBusy, setModalBusy] = useState(false);
 
   const toast = useToast();
 
@@ -52,13 +67,19 @@ export default function AdminVolunteersPage() {
     async function load() {
       if (!session) return;
       try {
-        const { applications: list } = await listVolunteerApplications(
+        const { applications: list, total: listTotal } = await listVolunteerApplications(
           EVENT_SLUG,
-          statusFilter === "all" ? undefined : statusFilter,
+          {
+            status: statusFilter === "all" ? undefined : statusFilter,
+            page,
+            pageSize: PAGE_SIZE,
+          },
         );
         if (!cancelled) {
           setApplications(list);
+          setTotal(listTotal);
           setLoaded(true);
+          setSelectedIds(new Set());
         }
       } catch (err) {
         if (!cancelled) {
@@ -73,41 +94,83 @@ export default function AdminVolunteersPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, statusFilter, reloadKey]);
+  }, [session, statusFilter, page, reloadKey]);
 
-  async function handleApprove(application: VolunteerApplication) {
-    if (!session) return;
-    setBusyId(application.id);
-    try {
-      await approveVolunteerApplication(application.id);
-      toast.success(`${application.fullName} approved.`);
-      setReloadKey((k) => k + 1);
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.body.message : "Failed to approve applicant.",
-      );
-    } finally {
-      setBusyId(null);
-    }
+  function toggleAllVisiblePending() {
+    const pendingIds = applications
+      .filter((a) => a.status === "pending")
+      .map((a) => a.id);
+    setSelectedIds((prev) => {
+      const allSelected = pendingIds.every((id) => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(pendingIds);
+    });
   }
 
-  async function handleReject(application: VolunteerApplication) {
-    if (!session) return;
-    setBusyId(application.id);
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleModalConfirm(reason: string) {
+    if (!modalTarget || !session) return;
+    setModalBusy(true);
     try {
-      await rejectVolunteerApplication(application.id);
-      toast.success(`${application.fullName} rejected.`);
-      setReloadKey((k) => k + 1);
+      if (modalTarget.scope === "single") {
+        const { application, mode } = modalTarget;
+        setBusyId(application.id);
+        if (mode === "approve") {
+          await approveVolunteerApplication(application.id, reason || undefined);
+          toast.success(`${application.fullName} approved.`);
+        } else {
+          await rejectVolunteerApplication(application.id, reason);
+          toast.success(`${application.fullName} rejected.`);
+        }
+        setReloadKey((k) => k + 1);
+      } else {
+        const { mode } = modalTarget;
+        setBulkBusy(true);
+        const ids = Array.from(selectedIds);
+        const nameById = new Map(applications.map((a) => [a.id, a.fullName]));
+        const result =
+          mode === "approve"
+            ? await bulkApproveVolunteerApplications(ids, reason || undefined)
+            : await bulkRejectVolunteerApplications(ids, reason);
+        if (result.succeeded.length > 0) {
+          toast.success(
+            `${result.succeeded.length} applicant${result.succeeded.length === 1 ? "" : "s"} ${mode === "approve" ? "approved" : "rejected"}.`,
+          );
+        }
+        if (result.failed.length > 0) {
+          const names = result.failed
+            .map((f) => nameById.get(f.id) ?? f.id)
+            .join(", ");
+          toast.error(`Failed for: ${names}`);
+        }
+        setSelectedIds(new Set());
+        setReloadKey((k) => k + 1);
+      }
+      setModalTarget(null);
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.body.message : "Failed to reject applicant.",
+        err instanceof ApiError
+          ? err.body.message
+          : `Failed to ${modalTarget.mode} applicant${modalTarget.scope === "bulk" ? "s" : ""}.`,
       );
     } finally {
+      setModalBusy(false);
       setBusyId(null);
+      setBulkBusy(false);
     }
   }
 
   if (authLoading || !session) return null;
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-8">
@@ -130,9 +193,10 @@ export default function AdminVolunteersPage() {
         <span className="text-sm text-sage">Status</span>
         <select
           value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as VolunteerApplicationStatus | "all")
-          }
+          onChange={(e) => {
+            setPage(1);
+            setStatusFilter(e.target.value as VolunteerApplicationStatus | "all");
+          }}
           className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
         >
           <option value="all">All</option>
@@ -142,10 +206,47 @@ export default function AdminVolunteersPage() {
         </select>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="bg-gold/10 border border-gold/30 rounded-2xl px-4 py-2 flex items-center gap-3 mb-3 text-sm">
+          <span>{selectedIds.size} selected</span>
+          <button
+            disabled={bulkBusy}
+            onClick={() => setModalTarget({ scope: "bulk", mode: "approve" })}
+            className="bg-emerald text-white px-4 py-1.5 rounded-full hover:bg-forest transition-colors disabled:opacity-50"
+          >
+            Approve selected
+          </button>
+          <button
+            disabled={bulkBusy}
+            onClick={() => setModalTarget({ scope: "bulk", mode: "reject" })}
+            className="bg-coral-deep text-white px-4 py-1.5 rounded-full hover:bg-gold-deep transition-colors disabled:opacity-50"
+          >
+            Reject selected
+          </button>
+          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-sage underline">
+            Clear
+          </button>
+        </div>
+      )}
+
       <div className="border border-emerald/20 rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-emerald/20 text-left text-xs uppercase tracking-wide text-sage">
+              <th className="px-4 py-2 w-8">
+                <input
+                  type="checkbox"
+                  className="accent-emerald"
+                  checked={
+                    applications.some((a) => a.status === "pending") &&
+                    applications
+                      .filter((a) => a.status === "pending")
+                      .every((a) => selectedIds.has(a.id))
+                  }
+                  onChange={toggleAllVisiblePending}
+                  aria-label="Select all visible pending applicants"
+                />
+              </th>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Contact</th>
               <th className="px-4 py-2">Team</th>
@@ -154,10 +255,10 @@ export default function AdminVolunteersPage() {
             </tr>
           </thead>
           <tbody>
-            {!loaded && <TableRowsSkeleton rows={3} cols={5} />}
+            {!loaded && <TableRowsSkeleton rows={3} cols={6} />}
             {loaded && applications.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-sage">
+                <td colSpan={6} className="px-4 py-6 text-center text-sage">
                   No applicants here yet.
                 </td>
               </tr>
@@ -168,6 +269,17 @@ export default function AdminVolunteersPage() {
               return (
                 <Fragment key={application.id}>
                   <tr className="border-b border-emerald/20 last:border-0">
+                    <td className="px-4 py-2">
+                      {application.status === "pending" && (
+                        <input
+                          type="checkbox"
+                          className="accent-emerald"
+                          checked={selectedIds.has(application.id)}
+                          onChange={() => toggleRow(application.id)}
+                          aria-label={`Select ${application.fullName}`}
+                        />
+                      )}
+                    </td>
                     <td className="px-4 py-2">
                       <button
                         onClick={() => setExpandedId(expanded ? null : application.id)}
@@ -195,14 +307,18 @@ export default function AdminVolunteersPage() {
                         <>
                           <button
                             disabled={busyId === application.id}
-                            onClick={() => void handleApprove(application)}
+                            onClick={() =>
+                              setModalTarget({ scope: "single", mode: "approve", application })
+                            }
                             className="text-sm text-emerald underline mr-3 disabled:opacity-50"
                           >
                             Approve
                           </button>
                           <button
                             disabled={busyId === application.id}
-                            onClick={() => void handleReject(application)}
+                            onClick={() =>
+                              setModalTarget({ scope: "single", mode: "reject", application })
+                            }
                             className="text-sm text-coral-deep underline disabled:opacity-50"
                           >
                             Reject
@@ -219,7 +335,7 @@ export default function AdminVolunteersPage() {
                   </tr>
                   {expanded && (
                     <tr className="border-b border-emerald/20 last:border-0">
-                      <td colSpan={5} className="px-4 py-4 bg-emerald/5">
+                      <td colSpan={6} className="px-4 py-4 bg-emerald/5">
                         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                           <div>
                             <dt className="text-sage text-xs uppercase tracking-wide mb-1">
@@ -306,6 +422,33 @@ export default function AdminVolunteersPage() {
           </tbody>
         </table>
       </div>
+
+      <PaginationFooter page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+
+      <ReasonModal
+        open={modalTarget !== null}
+        title={
+          modalTarget?.mode === "approve"
+            ? modalTarget.scope === "bulk"
+              ? "Approve selected applications"
+              : "Approve application"
+            : modalTarget?.scope === "bulk"
+              ? "Reject selected applications"
+              : "Reject application"
+        }
+        description={
+          modalTarget?.mode === "approve"
+            ? "Optionally include next steps for the applicant. If left blank, a default congratulatory message is used."
+            : "Let the applicant know why their application was not accepted."
+        }
+        reasonLabel={modalTarget?.mode === "approve" ? "Next steps (optional)" : "Reason"}
+        reasonRequired={modalTarget?.mode === "reject"}
+        confirmTone={modalTarget?.mode === "reject" ? "danger" : "default"}
+        confirmLabel={modalTarget?.mode === "approve" ? "Approve" : "Reject"}
+        busy={modalBusy}
+        onConfirm={handleModalConfirm}
+        onCancel={() => setModalTarget(null)}
+      />
     </main>
   );
 }

@@ -31,17 +31,24 @@ import { SponsorLogoUploadUrlDto } from '../sponsors/dto/sponsor-logo-upload-url
 import { UpdateSponsorDto } from '../sponsors/dto/update-sponsor.dto';
 import { SponsorApplicationsService } from '../sponsors/sponsor-applications.service';
 import { SponsorsService } from '../sponsors/sponsors.service';
-import type {
-  SponsorApplicationStatus,
-  VolunteerApplicationStatus,
-} from '../generated/prisma/enums';
 import { VolunteerApplicationsService } from '../volunteers/volunteer-applications.service';
 import { AdminService } from './admin.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
+import { ListAdminUsersQueryDto } from './dto/list-admin-users.query';
 import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { VoidTicketDto } from './dto/void-ticket.dto';
+import { CancelRegistrationDto } from './dto/cancel-registration.dto';
+import { ListSpeakersQueryDto } from '../speakers/dto/list-speakers.query';
+import { ListSponsorsQueryDto } from '../sponsors/dto/list-sponsors.query';
+import { ListSponsorApplicationsQueryDto } from '../sponsors/dto/list-sponsor-applications.query';
+import { ListNewsletterQueryDto } from '../newsletter/dto/list-newsletter.query';
+import { ListVolunteerApplicationsQueryDto } from '../volunteers/dto/list-volunteer-applications.query';
+import { ApproveVolunteerApplicationDto } from '../volunteers/dto/approve-volunteer-application.dto';
+import { RejectVolunteerApplicationDto } from '../volunteers/dto/reject-volunteer-application.dto';
+import { BulkApproveVolunteerApplicationsDto } from '../volunteers/dto/bulk-approve-volunteer-applications.dto';
+import { BulkRejectVolunteerApplicationsDto } from '../volunteers/dto/bulk-reject-volunteer-applications.dto';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard, CsrfGuard)
@@ -93,6 +100,28 @@ export class AdminController {
     return this.admin.voidTicket(id, user.sub, dto.password);
   }
 
+  @Post('registrations/:id/cancel')
+  cancelRegistration(
+    @Param('id') id: string,
+    @Body() dto: CancelRegistrationDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.cancelRegistration(
+      id,
+      user.sub,
+      dto.reason,
+      dto.password,
+    );
+  }
+
+  @Post('registrations/:id/send-reminder')
+  sendPendingPaymentReminder(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.sendPendingPaymentReminder(id, user.sub);
+  }
+
   @Post('export')
   requestExport() {
     return this.admin.requestExport().then((jobId) => ({ jobId }));
@@ -104,8 +133,8 @@ export class AdminController {
   }
 
   @Get('users')
-  listAdminUsers() {
-    return this.admin.listAdminUsers();
+  listAdminUsers(@Query() query: ListAdminUsersQueryDto) {
+    return this.admin.listAdminUsers(query);
   }
 
   // Only a super_admin can mint new admin accounts — an organizer alone
@@ -150,8 +179,11 @@ export class AdminController {
   }
 
   @Get('speakers')
-  listSpeakers(@Query('event') eventSlug: string) {
-    return this.speakers.listAdmin(eventSlug);
+  listSpeakers(
+    @Query('event') eventSlug: string,
+    @Query() query: ListSpeakersQueryDto,
+  ) {
+    return this.speakers.listAdmin(eventSlug, query);
   }
 
   @Post('speakers')
@@ -182,8 +214,11 @@ export class AdminController {
   }
 
   @Get('sponsors')
-  listSponsors(@Query('event') eventSlug: string) {
-    return this.sponsors.listAdmin(eventSlug);
+  listSponsors(
+    @Query('event') eventSlug: string,
+    @Query() query: ListSponsorsQueryDto,
+  ) {
+    return this.sponsors.listAdmin(eventSlug, query);
   }
 
   @Post('sponsors')
@@ -216,9 +251,9 @@ export class AdminController {
   @Get('sponsor-applications')
   listSponsorApplications(
     @Query('event') eventSlug: string,
-    @Query('status') status?: SponsorApplicationStatus,
+    @Query() query: ListSponsorApplicationsQueryDto,
   ) {
-    return this.sponsorApplications.listAdmin(eventSlug, status);
+    return this.sponsorApplications.listAdmin(eventSlug, query);
   }
 
   @Post('sponsor-applications/:id/approve')
@@ -238,8 +273,8 @@ export class AdminController {
   }
 
   @Get('newsletter')
-  listNewsletterSubscribers() {
-    return this.newsletter.listAdmin();
+  listNewsletterSubscribers(@Query() query: ListNewsletterQueryDto) {
+    return this.newsletter.listAdmin(query);
   }
 
   @Delete('newsletter/:id')
@@ -301,24 +336,46 @@ export class AdminController {
   @Get('volunteer-applications')
   listVolunteerApplications(
     @Query('event') eventSlug: string,
-    @Query('status') status?: VolunteerApplicationStatus,
+    @Query() query: ListVolunteerApplicationsQueryDto,
   ) {
-    return this.volunteerApplications.listAdmin(eventSlug, status);
+    return this.volunteerApplications.listAdmin(eventSlug, query);
   }
 
   @Post('volunteer-applications/:id/approve')
   approveVolunteerApplication(
     @Param('id') id: string,
+    @Body() dto: ApproveVolunteerApplicationDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.volunteerApplications.approve(id, user.sub);
+    return this.volunteerApplications.approve(id, user.sub, dto.reason);
   }
 
   @Post('volunteer-applications/:id/reject')
   rejectVolunteerApplication(
     @Param('id') id: string,
+    @Body() dto: RejectVolunteerApplicationDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.volunteerApplications.reject(id, user.sub);
+    return this.volunteerApplications.reject(id, user.sub, dto.reason);
+  }
+
+  @Post('volunteer-applications/bulk-approve')
+  bulkApproveVolunteerApplications(
+    @Body() dto: BulkApproveVolunteerApplicationsDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.volunteerApplications.bulkApprove(
+      dto.ids,
+      user.sub,
+      dto.reason,
+    );
+  }
+
+  @Post('volunteer-applications/bulk-reject')
+  bulkRejectVolunteerApplications(
+    @Body() dto: BulkRejectVolunteerApplicationsDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.volunteerApplications.bulkReject(dto.ids, user.sub, dto.reason);
   }
 }

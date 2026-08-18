@@ -4,6 +4,7 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateSpeakerDto } from './dto/create-speaker.dto';
+import { ListSpeakersQueryDto } from './dto/list-speakers.query';
 import { SpeakerPhotoUploadUrlDto } from './dto/speaker-photo-upload-url.dto';
 import { UpdateSpeakerDto } from './dto/update-speaker.dto';
 
@@ -53,17 +54,30 @@ export class SpeakersService {
     };
   }
 
-  async listAdmin(eventSlug: string) {
+  async listAdmin(eventSlug: string, query: ListSpeakersQueryDto) {
     const event = await this.prisma.event.findUnique({
       where: { slug: eventSlug },
-      include: {
-        speakers: { orderBy: { displayOrder: 'asc' } },
-      },
     });
     if (!event) {
       throw new NotFoundException(`No event found for slug "${eventSlug}"`);
     }
-    return { speakers: await this.withPhotoUrls(event.speakers) };
+
+    const [total, speakers] = await this.prisma.$transaction([
+      this.prisma.speaker.count({ where: { eventId: event.id } }),
+      this.prisma.speaker.findMany({
+        where: { eventId: event.id },
+        orderBy: { displayOrder: 'asc' },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+    ]);
+
+    return {
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+      speakers: await this.withPhotoUrls(speakers),
+    };
   }
 
   async create(dto: CreateSpeakerDto, actorId: string) {

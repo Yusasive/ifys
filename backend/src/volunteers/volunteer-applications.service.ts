@@ -5,9 +5,9 @@ import {
 } from '@nestjs/common';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { VolunteerApplicationEmailQueue } from '../email/volunteer-application-email.queue';
-import { VolunteerApplicationStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVolunteerApplicationDto } from './dto/create-volunteer-application.dto';
+import { ListVolunteerApplicationsQueryDto } from './dto/list-volunteer-applications.query';
 
 @Injectable()
 export class VolunteerApplicationsService {
@@ -17,21 +17,30 @@ export class VolunteerApplicationsService {
     private readonly emailQueue: VolunteerApplicationEmailQueue,
   ) {}
 
-  async listAdmin(eventSlug: string, status?: VolunteerApplicationStatus) {
+  async listAdmin(eventSlug: string, query: ListVolunteerApplicationsQueryDto) {
     const event = await this.prisma.event.findUnique({
       where: { slug: eventSlug },
-      include: {
-        volunteerApplications: {
-          where: status ? { status } : undefined,
-          orderBy: { createdAt: 'desc' },
-        },
-      },
     });
     if (!event) {
       throw new NotFoundException(`No event found for slug "${eventSlug}"`);
     }
 
-    return { applications: event.volunteerApplications };
+    const where = {
+      eventId: event.id,
+      ...(query.status && { status: query.status }),
+    };
+
+    const [total, applications] = await this.prisma.$transaction([
+      this.prisma.volunteerApplication.count({ where }),
+      this.prisma.volunteerApplication.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+    ]);
+
+    return { total, page: query.page, pageSize: query.pageSize, applications };
   }
 
   async getStatus(eventSlug: string) {
@@ -89,7 +98,7 @@ export class VolunteerApplicationsService {
     return application;
   }
 
-  async approve(id: string, actorId: string) {
+  async approve(id: string, actorId: string, reason?: string) {
     const application = await this.prisma.volunteerApplication.findUnique({
       where: { id },
     });
@@ -107,14 +116,15 @@ export class VolunteerApplicationsService {
       action: 'approve_volunteer_application',
       targetType: 'volunteer_application',
       targetId: id,
+      metadata: reason ? { reason } : {},
     });
 
-    await this.emailQueue.enqueue(id, 'approved');
+    await this.emailQueue.enqueue(id, 'approved', reason);
 
     return updated;
   }
 
-  async reject(id: string, actorId: string) {
+  async reject(id: string, actorId: string, reason: string) {
     const application = await this.prisma.volunteerApplication.findUnique({
       where: { id },
     });
@@ -132,10 +142,46 @@ export class VolunteerApplicationsService {
       action: 'reject_volunteer_application',
       targetType: 'volunteer_application',
       targetId: id,
+      metadata: reason ? { reason } : {},
     });
 
-    await this.emailQueue.enqueue(id, 'rejected');
+    await this.emailQueue.enqueue(id, 'rejected', reason);
 
     return updated;
+  }
+
+  async bulkApprove(ids: string[], actorId: string, reason?: string) {
+    const results = await Promise.allSettled(
+      ids.map((id) => this.approve(id, actorId, reason)),
+    );
+    return this.summarizeBulkResults(ids, results);
+  }
+
+  async bulkReject(ids: string[], actorId: string, reason: string) {
+    const results = await Promise.allSettled(
+      ids.map((id) => this.reject(id, actorId, reason)),
+    );
+    return this.summarizeBulkResults(ids, results);
+  }
+
+  private summarizeBulkResults(
+    ids: string[],
+    results: PromiseSettledResult<unknown>[],
+  ): { succeeded: string[]; failed: { id: string; error: string }[] } {
+    const succeeded: string[] = [];
+    const failed: { id: string; error: string }[] = [];
+    results.forEach((result, index) => {
+      const id = ids[index];
+      if (result.status === 'fulfilled') {
+        succeeded.push(id);
+      } else {
+        const error =
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason);
+        failed.push({ id, error });
+      }
+    });
+    return { succeeded, failed };
   }
 }

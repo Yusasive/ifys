@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  cancelRegistration,
   fetchRegistrationDetail,
   markPaid,
   RegistrationDetail,
   resendTicket,
+  sendPendingPaymentReminder,
   voidTicket,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
@@ -15,6 +17,7 @@ import { formatDateTime, formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/
 import { DetailCardSkeleton } from "../../skeleton";
 import { StatusBadge } from "../../status-badge";
 import { useToast } from "@/lib/toast-context";
+import { ReasonModal } from "../../reason-modal";
 
 export default function RegistrationDetailPage() {
   const { session, loading: authLoading } = useRequireAdminAuth();
@@ -22,8 +25,8 @@ export default function RegistrationDetailPage() {
   const router = useRouter();
   const [registration, setRegistration] = useState<RegistrationDetail | null>(null);
   const [busy, setBusy] = useState(false);
-  const [voidPassword, setVoidPassword] = useState("");
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const toast = useToast();
 
   async function load() {
@@ -125,6 +128,12 @@ export default function RegistrationDetailPage() {
                 )}
               </>
             )}
+            {registration.cancellationReason && (
+              <>
+                <dt className="text-sage">Cancellation reason</dt>
+                <dd className="text-right">{registration.cancellationReason}</dd>
+              </>
+            )}
           </dl>
 
           <div className="border-t border-emerald/20 pt-4 mb-4">
@@ -222,46 +231,72 @@ export default function RegistrationDetailPage() {
               Void ticket
             </button>
           )}
+          {registration.status === "pending_payment" && (
+            <button
+              disabled={busy}
+              onClick={() =>
+                void runAction(
+                  () => sendPendingPaymentReminder(registration.id),
+                  "Reminder email sent.",
+                )
+              }
+              className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
+            >
+              Send reminder
+            </button>
+          )}
+          {registration.status === "pending_payment" && (
+            <button
+              disabled={busy}
+              onClick={() => setShowCancelConfirm(true)}
+              className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
+            >
+              Cancel registration
+            </button>
+          )}
         </div>
 
-        {showVoidConfirm && (
-          <div className="mt-4 border border-coral/30 rounded-xl p-4 bg-coral/10">
-            <p className="text-sm mb-3">
-              Voiding a ticket cannot be undone. Re-enter your password to confirm.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="password"
-                value={voidPassword}
-                onChange={(e) => setVoidPassword(e.target.value)}
-                placeholder="Your password"
-                className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold flex-1"
-              />
-              <button
-                disabled={busy || !voidPassword}
-                onClick={() =>
-                  void runAction(async () => {
-                    await voidTicket(registration.id, voidPassword);
-                    setShowVoidConfirm(false);
-                    setVoidPassword("");
-                  }, "Ticket voided.")
-                }
-                className="bg-coral-deep text-white px-4 py-1.5 rounded-full text-sm hover:bg-gold-deep transition-colors disabled:opacity-50"
-              >
-                Confirm void
-              </button>
-              <button
-                onClick={() => {
-                  setShowVoidConfirm(false);
-                  setVoidPassword("");
-                }}
-                className="text-sm text-sage"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+        {registration.status === "pending_payment" && registration.pendingPaymentReminderSentAt && (
+          <p className="text-xs text-sage mt-2">
+            Reminder last sent: {formatDateTime(registration.pendingPaymentReminderSentAt)}
+          </p>
         )}
+
+        <ReasonModal
+          open={showVoidConfirm}
+          title="Void ticket"
+          description="Voiding a ticket cannot be undone. Re-enter your password to confirm."
+          reasonRequired={false}
+          requirePassword
+          confirmTone="danger"
+          confirmLabel="Confirm void"
+          busy={busy}
+          onCancel={() => setShowVoidConfirm(false)}
+          onConfirm={(_reason, password) =>
+            runAction(async () => {
+              await voidTicket(registration.id, password ?? "");
+              setShowVoidConfirm(false);
+            }, "Ticket voided.")
+          }
+        />
+
+        <ReasonModal
+          open={showCancelConfirm}
+          title="Cancel registration"
+          description="This will mark the registration as cancelled. This cannot be undone from the dashboard."
+          reasonLabel="Cancellation reason"
+          requirePassword
+          confirmTone="danger"
+          confirmLabel="Cancel registration"
+          busy={busy}
+          onCancel={() => setShowCancelConfirm(false)}
+          onConfirm={(reason, password) =>
+            runAction(async () => {
+              await cancelRegistration(registration.id, reason, password ?? "");
+              setShowCancelConfirm(false);
+            }, "Registration cancelled.")
+          }
+        />
     </main>
   );
 }

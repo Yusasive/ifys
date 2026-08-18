@@ -2,6 +2,7 @@ export type NavItem = {
   href: string;
   label: string;
   organizerOnly?: boolean;
+  superAdminOnly?: boolean;
 };
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
@@ -14,6 +15,8 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { href: "/admin/coupons", label: "Coupons", organizerOnly: true },
   { href: "/admin/newsletter", label: "Newsletter", organizerOnly: true },
   { href: "/admin/volunteers", label: "Volunteers", organizerOnly: true },
+  { href: "/admin/audit-log", label: "System Audit Log", superAdminOnly: true },
+  { href: "/admin/my-activity", label: "My Activity" },
 ];
 
 export const ADMIN_NAV_FOOTER_ITEMS: NavItem[] = [

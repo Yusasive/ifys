@@ -13,7 +13,10 @@ import {
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
+
+const PAGE_SIZE = 20;
 
 const EMPTY_FORM = {
   name: "",
@@ -25,6 +28,8 @@ const EMPTY_FORM = {
 export default function AdminUsersPage() {
   const { session, loading: authLoading } = useRequireAdminAuth();
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -42,9 +47,13 @@ export default function AdminUsersPage() {
     async function load() {
       if (!session) return;
       try {
-        const { users: list } = await listAdminUsers();
+        const { users: list, total: listTotal } = await listAdminUsers({
+          page,
+          pageSize: PAGE_SIZE,
+        });
         if (!cancelled) {
           setUsers(list);
+          setTotal(listTotal);
           setUsersLoaded(true);
         }
       } catch (err) {
@@ -58,7 +67,7 @@ export default function AdminUsersPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, reloadKey]);
+  }, [session, page, reloadKey]);
 
   function startEdit(user: AdminUserListItem) {
     setEditingId(user.id);
@@ -126,6 +135,8 @@ export default function AdminUsersPage() {
   }
 
   if (authLoading || !session) return null;
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-8">
@@ -295,6 +306,8 @@ export default function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+
+      <PaginationFooter page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </main>
   );
 }

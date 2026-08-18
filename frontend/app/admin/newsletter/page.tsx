@@ -12,11 +12,16 @@ import {
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
+
+const PAGE_SIZE = 20;
 
 export default function AdminNewsletterPage() {
   const { session, loading: authLoading } = useRequireAdminAuth();
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loaded, setLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -32,9 +37,13 @@ export default function AdminNewsletterPage() {
     async function load() {
       if (!session) return;
       try {
-        const list = await listNewsletterSubscribers();
+        const { subscribers: list, total: listTotal } = await listNewsletterSubscribers({
+          page,
+          pageSize: PAGE_SIZE,
+        });
         if (!cancelled) {
           setSubscribers(list);
+          setTotal(listTotal);
           setLoaded(true);
         }
       } catch (err) {
@@ -50,7 +59,7 @@ export default function AdminNewsletterPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, reloadKey]);
+  }, [session, page, reloadKey]);
 
   async function handleDelete(subscriber: NewsletterSubscriber) {
     if (!session) return;
@@ -89,6 +98,8 @@ export default function AdminNewsletterPage() {
   }
 
   if (authLoading || !session) return null;
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-8">
@@ -187,6 +198,8 @@ export default function AdminNewsletterPage() {
           </tbody>
         </table>
       </div>
+
+      <PaginationFooter page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </main>
   );
 }
