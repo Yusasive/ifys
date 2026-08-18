@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   approveVolunteerApplication,
@@ -14,6 +14,7 @@ import {
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError, VOLUNTEER_TEAMS } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { DetailsGrid, DetailsModal } from "../details-modal";
 import { PaginationFooter } from "../pagination-footer";
 import { PauseToggle } from "../pause-toggle";
 import { ReasonModal } from "../reason-modal";
@@ -48,7 +49,7 @@ export default function AdminVolunteersPage() {
     "pending",
   );
   const [reloadKey, setReloadKey] = useState(0);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailsApplication, setDetailsApplication] = useState<VolunteerApplication | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -265,158 +266,72 @@ export default function AdminVolunteersPage() {
             )}
             {applications.map((application) => {
               const data = application.formDataJson;
-              const expanded = expandedId === application.id;
               return (
-                <Fragment key={application.id}>
-                  <tr className="border-b border-emerald/20 last:border-0">
-                    <td className="px-4 py-2">
-                      {application.status === "pending" && (
-                        <input
-                          type="checkbox"
-                          className="accent-emerald"
-                          checked={selectedIds.has(application.id)}
-                          onChange={() => toggleRow(application.id)}
-                          aria-label={`Select ${application.fullName}`}
-                        />
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={() => setExpandedId(expanded ? null : application.id)}
-                        className="text-ink underline"
-                      >
-                        {application.fullName}
-                      </button>
-                    </td>
-                    <td className="px-4 py-2 text-sage">
-                      <div>{application.email}</div>
-                      <div className="text-xs">{application.phone}</div>
-                    </td>
-                    <td className="px-4 py-2 text-sage">
-                      {TEAM_LABELS[data.team] ?? data.team}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full ${STATUS_STYLE[application.status]}`}
-                      >
-                        {STATUS_LABEL[application.status]}
+                <tr key={application.id} className="border-b border-emerald/20 last:border-0">
+                  <td className="px-4 py-2">
+                    {application.status === "pending" && (
+                      <input
+                        type="checkbox"
+                        className="accent-emerald"
+                        checked={selectedIds.has(application.id)}
+                        onChange={() => toggleRow(application.id)}
+                        aria-label={`Select ${application.fullName}`}
+                      />
+                    )}
+                  </td>
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => setDetailsApplication(application)}
+                      className="text-ink underline"
+                    >
+                      {application.fullName}
+                    </button>
+                  </td>
+                  <td className="px-4 py-2 text-sage">
+                    <div>{application.email}</div>
+                    <div className="text-xs">{application.phone}</div>
+                  </td>
+                  <td className="px-4 py-2 text-sage">
+                    {TEAM_LABELS[data.team] ?? data.team}
+                  </td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-full ${STATUS_STYLE[application.status]}`}
+                    >
+                      {STATUS_LABEL[application.status]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {application.status === "pending" ? (
+                      <>
+                        <button
+                          disabled={busyId === application.id}
+                          onClick={() =>
+                            setModalTarget({ scope: "single", mode: "approve", application })
+                          }
+                          className="text-sm text-emerald underline mr-3 disabled:opacity-50"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          disabled={busyId === application.id}
+                          onClick={() =>
+                            setModalTarget({ scope: "single", mode: "reject", application })
+                          }
+                          className="text-sm text-coral-deep underline disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-sage">
+                        {application.reviewedAt
+                          ? new Date(application.reviewedAt).toLocaleDateString()
+                          : "—"}
                       </span>
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      {application.status === "pending" ? (
-                        <>
-                          <button
-                            disabled={busyId === application.id}
-                            onClick={() =>
-                              setModalTarget({ scope: "single", mode: "approve", application })
-                            }
-                            className="text-sm text-emerald underline mr-3 disabled:opacity-50"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            disabled={busyId === application.id}
-                            onClick={() =>
-                              setModalTarget({ scope: "single", mode: "reject", application })
-                            }
-                            className="text-sm text-coral-deep underline disabled:opacity-50"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      ) : (
-                        <span className="text-xs text-sage">
-                          {application.reviewedAt
-                            ? new Date(application.reviewedAt).toLocaleDateString()
-                            : "—"}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                  {expanded && (
-                    <tr className="border-b border-emerald/20 last:border-0">
-                      <td colSpan={6} className="px-4 py-4 bg-emerald/5">
-                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                          <div>
-                            <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                              Location
-                            </dt>
-                            <dd>{data.location}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                              Willing to travel
-                            </dt>
-                            <dd className="capitalize">{data.willingToTravel}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                              Occupational status
-                            </dt>
-                            <dd className="capitalize">
-                              {data.occupationalStatus.replace("_", " ")}
-                              {data.occupationalStatusOther
-                                ? ` — ${data.occupationalStatusOther}`
-                                : ""}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                              Volunteered before
-                            </dt>
-                            <dd>
-                              {data.volunteeredBefore ? "Yes" : "No"}
-                              {data.volunteeredAreas?.length
-                                ? ` — ${data.volunteeredAreas.join(", ")}`
-                                : ""}
-                            </dd>
-                          </div>
-                          <div className="sm:col-span-2">
-                            <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                              About
-                            </dt>
-                            <dd>{data.aboutYourself}</dd>
-                          </div>
-                          <div className="sm:col-span-2">
-                            <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                              Skills
-                            </dt>
-                            <dd>
-                              {data.skills.join(", ")}
-                              {data.skillsOther ? `, ${data.skillsOther}` : ""}
-                            </dd>
-                          </div>
-                          <div className="sm:col-span-2">
-                            <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                              Why volunteer
-                            </dt>
-                            <dd>{data.whyVolunteer}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                              Availability commitment
-                            </dt>
-                            <dd className="capitalize">{data.availabilityCommitment}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                              Time commitment
-                            </dt>
-                            <dd>{data.timeCommitment}</dd>
-                          </div>
-                          {data.additionalComments && (
-                            <div className="sm:col-span-2">
-                              <dt className="text-sage text-xs uppercase tracking-wide mb-1">
-                                Additional comments
-                              </dt>
-                              <dd>{data.additionalComments}</dd>
-                            </div>
-                          )}
-                        </dl>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
+                    )}
+                  </td>
+                </tr>
               );
             })}
           </tbody>
@@ -449,6 +364,77 @@ export default function AdminVolunteersPage() {
         onConfirm={handleModalConfirm}
         onCancel={() => setModalTarget(null)}
       />
+
+      <DetailsModal
+        open={detailsApplication !== null}
+        title={detailsApplication?.fullName ?? "Applicant"}
+        description={detailsApplication ? `${detailsApplication.email} · ${detailsApplication.phone}` : undefined}
+        onClose={() => setDetailsApplication(null)}
+      >
+        {detailsApplication && (
+          <DetailsGrid
+            items={[
+              {
+                label: "Team",
+                value: TEAM_LABELS[detailsApplication.formDataJson.team] ?? detailsApplication.formDataJson.team,
+              },
+              { label: "Location", value: detailsApplication.formDataJson.location },
+              {
+                label: "Willing to travel",
+                value: <span className="capitalize">{detailsApplication.formDataJson.willingToTravel}</span>,
+              },
+              {
+                label: "Occupational status",
+                value: (
+                  <span className="capitalize">
+                    {detailsApplication.formDataJson.occupationalStatus.replace("_", " ")}
+                    {detailsApplication.formDataJson.occupationalStatusOther
+                      ? ` — ${detailsApplication.formDataJson.occupationalStatusOther}`
+                      : ""}
+                  </span>
+                ),
+              },
+              {
+                label: "Volunteered before",
+                value: (
+                  <>
+                    {detailsApplication.formDataJson.volunteeredBefore ? "Yes" : "No"}
+                    {detailsApplication.formDataJson.volunteeredAreas?.length
+                      ? ` — ${detailsApplication.formDataJson.volunteeredAreas.join(", ")}`
+                      : ""}
+                  </>
+                ),
+              },
+              {
+                label: "Availability commitment",
+                value: <span className="capitalize">{detailsApplication.formDataJson.availabilityCommitment}</span>,
+              },
+              { label: "Time commitment", value: detailsApplication.formDataJson.timeCommitment },
+              { label: "About", value: detailsApplication.formDataJson.aboutYourself, fullWidth: true },
+              {
+                label: "Skills",
+                value: [
+                  ...detailsApplication.formDataJson.skills,
+                  ...(detailsApplication.formDataJson.skillsOther
+                    ? [detailsApplication.formDataJson.skillsOther]
+                    : []),
+                ].join(", "),
+                fullWidth: true,
+              },
+              { label: "Why volunteer", value: detailsApplication.formDataJson.whyVolunteer, fullWidth: true },
+              ...(detailsApplication.formDataJson.additionalComments
+                ? [
+                    {
+                      label: "Additional comments",
+                      value: detailsApplication.formDataJson.additionalComments,
+                      fullWidth: true,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        )}
+      </DetailsModal>
     </main>
   );
 }
