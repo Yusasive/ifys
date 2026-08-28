@@ -16,22 +16,22 @@ const MORE_LINKS = [
 const SOCIALS = [
   {
     label: "LinkedIn",
-    href: "#",
+    href: "https://www.linkedin.com/company/islamic-finance-youth-summit/",
     path: "M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.64h.05c.53-.97 1.83-2 3.77-2 4.03 0 4.78 2.53 4.78 5.83V21h-4v-5.6c0-1.34-.02-3.06-1.87-3.06-1.87 0-2.15 1.44-2.15 2.96V21h-4V9Z",
   },
   {
     label: "Instagram",
-    href: "#",
+    href: "https://www.instagram.com/ifysummit?igsh=b2w4N2FqaTRjMnh0",
     path: "M12 2c2.72 0 3.06.01 4.12.06 1.06.05 1.79.22 2.43.47.66.26 1.22.6 1.77 1.15.55.55.9 1.11 1.15 1.77.25.64.42 1.37.47 2.43.05 1.06.06 1.4.06 4.12s-.01 3.06-.06 4.12c-.05 1.06-.22 1.79-.47 2.43a4.9 4.9 0 0 1-1.15 1.77 4.9 4.9 0 0 1-1.77 1.15c-.64.25-1.37.42-2.43.47-1.06.05-1.4.06-4.12.06s-3.06-.01-4.12-.06c-1.06-.05-1.79-.22-2.43-.47a4.9 4.9 0 0 1-1.77-1.15 4.9 4.9 0 0 1-1.15-1.77c-.25-.64-.42-1.37-.47-2.43C2.01 15.06 2 14.72 2 12s.01-3.06.06-4.12c.05-1.06.22-1.79.47-2.43.26-.66.6-1.22 1.15-1.77A4.9 4.9 0 0 1 5.45.53c.64-.25 1.37-.42 2.43-.47C8.94.01 9.28 0 12 0Zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Zm5.2-8.4a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Z",
   },
   {
     label: "X",
-    href: "#",
+    href: "https://x.com/IfySummit",
     path: "M3 2h4.2l4.1 5.8L16 2h4l-6.6 8.6L21 22h-4.2l-4.5-6.3L6.6 22H2.5l7-9.2L3 2Z",
   },
   {
     label: "TikTok",
-    href: "#",
+    href: "https://www.tiktok.com/@islamic.finance.y?_r=1&_t=ZS-98UDSNMaA8S",
     path: "M16.5 2h-3v13.2a2.8 2.8 0 1 1-2-2.68V9.4a5.8 5.8 0 1 0 5 5.75V8.9a7 7 0 0 0 4 1.26V7.15a4 4 0 0 1-4-4.15V2Z",
   },
 ];
@@ -114,6 +114,8 @@ export function SiteFooter() {
                 <a
                   key={social.label}
                   href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={social.label}
                   className="w-9 h-9 rounded-md border border-coral/60 text-rust flex items-center justify-center hover:bg-coral hover:text-white hover:border-coral transition-colors"
                 >
