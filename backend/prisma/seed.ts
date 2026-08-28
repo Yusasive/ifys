@@ -40,7 +40,7 @@ async function main() {
       orgId: org.id,
       name: 'Islamic Finance Youth Summit 2026',
       venue: 'Ilorin Innovation Hub, Multipurpose Hall',
-      startsAt: new Date('2026-11-07T09:00:00+01:00'),
+      startsAt: new Date('2026-11-05T09:00:00+01:00'),
       slug: 'ify-summit-2026',
     },
   });

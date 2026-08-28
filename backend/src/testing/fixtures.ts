@@ -35,7 +35,7 @@ export async function createPaidCheckoutFixture(
       orgId: org.id,
       name: 'Test Event',
       venue: 'Test Venue',
-      startsAt: new Date('2026-11-07T09:00:00+01:00'),
+      startsAt: new Date('2026-11-05T09:00:00+01:00'),
       slug: `test-event-${suffix}`,
     },
   });

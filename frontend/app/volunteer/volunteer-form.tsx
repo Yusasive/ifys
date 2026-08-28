@@ -521,7 +521,7 @@ export function VolunteerForm() {
 
           <SectionHeading>Availability</SectionHeading>
           <RadioGroup
-            label="The IFY Summit is happening on November 7th, 2026. Are you available to dedicate consistent hours leading up to the event?"
+            label="The IFY Summit is happening on November 5th, 2026. Are you available to dedicate consistent hours leading up to the event?"
             options={COMMIT_OPTIONS}
             value={form.availabilityCommitment}
             onChange={(v) => set("availabilityCommitment", v)}

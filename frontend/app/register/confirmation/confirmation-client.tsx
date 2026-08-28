@@ -17,12 +17,12 @@ const MAX_POLL_ATTEMPTS = 30; // ~60s
 
 // Matches the event details hardcoded on the home page and /register —
 // there's no per-registration event fetch on this page, so these stay
-// in sync with backend/prisma/seed.ts's startsAt (2026-11-07T09:00 WAT).
+// in sync with backend/prisma/seed.ts's startsAt (2026-11-05T09:00 WAT).
 const EVENT_NAME = "Islamic Finance Youth Summit 2026";
 const EVENT_VENUE = "Ilorin Innovation Hub";
-const EVENT_DATE_LABEL = "7 Nov 2026";
-const EVENT_STARTS_AT_UTC = "20261107T080000Z";
-const EVENT_ENDS_AT_UTC = "20261107T160000Z";
+const EVENT_DATE_LABEL = "5 Nov 2026";
+const EVENT_STARTS_AT_UTC = "20261105T080000Z";
+const EVENT_ENDS_AT_UTC = "20261105T160000Z";
 
 type PollState = "polling" | "paid" | "timeout" | "error";
 

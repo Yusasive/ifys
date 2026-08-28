@@ -1,6 +1,7 @@
 import { fetchTicketProducts, listSpeakers, listSponsors, Speaker, Sponsor, TicketProduct } from "@/lib/api";
 import { SiteHeader } from "./site-header";
 import { HeroSection } from "./hero-section";
+import { CountdownSection } from "./countdown-section";
 import { AboutSection } from "./about-section";
 import { SpeakersSection } from "./speakers-section";
 import { ExperienceSection } from "./experience-section";
@@ -67,6 +68,7 @@ export default async function Home() {
       <SiteHeader />
       <main className="flex-1">
         <HeroSection />
+        <CountdownSection />
         <AboutSection />
         <SpeakersSection speakers={speakers} />
         <ExperienceSection />

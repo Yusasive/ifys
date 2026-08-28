@@ -3,7 +3,7 @@
 
 **Organizer:** NextIF
 **Event:** Islamic Finance Youth Summit 2026 — "The Ethical Generation: Rethinking Finance & Innovation"
-**Venue / Date:** Ilorin Innovation Hub, Multipurpose Hall — 7th November 2026
+**Venue / Date:** Ilorin Innovation Hub, Multipurpose Hall — 5th November 2026
 **Document owner:** Product/Engineering
 **Status:** Draft v1.0
 

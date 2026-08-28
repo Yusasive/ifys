@@ -65,7 +65,7 @@ export function VenueSection() {
           <div className="flex flex-col items-center gap-2 sm:gap-3 text-white">
             <CalendarIcon />
             <p className="font-sans font-bold text-lg sm:text-[48px] leading-[1.2] sm:leading-[48px] tracking-normal text-center max-w-xs sm:max-w-none">
-              Saturday, 7th of November, <br /> 2026
+              Thursday, 5th of November, <br /> 2026
             </p>
           </div>
         </div>
