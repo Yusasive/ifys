@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsOptional,
@@ -26,4 +27,8 @@ export class UpdateAdminUserDto {
   @IsOptional()
   @IsIn(ROLES)
   role?: AdminRole;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyOnStudentRegistration?: boolean;
 }

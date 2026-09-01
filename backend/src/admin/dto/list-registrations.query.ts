@@ -5,6 +5,7 @@ const STATUSES = [
   'draft',
   'pending_payment',
   'paid',
+  'pending_review',
   'failed',
   'refunded',
   'cancelled',

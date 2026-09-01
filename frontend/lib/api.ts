@@ -24,6 +24,9 @@ export interface EventSummary {
   startsAt: string;
   slug: string;
   ticketPurchasingPaused: boolean;
+  ticketCapacity: number;
+  ticketsSoldCount: number;
+  soldOut: boolean;
 }
 
 export interface ApiFieldError {

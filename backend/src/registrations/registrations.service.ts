@@ -46,6 +46,7 @@ export class RegistrationsService {
     if (!event) {
       throw new NotFoundException(`No event found for slug "${eventSlug}"`);
     }
+    const ticketsSoldCount = await this.countTicketsSold(event.id);
     return {
       event: {
         id: event.id,
@@ -54,9 +55,22 @@ export class RegistrationsService {
         startsAt: event.startsAt,
         slug: event.slug,
         ticketPurchasingPaused: event.ticketPurchasingPaused,
+        ticketCapacity: event.ticketCapacity,
+        ticketsSoldCount,
+        soldOut: ticketsSoldCount >= event.ticketCapacity,
       },
       ticketProducts: event.ticketProducts,
     };
+  }
+
+  // A ticket counts as "sold" the moment payment succeeds — a student
+  // registration already holds a slot while pending_review, even though it
+  // has no Ticket row yet (see PaymentsService.settleByReference). Counting
+  // paid Orders rather than Tickets keeps that slot counted the whole time.
+  private async countTicketsSold(eventId: string): Promise<number> {
+    return this.prisma.order.count({
+      where: { status: 'paid', registration: { eventId } },
+    });
   }
 
   async createStudentIdUploadUrl(dto: StudentIdUploadUrlDto) {
@@ -91,6 +105,10 @@ export class RegistrationsService {
     }
     if (event.ticketPurchasingPaused) {
       throw new BadRequestException('Ticket purchasing is not currently open');
+    }
+    const ticketsSoldCount = await this.countTicketsSold(event.id);
+    if (ticketsSoldCount >= event.ticketCapacity) {
+      throw new BadRequestException('All tickets have been sold');
     }
 
     const ticketProduct = await this.prisma.ticketProduct.findUnique({

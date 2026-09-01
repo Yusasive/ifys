@@ -8,6 +8,8 @@ import { ApiError, TicketProduct } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 import { PauseToggle } from "../pause-toggle";
+import { StudentReviewNotifyPanel } from "./student-review-notify-panel";
+import { TicketCapacityCard } from "./ticket-capacity-card";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 
@@ -193,6 +195,10 @@ export default function AdminTicketsPage() {
       </p>
 
       <PauseToggle eventSlug={EVENT_SLUG} field="ticketPurchasingPaused" label="Ticket purchasing" />
+
+      <TicketCapacityCard eventSlug={EVENT_SLUG} />
+
+      {session.user.role === "super_admin" && <StudentReviewNotifyPanel />}
 
       {!loaded && <p className="text-sm text-sage">Loading…</p>}
 

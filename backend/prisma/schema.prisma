@@ -31,6 +31,12 @@ enum RegistrationStatus {
   draft
   pending_payment
   paid
+  // Paystack confirmed the charge for a student-category registration, but
+  // the uploaded student ID hasn't been reviewed yet — no Ticket is issued
+  // until an admin approves (AdminService.approveStudentRegistration) or
+  // rejects (AdminService.rejectStudentRegistration, which moves it to
+  // cancelled) it. Every other category skips this status entirely.
+  pending_review
   failed
   refunded
   cancelled
@@ -126,6 +132,12 @@ model Event {
   ticketPurchasingPaused        Boolean @default(false) @map("ticket_purchasing_paused")
   volunteerApplicationsPaused   Boolean @default(false) @map("volunteer_applications_paused")
   sponsorshipApplicationsPaused Boolean @default(false) @map("sponsorship_applications_paused")
+
+  // Total tickets ever sellable across all categories/tiers combined —
+  // admin-editable so it can be raised without a deploy. Enforced at
+  // checkout in RegistrationsService.createRegistration by counting paid
+  // Orders (see that method's comment for why paid Orders, not Tickets).
+  ticketCapacity Int @default(300) @map("ticket_capacity")
 
   @@map("events")
 }
@@ -393,6 +405,10 @@ model AdminUser {
   // accounts (seed/bootstrap-admin.ts) leave this false since whoever runs
   // those already chose the real password directly.
   mustChangePassword Boolean @default(false) @map("must_change_password")
+  // Super-admin-toggled: whether this admin receives the "new student
+  // ticket awaiting review" email (see StudentReviewEmailQueue). Off by
+  // default so adding an admin doesn't silently opt them into review duty.
+  notifyOnStudentRegistration Boolean @default(false) @map("notify_on_student_registration")
 
   @@map("admin_users")
 }

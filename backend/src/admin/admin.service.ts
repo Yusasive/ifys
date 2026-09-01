@@ -12,6 +12,7 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuthService } from '../auth/auth.service';
 import { AdminAccountEmailQueue } from '../email/admin-account-email.queue';
 import { RegistrationReminderEmailQueue } from '../email/registration-reminder-email.queue';
+import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -37,6 +38,7 @@ export class AdminService {
     private readonly exportQueue: ExportQueue,
     private readonly adminAccountEmailQueue: AdminAccountEmailQueue,
     private readonly reminderQueue: RegistrationReminderEmailQueue,
+    private readonly studentReviewEmailQueue: StudentReviewEmailQueue,
   ) {}
 
   async listRegistrations(query: ListRegistrationsQueryDto) {
@@ -203,6 +205,84 @@ export class AdminService {
     });
 
     return { ticket };
+  }
+
+  // Reuses the exact same ticket-issuance path as markPaid/the webhook —
+  // approving a student registration just means "the payment is confirmed
+  // and the ID has now been verified, so issue the ticket we withheld."
+  async approveStudentRegistration(registrationId: string, actorId: string) {
+    const registration = await this.prisma.registration.findUnique({
+      where: { id: registrationId },
+    });
+    if (!registration) {
+      throw new NotFoundException('Registration not found');
+    }
+    if (registration.status !== 'pending_review') {
+      throw new ConflictException('This registration is not awaiting review.');
+    }
+
+    const ticket = await this.tickets.issueTicketForRegistration(
+      registration.id,
+    );
+    await this.emailQueue.enqueue(ticket.id);
+
+    await this.auditLog.record({
+      actorId,
+      action: 'approve_student_registration',
+      targetType: 'registration',
+      targetId: registration.id,
+    });
+
+    return { ticket };
+  }
+
+  // Payment already succeeded by the time a registration reaches
+  // pending_review, so rejecting it doesn't undo the charge — it just
+  // stops a ticket from ever being issued and points the attendee at
+  // support for a manual refund (no Paystack refund API integration
+  // exists in this codebase). Password-gated like voidTicket/
+  // cancelRegistration since it's a destructive action on a paid record.
+  async rejectStudentRegistration(
+    registrationId: string,
+    actorId: string,
+    reason: string,
+    password: string,
+  ) {
+    const passwordOk = await this.auth.verifyPassword(actorId, password);
+    if (!passwordOk) {
+      throw new UnauthorizedException('Incorrect password');
+    }
+
+    const registration = await this.prisma.registration.findUnique({
+      where: { id: registrationId },
+    });
+    if (!registration) {
+      throw new NotFoundException('Registration not found');
+    }
+    if (registration.status !== 'pending_review') {
+      throw new ConflictException('This registration is not awaiting review.');
+    }
+
+    const updated = await this.prisma.registration.update({
+      where: { id: registrationId },
+      data: { status: 'cancelled', cancellationReason: reason },
+    });
+
+    await this.studentReviewEmailQueue.enqueue(
+      registrationId,
+      'rejected',
+      reason,
+    );
+
+    await this.auditLog.record({
+      actorId,
+      action: 'reject_student_registration',
+      targetType: 'registration',
+      targetId: registrationId,
+      metadata: { reason },
+    });
+
+    return updated;
   }
 
   // Reuses the existing ticketCode/qrSecret — a resend must never mint a
@@ -409,6 +489,7 @@ export class AdminService {
       role: true,
       createdAt: true,
       mustChangePassword: true,
+      notifyOnStudentRegistration: true,
     };
 
     const [total, users] = await this.prisma.$transaction([
@@ -457,6 +538,7 @@ export class AdminService {
         name: dto.name,
         email: dto.email,
         role: dto.role,
+        notifyOnStudentRegistration: dto.notifyOnStudentRegistration,
       },
     });
 
@@ -487,6 +569,7 @@ export class AdminService {
       role: updated.role,
       createdAt: updated.createdAt,
       mustChangePassword: updated.mustChangePassword,
+      notifyOnStudentRegistration: updated.notifyOnStudentRegistration,
     };
   }
 
@@ -525,6 +608,7 @@ export class AdminService {
         ticketPurchasingPaused: true,
         volunteerApplicationsPaused: true,
         sponsorshipApplicationsPaused: true,
+        ticketCapacity: true,
       },
     });
     if (!event) {
@@ -551,11 +635,13 @@ export class AdminService {
         ticketPurchasingPaused: dto.ticketPurchasingPaused,
         volunteerApplicationsPaused: dto.volunteerApplicationsPaused,
         sponsorshipApplicationsPaused: dto.sponsorshipApplicationsPaused,
+        ticketCapacity: dto.ticketCapacity,
       },
       select: {
         ticketPurchasingPaused: true,
         volunteerApplicationsPaused: true,
         sponsorshipApplicationsPaused: true,
+        ticketCapacity: true,
       },
     });
 

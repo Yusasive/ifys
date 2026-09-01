@@ -1,6 +1,7 @@
 import Link from "next/link";
-import type { TicketProduct } from "@/lib/api";
+import type { EventSummary, TicketProduct } from "@/lib/api";
 import { formatKobo } from "@/lib/format";
+import { TicketsRemaining } from "./tickets-remaining";
 
 const LABELS: Record<string, string> = {
   student: "Students",
@@ -36,12 +37,18 @@ function cardNote(product: TicketProduct): string | null {
   return null;
 }
 
-export function TicketsSection({ ticketProducts }: { ticketProducts: TicketProduct[] }) {
+export function TicketsSection({
+  ticketProducts,
+  event,
+}: {
+  ticketProducts: TicketProduct[];
+  event: EventSummary | null;
+}) {
   const tickets = ticketProducts
     .filter((p) => p.category in LABELS && p.tier === "standard" && p.isActive)
     .sort((a, b) => ORDER[a.category] - ORDER[b.category]);
 
-  if (tickets.length === 0) return null;
+  if (tickets.length === 0 || !event) return null;
 
   return (
     <section id="tickets" className="bg-islamic-pattern">
@@ -49,9 +56,15 @@ export function TicketsSection({ ticketProducts }: { ticketProducts: TicketProdu
         <p className="font-plex font-normal text-sm sm:text-base tracking-[0.15em] text-rust uppercase mb-4 text-center">
           Tickets
         </p>
-        <h2 className="font-bricolage font-medium text-xl lg:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center mb-10 sm:mb-12">
+        <h2 className="font-bricolage font-medium text-xl lg:text-[40px] leading-[1.2] sm:leading-[60px] tracking-normal text-black text-center mb-6 sm:mb-8">
           Register for the Islamic Finance Youth Summit
         </h2>
+
+        <TicketsRemaining
+          eventSlug={event.slug}
+          initialSoldCount={event.ticketsSoldCount}
+          initialCapacity={event.ticketCapacity}
+        />
 
         <div className="grid sm:grid-cols-3 gap-6 mb-10">
           {tickets.map((product) => {

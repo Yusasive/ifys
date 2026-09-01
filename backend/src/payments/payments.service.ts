@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import { CouponsService } from '../coupons/coupons.service';
+import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { matchesLookupToken } from '../registrations/registrations.service';
@@ -52,6 +53,7 @@ export class PaymentsService {
     private readonly tickets: TicketsService,
     private readonly emailQueue: TicketEmailQueue,
     private readonly coupons: CouponsService,
+    private readonly studentReviewEmailQueue: StudentReviewEmailQueue,
   ) {}
 
   async createCheckout(registrationId: string, token?: string) {
@@ -259,11 +261,28 @@ export class PaymentsService {
 
     const registration = await this.prisma.registration.findUniqueOrThrow({
       where: { id: order.registrationId },
+      include: { ticketProduct: true },
     });
     if (registration.couponId) {
       // Only now — payment confirmed — does the coupon actually get
       // spent. An abandoned checkout never reaches this point.
       await this.coupons.redeem(registration.couponId);
+    }
+
+    // Student-category registrations don't get a ticket issued yet — the
+    // payment is real and the slot counts as sold (see
+    // RegistrationsService.createRegistration's capacity check), but the
+    // uploaded student ID needs an admin's eyes before a Ticket exists.
+    // See AdminService.approveStudentRegistration/rejectStudentRegistration
+    // for how this status resolves.
+    if (registration.ticketProduct.category === 'student') {
+      await this.prisma.registration.update({
+        where: { id: registration.id },
+        data: { status: 'pending_review' },
+      });
+      await this.studentReviewEmailQueue.enqueue(registration.id, 'pending');
+      await this.studentReviewEmailQueue.enqueueAdminNotify(registration.id);
+      return;
     }
 
     const ticket = await this.tickets.issueTicketForRegistration(

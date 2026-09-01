@@ -1,4 +1,4 @@
-import { fetchTicketProducts, listSpeakers, listSponsors, Speaker, Sponsor, TicketProduct } from "@/lib/api";
+import { EventSummary, fetchTicketProducts, listSpeakers, listSponsors, Speaker, Sponsor, TicketProduct } from "@/lib/api";
 import { SiteHeader } from "./site-header";
 import { HeroSection } from "./hero-section";
 import { CountdownSection } from "./countdown-section";
@@ -46,18 +46,20 @@ async function loadSponsors(): Promise<Sponsor[]> {
   }
 }
 
-async function loadTicketProducts(): Promise<TicketProduct[]> {
+async function loadTicketProducts(): Promise<{
+  ticketProducts: TicketProduct[];
+  event: EventSummary | null;
+}> {
   try {
-    const { ticketProducts } = await fetchTicketProducts(EVENT_SLUG);
-    return ticketProducts;
+    return await fetchTicketProducts(EVENT_SLUG);
   } catch (err) {
     console.error("[home] failed to load ticket products", err);
-    return [];
+    return { ticketProducts: [], event: null };
   }
 }
 
 export default async function Home() {
-  const [speakers, sponsors, ticketProducts] = await Promise.all([
+  const [speakers, sponsors, { ticketProducts, event }] = await Promise.all([
     loadSpeakers(),
     loadSponsors(),
     loadTicketProducts(),
@@ -73,7 +75,7 @@ export default async function Home() {
         <SpeakersSection speakers={speakers} />
         <ExperienceSection />
         <ScheduleSection />
-        <TicketsSection ticketProducts={ticketProducts} />
+        <TicketsSection ticketProducts={ticketProducts} event={event} />
         <SponsorsSection sponsors={sponsors} />
         <OrganizedBySection />
         <MerchandiseSection />

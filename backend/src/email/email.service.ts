@@ -34,6 +34,13 @@ import {
   renderRegistrationPendingPaymentReminderHtml,
   RegistrationReminderEmailData,
 } from './registration-reminder-email-template';
+import {
+  renderStudentRegistrationPendingHtml,
+  renderStudentRegistrationRejectedHtml,
+  renderStudentReviewAdminNotifyHtml,
+  StudentReviewAdminNotifyEmailData,
+  StudentReviewAttendeeEmailData,
+} from './student-review-email-template';
 
 @Injectable()
 export class EmailService {
@@ -228,5 +235,47 @@ export class EmailService {
     this.logger.log(
       `Registration pending-payment reminder email sent to ${to}`,
     );
+  }
+
+  async sendStudentRegistrationPendingEmail(
+    to: string,
+    data: StudentReviewAttendeeEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `Your registration is under review — ${data.eventName}`,
+      html: renderStudentRegistrationPendingHtml(data),
+      attachments: this.brandLogoAttachment(),
+    });
+    this.logger.log(`Student registration pending-review email sent to ${to}`);
+  }
+
+  async sendStudentRegistrationRejectedEmail(
+    to: string,
+    data: StudentReviewAttendeeEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `Update on your registration — ${data.eventName}`,
+      html: renderStudentRegistrationRejectedHtml(data),
+      attachments: this.brandLogoAttachment(),
+    });
+    this.logger.log(`Student registration rejected email sent to ${to}`);
+  }
+
+  async sendStudentReviewAdminNotifyEmail(
+    to: string,
+    data: StudentReviewAdminNotifyEmailData,
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `New student ticket awaiting review — ${data.eventName}`,
+      html: renderStudentReviewAdminNotifyHtml(data),
+      attachments: this.brandLogoAttachment(),
+    });
+    this.logger.log(`Student review admin-notify email sent to ${to}`);
   }
 }

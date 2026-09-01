@@ -24,7 +24,7 @@ const EVENT_DATE_LABEL = "5 Nov 2026";
 const EVENT_STARTS_AT_UTC = "20261105T080000Z";
 const EVENT_ENDS_AT_UTC = "20261105T160000Z";
 
-type PollState = "polling" | "paid" | "timeout" | "error";
+type PollState = "polling" | "paid" | "pending_review" | "timeout" | "error";
 
 function buildCalendarUrl(ticketCode: string): string {
   const ics = [
@@ -88,6 +88,10 @@ export function ConfirmationClient() {
           setState("paid");
           return;
         }
+        if (reg.status === "pending_review") {
+          setState("pending_review");
+          return;
+        }
 
         attemptsRef.current += 1;
         if (attemptsRef.current >= MAX_POLL_ATTEMPTS) {
@@ -127,6 +131,17 @@ export function ConfirmationClient() {
         subheading="Hang tight, almost there!"
         body="This usually takes a few seconds. Do not close this page."
         icon="spinner"
+      />
+    );
+  }
+
+  if (state === "pending_review") {
+    return (
+      <StatusCard
+        eyebrow="Registration Received"
+        subheading="Your registration is under review"
+        body="Payment went through — since you registered under the student category, we're verifying your uploaded student ID before issuing your ticket. We'll email your ticket as soon as it's approved."
+        icon="check"
       />
     );
   }

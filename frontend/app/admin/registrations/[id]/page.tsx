@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  approveStudentRegistration,
   cancelRegistration,
   fetchRegistrationDetail,
   markPaid,
   RegistrationDetail,
+  rejectStudentRegistration,
   resendTicket,
   sendPendingPaymentReminder,
   voidTicket,
@@ -27,6 +29,7 @@ export default function RegistrationDetailPage() {
   const [busy, setBusy] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showRejectStudentConfirm, setShowRejectStudentConfirm] = useState(false);
   const toast = useToast();
 
   async function load() {
@@ -194,7 +197,30 @@ export default function RegistrationDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          {registration.status !== "paid" && (
+          {registration.status === "pending_review" && (
+            <button
+              disabled={busy}
+              onClick={() =>
+                void runAction(
+                  () => approveStudentRegistration(registration.id),
+                  "Approved — ticket issued and emailed.",
+                )
+              }
+              className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
+            >
+              Approve student registration
+            </button>
+          )}
+          {registration.status === "pending_review" && (
+            <button
+              disabled={busy}
+              onClick={() => setShowRejectStudentConfirm(true)}
+              className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
+            >
+              Reject student registration
+            </button>
+          )}
+          {registration.status !== "paid" && registration.status !== "pending_review" && (
             <button
               disabled={busy}
               onClick={() =>
@@ -277,6 +303,24 @@ export default function RegistrationDetailPage() {
               await voidTicket(registration.id, password ?? "");
               setShowVoidConfirm(false);
             }, "Ticket voided.")
+          }
+        />
+
+        <ReasonModal
+          open={showRejectStudentConfirm}
+          title="Reject student registration"
+          description="This cancels the registration — payment has already been collected, so tell the attendee to contact support about a refund. Re-enter your password to confirm."
+          reasonLabel="Rejection reason"
+          requirePassword
+          confirmTone="danger"
+          confirmLabel="Reject registration"
+          busy={busy}
+          onCancel={() => setShowRejectStudentConfirm(false)}
+          onConfirm={(reason, password) =>
+            runAction(async () => {
+              await rejectStudentRegistration(registration.id, reason, password ?? "");
+              setShowRejectStudentConfirm(false);
+            }, "Registration rejected.")
           }
         />
 

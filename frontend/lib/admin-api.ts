@@ -29,6 +29,7 @@ export interface AdminUser {
   email: string;
   role: AdminRole;
   mustChangePassword: boolean;
+  notifyOnStudentRegistration: boolean;
 }
 
 const SAFE_METHODS = new Set(["GET", "HEAD", undefined]);
@@ -194,6 +195,24 @@ export function cancelRegistration(
   });
 }
 
+export function approveStudentRegistration(registrationId: string) {
+  return adminRequest(
+    `/admin/registrations/${registrationId}/approve-student`,
+    { method: "POST" },
+  );
+}
+
+export function rejectStudentRegistration(
+  registrationId: string,
+  reason: string,
+  password: string,
+) {
+  return adminRequest(
+    `/admin/registrations/${registrationId}/reject-student`,
+    { method: "POST", body: JSON.stringify({ reason, password }) },
+  );
+}
+
 export function sendPendingPaymentReminder(registrationId: string) {
   return adminRequest(`/admin/registrations/${registrationId}/send-reminder`, {
     method: "POST",
@@ -288,7 +307,12 @@ export function createAdminUser(input: {
 
 export function updateAdminUser(
   id: string,
-  input: Partial<{ name: string; email: string; role: CreatableAdminRole }>,
+  input: Partial<{
+    name: string;
+    email: string;
+    role: CreatableAdminRole;
+    notifyOnStudentRegistration: boolean;
+  }>,
 ) {
   return adminRequest<AdminUserListItem>(`/admin/users/${id}`, {
     method: "PATCH",
@@ -479,6 +503,7 @@ export interface EventSettings {
   ticketPurchasingPaused: boolean;
   volunteerApplicationsPaused: boolean;
   sponsorshipApplicationsPaused: boolean;
+  ticketCapacity: number;
 }
 
 export function getEventSettings(eventSlug: string) {

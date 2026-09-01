@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
 
 export class UpdateEventSettingsDto {
   @IsOptional()
@@ -12,4 +12,9 @@ export class UpdateEventSettingsDto {
   @IsOptional()
   @IsBoolean()
   sponsorshipApplicationsPaused?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  ticketCapacity?: number;
 }

@@ -22,19 +22,32 @@ function LogoCard({ name, logoUrl }: { name: string; logoUrl: string | null }) {
   );
 }
 
-function MarqueeRow({ items, direction }: { items: Sponsor[]; direction: "left" | "right" }) {
+function MarqueeRow({
+  items,
+  direction,
+  label,
+}: {
+  items: Sponsor[];
+  direction: "left" | "right";
+  label: string;
+}) {
   const track = [...items, ...items];
 
   return (
-    <div className="overflow-hidden">
-      <div
-        className={`flex w-max gap-6 sm:gap-8 ${
-          direction === "left" ? "animate-marquee-left" : "animate-marquee-right"
-        }`}
-      >
-        {track.map((item, i) => (
-          <LogoCard key={`${item.id}-${i}`} name={item.name} logoUrl={item.logoUrl} />
-        ))}
+    <div className="flex flex-col gap-4">
+      <p className="font-plex font-normal text-xs sm:text-sm tracking-[0.15em] text-white/60 uppercase text-center">
+        {label}
+      </p>
+      <div className="overflow-hidden">
+        <div
+          className={`flex w-max gap-6 sm:gap-8 ${
+            direction === "left" ? "animate-marquee-left" : "animate-marquee-right"
+          }`}
+        >
+          {track.map((item, i) => (
+            <LogoCard key={`${item.id}-${i}`} name={item.name} logoUrl={item.logoUrl} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -58,8 +71,12 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
       </div>
 
       <div className="bg-forest py-14 sm:py-20 flex flex-col gap-10 sm:gap-12">
-        {sponsorEntries.length > 0 && <MarqueeRow items={sponsorEntries} direction="right" />}
-        {partnerEntries.length > 0 && <MarqueeRow items={partnerEntries} direction="left" />}
+        {sponsorEntries.length > 0 && (
+          <MarqueeRow items={sponsorEntries} direction="right" label="Our Sponsors" />
+        )}
+        {partnerEntries.length > 0 && (
+          <MarqueeRow items={partnerEntries} direction="left" label="Our Partners" />
+        )}
       </div>
     </section>
   );

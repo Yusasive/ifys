@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EventSettings, getEventSettings, updateEventSettings } from "@/lib/admin-api";
+import { getEventSettings, updateEventSettings } from "@/lib/admin-api";
 import { ApiError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 
-type PauseField = keyof EventSettings;
+type PauseField =
+  | "ticketPurchasingPaused"
+  | "volunteerApplicationsPaused"
+  | "sponsorshipApplicationsPaused";
 
 export function PauseToggle({
   eventSlug,

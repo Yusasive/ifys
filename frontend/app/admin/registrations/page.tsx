@@ -218,6 +218,7 @@ export default function AdminRegistrationsPage() {
           >
             <option value="">All</option>
             <option value="pending_payment">Pending payment</option>
+            <option value="pending_review">Pending review</option>
             <option value="paid">Paid</option>
             <option value="failed">Failed</option>
             <option value="refunded">Refunded</option>

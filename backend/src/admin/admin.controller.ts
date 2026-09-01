@@ -114,6 +114,28 @@ export class AdminController {
     );
   }
 
+  @Post('registrations/:id/approve-student')
+  approveStudentRegistration(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.approveStudentRegistration(id, user.sub);
+  }
+
+  @Post('registrations/:id/reject-student')
+  rejectStudentRegistration(
+    @Param('id') id: string,
+    @Body() dto: CancelRegistrationDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.rejectStudentRegistration(
+      id,
+      user.sub,
+      dto.reason,
+      dto.password,
+    );
+  }
+
   @Post('registrations/:id/send-reminder')
   sendPendingPaymentReminder(
     @Param('id') id: string,

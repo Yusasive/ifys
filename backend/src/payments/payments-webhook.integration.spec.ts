@@ -4,6 +4,7 @@ import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { CouponsService } from '../coupons/coupons.service';
+import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPaidCheckoutFixture } from '../testing/fixtures';
@@ -31,6 +32,13 @@ function makeEmailQueueSpy() {
   const emailQueue = { enqueue: enqueueMock } as unknown as TicketEmailQueue;
   return { emailQueue, enqueueMock };
 }
+
+// Not under test here (no student-category fixtures in this file) — just
+// satisfies PaymentsService's constructor.
+const studentReviewEmailQueue = {
+  enqueue: jest.fn().mockResolvedValue(undefined),
+  enqueueAdminNotify: jest.fn().mockResolvedValue(undefined),
+} as unknown as StudentReviewEmailQueue;
 
 // Paystack's recommended integration re-verifies every webhook against
 // their API rather than trusting the payload — so these tests stub
@@ -81,6 +89,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         tickets,
         emailQueue,
         coupons,
+        studentReviewEmailQueue,
       );
 
       const body = chargeSuccessBody(
@@ -122,6 +131,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         tickets,
         emailQueue,
         coupons,
+        studentReviewEmailQueue,
       );
 
       const body = chargeSuccessBody(
@@ -168,6 +178,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         tickets,
         emailQueue,
         coupons,
+        studentReviewEmailQueue,
       );
 
       const body = chargeSuccessBody(
@@ -203,6 +214,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         tickets,
         emailQueue,
         coupons,
+        studentReviewEmailQueue,
       );
 
       const body = JSON.stringify({
@@ -243,6 +255,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         tickets,
         emailQueue,
         coupons,
+        studentReviewEmailQueue,
       );
 
       const body = chargeSuccessBody(
@@ -284,6 +297,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         tickets,
         emailQueue,
         coupons,
+        studentReviewEmailQueue,
       );
 
       const body = chargeSuccessBody(
@@ -332,6 +346,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         tickets,
         emailQueue,
         coupons,
+        studentReviewEmailQueue,
       );
 
       const body = chargeSuccessBody(
