@@ -41,17 +41,17 @@ export function TicketsRemaining({
   const soldOut = remaining === 0;
 
   return (
-    <p
-      className="font-bricolage font-medium text-sm sm:text-base text-center mb-6"
-      role="status"
-    >
-      {soldOut ? (
-        <span className="text-coral-deep">All {capacity} tickets are sold out</span>
-      ) : (
-        <span className="text-forest">
-          Only <span className="font-bold tabular-nums">{remaining}</span> of {capacity} tickets left
-        </span>
-      )}
-    </p>
+    <div className="flex flex-col items-center gap-1 mb-6" role="status">
+      <p
+        className={`font-bricolage font-bold text-3xl sm:text-4xl tabular-nums ${
+          soldOut ? "text-coral-deep" : "text-forest"
+        }`}
+      >
+        {soldOut ? "0" : remaining}
+      </p>
+      <p className="font-plex font-normal text-xs sm:text-sm tracking-[0.15em] text-rust uppercase">
+        {soldOut ? "Sold Out" : "Tickets Left"}
+      </p>
+    </div>
   );
 }
