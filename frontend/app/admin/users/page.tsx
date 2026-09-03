@@ -91,7 +91,16 @@ export default function AdminUsersPage() {
       email: user.email,
       password: "",
       role: user.role as CreatableAdminRole,
-      permissions: user.permissions,
+      // An empty permissions array means "inherit the role's defaults"
+      // (see backend/src/auth/permissions.ts) — resolve it here so the
+      // checkboxes show what this person can actually do, not a
+      // misleadingly blank grid. Otherwise saving from this form would
+      // silently overwrite their real (role-default) permissions with
+      // just whatever happened to be checked.
+      permissions:
+        user.permissions.length > 0
+          ? user.permissions
+          : ROLE_DEFAULT_PERMISSIONS[user.role as CreatableAdminRole],
     });
     setFormOpen(true);
   }

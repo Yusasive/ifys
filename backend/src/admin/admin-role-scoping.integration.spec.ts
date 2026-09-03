@@ -51,9 +51,10 @@ describe('Admin role scoping (integration)', () => {
       .send({ email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw' });
     doorStaffToken = extractSessionToken(doorStaffLogin);
 
-    const superAdminLogin = await request(httpServer)
-      .post('/auth/login')
-      .send({ email: 'superadmin@ifysummit.ng', password: 'dev-superadmin-pw' });
+    const superAdminLogin = await request(httpServer).post('/auth/login').send({
+      email: 'superadmin@ifysummit.ng',
+      password: 'dev-superadmin-pw',
+    });
     superAdminToken = extractSessionToken(superAdminLogin);
   }, 20000);
 
@@ -168,13 +169,19 @@ describe('Admin role scoping (integration)', () => {
       const wrongPassword = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/void`)
         .set('Authorization', `Bearer ${organizerToken}`)
-        .send({ reason: 'Duplicate registration', password: 'not-the-right-password' });
+        .send({
+          reason: 'Duplicate registration',
+          password: 'not-the-right-password',
+        });
       expect(wrongPassword.status).toBe(401);
 
       const correctPassword = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/void`)
         .set('Authorization', `Bearer ${organizerToken}`)
-        .send({ reason: 'Duplicate registration', password: 'dev-organizer-pw' });
+        .send({
+          reason: 'Duplicate registration',
+          password: 'dev-organizer-pw',
+        });
       expect(correctPassword.status).toBe(201);
 
       const ticket = await prisma.ticket.findUniqueOrThrow({
@@ -229,7 +236,10 @@ describe('Admin role scoping (integration)', () => {
       const withdraw = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/withdraw-ticket`)
         .set('Authorization', `Bearer ${organizerToken}`)
-        .send({ reason: 'attendee no longer attending', password: 'dev-organizer-pw' });
+        .send({
+          reason: 'attendee no longer attending',
+          password: 'dev-organizer-pw',
+        });
       expect(withdraw.status).toBe(201);
 
       const withdrawn = await prisma.ticket.findUniqueOrThrow({
@@ -260,7 +270,10 @@ describe('Admin role scoping (integration)', () => {
       const withdraw = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/withdraw-ticket`)
         .set('Authorization', `Bearer ${organizerToken}`)
-        .send({ reason: 'attendee no longer attending', password: 'dev-organizer-pw' });
+        .send({
+          reason: 'attendee no longer attending',
+          password: 'dev-organizer-pw',
+        });
       expect(withdraw.status).toBe(409);
 
       const restore = await request(httpServer)
