@@ -20,7 +20,6 @@ import {
   SESSION_COOKIE,
   type AuthenticatedRequest,
 } from './jwt-auth.guard';
-import type { JwtPayload } from './jwt-payload';
 
 @Controller('auth')
 export class AuthController {
@@ -91,7 +90,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@CurrentUser() user: JwtPayload) {
+  me(@CurrentUser() user: AuthenticatedRequest['user']) {
     return {
       user: {
         id: user.sub,
@@ -99,6 +98,7 @@ export class AuthController {
         email: user.email,
         role: user.role,
         mustChangePassword: user.mustChangePassword,
+        permissions: user.permissions,
       },
       csrfToken: user.csrf,
     };

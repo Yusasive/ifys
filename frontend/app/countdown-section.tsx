@@ -1,6 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import type { EventSummary } from "@/lib/api";
+import { TicketsRemaining } from "./tickets-remaining";
 
 // Matches EVENT_STARTS_AT_UTC in app/register/confirmation/confirmation-client.tsx
 // and startsAt in backend/prisma/seed.ts (2026-11-05T09:00 WAT).
@@ -62,7 +64,7 @@ function Unit({ value, label }: { value: number; label: string }) {
   );
 }
 
-export function CountdownSection() {
+export function CountdownSection({ event }: { event: EventSummary | null }) {
   const timeLeft = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const hasStarted =
@@ -82,6 +84,15 @@ export function CountdownSection() {
         <h2 className="font-bricolage font-medium text-lg sm:text-2xl lg:text-[36px] leading-[1.3] tracking-normal text-white mb-8 px-2">
           {hasStarted ? "The Summit is live!" : "Thursday, 5th of November 2026, Ilorin"}
         </h2>
+
+        {event && (
+          <TicketsRemaining
+            eventSlug={event.slug}
+            initialSoldCount={event.ticketsSoldCount}
+            initialCapacity={event.ticketCapacity}
+            variant="hero"
+          />
+        )}
 
         <div
           className="grid grid-cols-4 gap-2 sm:gap-6 max-w-xs sm:max-w-xl lg:max-w-2xl mx-auto"

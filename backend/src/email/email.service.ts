@@ -41,6 +41,11 @@ import {
   StudentReviewAdminNotifyEmailData,
   StudentReviewAttendeeEmailData,
 } from './student-review-email-template';
+import {
+  renderTicketLifecycleEmailHtml,
+  TicketLifecycleEmailData,
+  TicketLifecycleKind,
+} from './ticket-lifecycle-email-template';
 
 @Injectable()
 export class EmailService {
@@ -92,10 +97,15 @@ export class EmailService {
     });
     const pdfBuffer = await generateTicketPdf(data, qrPngBuffer);
 
+    const subject =
+      data.variant === 'reissued'
+        ? `Your new ticket — ${data.eventName}`
+        : `Your ticket — ${data.eventName}`;
+
     await this.transporter.sendMail({
       from: this.from,
       to,
-      subject: `Your ticket — ${data.eventName}`,
+      subject,
       html: renderTicketEmailHtml(data),
       attachments: [
         ...this.brandLogoAttachment(),
@@ -277,5 +287,25 @@ export class EmailService {
       attachments: this.brandLogoAttachment(),
     });
     this.logger.log(`Student review admin-notify email sent to ${to}`);
+  }
+
+  async sendTicketLifecycleEmail(
+    to: string,
+    kind: TicketLifecycleKind,
+    data: TicketLifecycleEmailData,
+  ) {
+    const subjects: Record<TicketLifecycleKind, string> = {
+      voided: `Your ticket has been voided — ${data.eventName}`,
+      restored: `Your ticket is valid again — ${data.eventName}`,
+      withdrawn: `Your ticket has been withdrawn — ${data.eventName}`,
+    };
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: subjects[kind],
+      html: renderTicketLifecycleEmailHtml(kind, data),
+      attachments: this.brandLogoAttachment(),
+    });
+    this.logger.log(`Ticket ${kind} email sent to ${to}`);
   }
 }

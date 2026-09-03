@@ -104,7 +104,8 @@ describe('Cookie-based admin session (integration)', () => {
       const withCorrectHeader = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/mark-paid`)
         .set('Cookie', sessionCookie)
-        .set('X-CSRF-Token', csrfToken);
+        .set('X-CSRF-Token', csrfToken)
+        .send({ reason: 'Bank transfer confirmed manually' });
       expect(withCorrectHeader.status).toBe(201);
     } finally {
       await prisma.auditLog.deleteMany({
@@ -126,7 +127,8 @@ describe('Cookie-based admin session (integration)', () => {
     try {
       const res = await request(httpServer)
         .post(`/admin/registrations/${fixture.registration.id}/mark-paid`)
-        .set('Authorization', `Bearer ${token}`);
+        .set('Authorization', `Bearer ${token}`)
+        .send({ reason: 'Bank transfer confirmed manually' });
       expect(res.status).toBe(201);
     } finally {
       await prisma.auditLog.deleteMany({

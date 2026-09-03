@@ -6,12 +6,14 @@ import { RegistrationReminderEmailQueue } from './registration-reminder-email.qu
 import { SponsorApplicationEmailQueue } from './sponsor-application-email.queue';
 import { StudentReviewEmailQueue } from './student-review-email.queue';
 import { TicketEmailQueue } from './ticket-email.queue';
+import { TicketLifecycleEmailQueue } from './ticket-lifecycle-email.queue';
 import { VolunteerApplicationEmailQueue } from './volunteer-application-email.queue';
 
 @Module({
   providers: [
     EmailService,
     TicketEmailQueue,
+    TicketLifecycleEmailQueue,
     SponsorApplicationEmailQueue,
     NewsletterEmailQueue,
     VolunteerApplicationEmailQueue,
@@ -22,6 +24,7 @@ import { VolunteerApplicationEmailQueue } from './volunteer-application-email.qu
   exports: [
     EmailService,
     TicketEmailQueue,
+    TicketLifecycleEmailQueue,
     SponsorApplicationEmailQueue,
     NewsletterEmailQueue,
     VolunteerApplicationEmailQueue,

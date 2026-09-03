@@ -12,7 +12,14 @@ import {
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
+import {
+  PERMISSION_GROUPS,
+  PERMISSION_LABELS,
+  PermissionKey,
+  ROLE_DEFAULT_PERMISSIONS,
+} from "@/lib/permissions";
 import { useToast } from "@/lib/toast-context";
+import { FormModal } from "../form-modal";
 import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
 
@@ -23,6 +30,7 @@ const EMPTY_FORM = {
   email: "",
   password: "",
   role: "door_staff" as CreatableAdminRole,
+  permissions: ROLE_DEFAULT_PERMISSIONS.door_staff,
 };
 
 export default function AdminUsersPage() {
@@ -33,6 +41,7 @@ export default function AdminUsersPage() {
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
+  const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -69,6 +78,12 @@ export default function AdminUsersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, page, reloadKey]);
 
+  function startCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormOpen(true);
+  }
+
   function startEdit(user: AdminUserListItem) {
     setEditingId(user.id);
     setForm({
@@ -76,12 +91,33 @@ export default function AdminUsersPage() {
       email: user.email,
       password: "",
       role: user.role as CreatableAdminRole,
+      permissions: user.permissions,
     });
+    setFormOpen(true);
+  }
+
+  function handleRoleChange(role: CreatableAdminRole) {
+    // Resetting to the new role's defaults on every role change, rather
+    // than leaving the previous role's permissions in place, is what
+    // prevents a demoted/promoted account from silently keeping a stale,
+    // too-broad permission set — a super_admin can still hand-tune from
+    // here before saving.
+    setForm((f) => ({ ...f, role, permissions: ROLE_DEFAULT_PERMISSIONS[role] }));
+  }
+
+  function togglePermission(permission: PermissionKey) {
+    setForm((f) => ({
+      ...f,
+      permissions: f.permissions.includes(permission)
+        ? f.permissions.filter((p) => p !== permission)
+        : [...f.permissions, permission],
+    }));
   }
 
   function resetForm() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setFormOpen(false);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -94,6 +130,7 @@ export default function AdminUsersPage() {
           name: form.name,
           email: form.email,
           role: form.role,
+          permissions: form.permissions,
         });
         toast.success(`${form.name} updated.`);
       } else {
@@ -102,6 +139,7 @@ export default function AdminUsersPage() {
           email: form.email,
           password: form.password,
           role: form.role,
+          permissions: form.permissions,
         });
         toast.success(`Account created for ${form.email}.`);
       }
@@ -147,11 +185,25 @@ export default function AdminUsersPage() {
         ← Back to registrations
       </Link>
 
-      <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Admin & door staff accounts</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest">Admin & door staff accounts</h1>
+        <button
+          onClick={startCreate}
+          className="bg-coral text-white font-semibold px-5 py-2 rounded-full text-sm hover:bg-coral-deep transition-colors"
+        >
+          + New account
+        </button>
+      </div>
 
+      <FormModal
+        open={formOpen}
+        title={editingId ? "Edit account" : "New account"}
+        onClose={resetForm}
+        size="lg"
+      >
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="border border-emerald/20 rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
+        className="flex flex-col gap-4"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
@@ -190,15 +242,39 @@ export default function AdminUsersPage() {
             <span className="text-sm text-sage">Role</span>
             <select
               value={form.role}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, role: e.target.value as CreatableAdminRole }))
-              }
+              onChange={(e) => handleRoleChange(e.target.value as CreatableAdminRole)}
               className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             >
               <option value="door_staff">Door staff (check-in only)</option>
               <option value="organizer">Organizer (full access)</option>
             </select>
           </label>
+        </div>
+
+        <div>
+          <p className="text-sm text-sage mb-2">
+            Permissions — defaults to the role above, adjust for this person if needed
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-emerald/20 rounded-xl p-4">
+            {PERMISSION_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="text-xs uppercase tracking-wide text-sage mb-2">{group.label}</p>
+                <div className="flex flex-col gap-1.5">
+                  {group.keys.map((key) => (
+                    <label key={key} className="flex items-start gap-2 text-sm text-ink">
+                      <input
+                        type="checkbox"
+                        checked={form.permissions.includes(key)}
+                        onChange={() => togglePermission(key)}
+                        className="mt-0.5"
+                      />
+                      {PERMISSION_LABELS[key]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -209,17 +285,16 @@ export default function AdminUsersPage() {
           >
             {submitting ? "Saving…" : editingId ? "Save changes" : "Create account"}
           </button>
-          {editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-sm text-sage underline"
-            >
-              Cancel edit
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={resetForm}
+            className="text-sm text-sage underline"
+          >
+            Cancel
+          </button>
         </div>
       </form>
+      </FormModal>
 
       <div className="border border-emerald/20 rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">

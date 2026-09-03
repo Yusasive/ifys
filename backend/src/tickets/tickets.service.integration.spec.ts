@@ -70,3 +70,33 @@ describe('TicketsService.issueTicketForRegistration (integration)', () => {
     }
   });
 });
+
+describe('TicketsService.reissueTicket (integration)', () => {
+  const prisma = new PrismaService();
+  const tickets = new TicketsService(prisma);
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it('replaces the ticketCode/qrSecret, invalidating the old code', async () => {
+    const fixture = await createPaidCheckoutFixture(prisma);
+    try {
+      const original = await tickets.issueTicketForRegistration(
+        fixture.registration.id,
+      );
+      const reissued = await tickets.reissueTicket(original.id);
+
+      expect(reissued.id).toBe(original.id);
+      expect(reissued.ticketCode).not.toBe(original.ticketCode);
+      expect(reissued.qrSecret).not.toBe(original.qrSecret);
+
+      const byOldCode = await prisma.ticket.findUnique({
+        where: { ticketCode: original.ticketCode },
+      });
+      expect(byOldCode).toBeNull();
+    } finally {
+      await fixture.teardown();
+    }
+  });
+});

@@ -63,6 +63,17 @@ enum TicketStatus {
   void
 }
 
+// What the most recent admin lifecycle action on a Ticket was — lets the
+// admin UI show a quick "last action" line and lets withdrawTicket enforce
+// "only a previously-reissued ticket can be withdrawn" without a separate
+// history query (AuditLog remains the full history).
+enum TicketActionType {
+  reissued
+  voided
+  restored
+  withdrawn
+}
+
 enum CheckInMethod {
   qr
   manual_code
@@ -362,6 +373,14 @@ model Ticket {
   qrSecret       String       @unique @map("qr_secret")
   status         TicketStatus @default(unused)
   issuedAt       DateTime     @default(now()) @map("issued_at")
+  // Set by AdminService.reissueTicket/voidTicket/restoreTicket/withdrawTicket
+  // on every lifecycle action, for a cheap "last action" line in the admin
+  // UI — the full history lives in AuditLog. lastActionByAdminId is a plain
+  // string (no FK), mirroring AuditLog.actorId.
+  lastActionType      TicketActionType? @map("last_action_type")
+  lastActionReason    String?           @map("last_action_reason")
+  lastActionAt        DateTime?         @map("last_action_at")
+  lastActionByAdminId String?           @map("last_action_by_admin_id")
 
   registration Registration @relation(fields: [registrationId], references: [id])
   checkIns     CheckIn[]
@@ -396,6 +415,14 @@ model AdminUser {
   email        String    @unique
   passwordHash String    @map("password_hash")
   role         AdminRole
+  // Granular permission keys (see backend/src/auth/permissions.ts) this
+  // admin has, beyond/instead of their role's defaults. Empty array means
+  // "inherit the role's default set" (getEffectivePermissions) — createAdminUser
+  // always writes an explicit snapshot so it's independently editable per
+  // person afterward. A super_admin edits this directly; unlike `role`, a
+  // permissions-only change is NOT a JWT claim and takes effect on the very
+  // next request (see JwtAuthGuard), so no tokenVersion bump is needed for it.
+  permissions  String[]  @default([])
   // Bumped to force-invalidate every outstanding JWT for this user (e.g.
   // suspected compromise) — checked against the `tv` claim on each request.
   tokenVersion Int       @default(0) @map("token_version")

@@ -9,10 +9,14 @@ export function TicketsRemaining({
   eventSlug,
   initialSoldCount,
   initialCapacity,
+  variant = "default",
 }: {
   eventSlug: string;
   initialSoldCount: number;
   initialCapacity: number;
+  // "hero" is a larger, bolder treatment sized for the salmon countdown
+  // section background — see app/countdown-section.tsx.
+  variant?: "default" | "hero";
 }) {
   const [soldCount, setSoldCount] = useState(initialSoldCount);
   const [capacity, setCapacity] = useState(initialCapacity);
@@ -39,6 +43,23 @@ export function TicketsRemaining({
 
   const remaining = Math.max(0, capacity - soldCount);
   const soldOut = remaining === 0;
+
+  if (variant === "hero") {
+    return (
+      <div className="flex flex-col items-center gap-1 mb-8" role="status">
+        <p
+          className={`font-bricolage font-extrabold text-5xl sm:text-6xl lg:text-7xl tabular-nums drop-shadow-sm ${
+            soldOut ? "text-gold" : "text-white"
+          }`}
+        >
+          {soldOut ? "0" : remaining}
+        </p>
+        <p className="font-plex font-bold text-sm sm:text-base tracking-[0.15em] text-white/90 uppercase">
+          {soldOut ? "Sold Out" : "Tickets Left"}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-1 mb-6" role="status">

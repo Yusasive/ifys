@@ -76,7 +76,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <p className="font-mono text-[11px] uppercase tracking-widest text-coral-deep mb-6">
           Operations dashboard
         </p>
-        <AdminSidebarNav role={session?.user.role} />
+        <AdminSidebarNav role={session?.user.role} permissions={session?.user.permissions} />
         <SignOutFooter />
       </aside>
 
@@ -110,7 +110,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 ✕
               </button>
             </div>
-            <AdminSidebarNav role={session?.user.role} onNavigate={() => setDrawerOpen(false)} />
+            <AdminSidebarNav
+              role={session?.user.role}
+              permissions={session?.user.permissions}
+              onNavigate={() => setDrawerOpen(false)}
+            />
             <SignOutFooter />
           </div>
         </div>

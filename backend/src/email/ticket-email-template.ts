@@ -1,4 +1,6 @@
-import { INK, LINE, MUTED, renderEmailShell } from './email-shell';
+import { escapeHtml, INK, LINE, MUTED, renderEmailShell } from './email-shell';
+
+export type TicketEmailVariant = 'issued' | 'resent' | 'reissued';
 
 export interface TicketEmailData {
   fullName: string;
@@ -10,7 +12,15 @@ export interface TicketEmailData {
   ticketCode: string;
   ticketId: string;
   supportEmail: string;
+  variant?: TicketEmailVariant;
 }
+
+const VARIANT_INTROS: Record<TicketEmailVariant, string> = {
+  issued: '',
+  resent: '',
+  reissued:
+    "Here's your reissued ticket. The QR code and ticket number below are new — any earlier copy of this ticket will no longer scan at the door.",
+};
 
 // QR is attached as a CID image (see email-shell.ts) so it renders in real
 // mail clients (unlike a data: URI, which many block).
@@ -20,12 +30,14 @@ export function renderTicketEmailHtml(data: TicketEmailData): string {
     timeStyle: 'short',
     timeZone: 'Africa/Lagos',
   });
+  const intro = VARIANT_INTROS[data.variant ?? 'issued'];
 
   const bodyHtml = `
     <p style="margin:0 0 4px;font-size:22px;">${data.fullName}</p>
     <p style="margin:0 0 20px;font-size:14px;color:${MUTED};font-family:Arial,sans-serif;">
       ${data.categoryLabel} &middot; ${data.tierLabel}
     </p>
+    ${intro ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.5;font-family:Arial,sans-serif;color:${INK};">${escapeHtml(intro)}</p>` : ''}
 
     <table role="presentation" width="100%" style="border-top:1px dashed ${LINE};border-bottom:1px dashed ${LINE};margin-bottom:20px;">
       <tr>

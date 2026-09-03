@@ -10,10 +10,12 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuthService } from '../auth/auth.service';
+import { ROLE_DEFAULT_PERMISSIONS } from '../auth/permissions';
 import { AdminAccountEmailQueue } from '../email/admin-account-email.queue';
 import { RegistrationReminderEmailQueue } from '../email/registration-reminder-email.queue';
 import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
+import { TicketLifecycleEmailQueue } from '../email/ticket-lifecycle-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { TicketsService } from '../tickets/tickets.service';
@@ -39,6 +41,7 @@ export class AdminService {
     private readonly adminAccountEmailQueue: AdminAccountEmailQueue,
     private readonly reminderQueue: RegistrationReminderEmailQueue,
     private readonly studentReviewEmailQueue: StudentReviewEmailQueue,
+    private readonly ticketLifecycleEmailQueue: TicketLifecycleEmailQueue,
   ) {}
 
   async listRegistrations(query: ListRegistrationsQueryDto) {
@@ -161,7 +164,7 @@ export class AdminService {
   // "one single function that creates a ticket, not two divergent
   // implementations"), just claiming payment manually instead of via a
   // verified Paystack callback — e.g. a bank transfer reconciled by hand.
-  async markPaid(registrationId: string, actorId: string) {
+  async markPaid(registrationId: string, actorId: string, reason: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id: registrationId },
       include: { ticketProduct: true, order: true },
@@ -202,6 +205,7 @@ export class AdminService {
       action: 'mark_paid',
       targetType: 'registration',
       targetId: registration.id,
+      metadata: { reason },
     });
 
     return { ticket };
@@ -310,7 +314,12 @@ export class AdminService {
     return { resent: true };
   }
 
-  async voidTicket(registrationId: string, actorId: string, password: string) {
+  async voidTicket(
+    registrationId: string,
+    actorId: string,
+    reason: string,
+    password: string,
+  ) {
     const passwordOk = await this.auth.verifyPassword(actorId, password);
     if (!passwordOk) {
       throw new UnauthorizedException('Incorrect password');
@@ -322,10 +331,19 @@ export class AdminService {
     if (!ticket) {
       throw new NotFoundException('No ticket exists for this registration.');
     }
+    if (ticket.status === 'void') {
+      throw new ConflictException('This ticket is already void.');
+    }
 
     const voided = await this.prisma.ticket.update({
       where: { id: ticket.id },
-      data: { status: 'void' },
+      data: {
+        status: 'void',
+        lastActionType: 'voided',
+        lastActionReason: reason,
+        lastActionAt: new Date(),
+        lastActionByAdminId: actorId,
+      },
     });
 
     await this.auditLog.record({
@@ -333,9 +351,152 @@ export class AdminService {
       action: 'void_ticket',
       targetType: 'ticket',
       targetId: ticket.id,
+      metadata: { reason },
     });
 
+    await this.ticketLifecycleEmailQueue.enqueue(ticket.id, 'voided');
+
     return { ticket: voided };
+  }
+
+  // Regenerates the ticketCode/qrSecret for an already-issued ticket — e.g.
+  // the attendee lost their copy or the QR was compromised. The old code
+  // stops working the moment this returns, since it's the same DB row with
+  // a new code, not a second ticket.
+  async reissueTicket(registrationId: string, actorId: string, reason: string) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { registrationId },
+    });
+    if (!ticket) {
+      throw new NotFoundException('No ticket exists for this registration.');
+    }
+    if (ticket.status === 'void') {
+      throw new ConflictException(
+        'This ticket is void — restore it before reissuing.',
+      );
+    }
+
+    const reissued = await this.tickets.reissueTicket(ticket.id);
+    await this.prisma.ticket.update({
+      where: { id: ticket.id },
+      data: {
+        lastActionType: 'reissued',
+        lastActionReason: reason,
+        lastActionAt: new Date(),
+        lastActionByAdminId: actorId,
+      },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'reissue_ticket',
+      targetType: 'ticket',
+      targetId: ticket.id,
+      metadata: { reason },
+    });
+
+    // The attendee needs the actual new PDF/QR, not just a notification —
+    // reuses the full ticket-email pipeline, not the lightweight lifecycle
+    // one.
+    await this.emailQueue.enqueue(reissued.id, 'reissued');
+
+    return { ticket: reissued };
+  }
+
+  // Un-voids a ticket, restoring the SAME ticketCode/qrSecret (unlike
+  // reissue, which mints a new one) — e.g. it was voided in error.
+  async restoreTicket(registrationId: string, actorId: string, reason: string) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { registrationId },
+      include: { checkIns: true },
+    });
+    if (!ticket) {
+      throw new NotFoundException('No ticket exists for this registration.');
+    }
+    if (ticket.status !== 'void') {
+      throw new ConflictException('This ticket is not void.');
+    }
+
+    // A ticket that was scanned in, then voided, must come back as `used`
+    // (not `unused`) — otherwise restoring it would make it scannable a
+    // second time.
+    const restoredStatus = ticket.checkIns.length > 0 ? 'used' : 'unused';
+
+    const restored = await this.prisma.ticket.update({
+      where: { id: ticket.id },
+      data: {
+        status: restoredStatus,
+        lastActionType: 'restored',
+        lastActionReason: reason,
+        lastActionAt: new Date(),
+        lastActionByAdminId: actorId,
+      },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'restore_ticket',
+      targetType: 'ticket',
+      targetId: ticket.id,
+      metadata: { reason },
+    });
+
+    await this.ticketLifecycleEmailQueue.enqueue(ticket.id, 'restored');
+
+    return { ticket: restored };
+  }
+
+  // Revokes a previously-reissued ticket — ends in the same `void` status
+  // as voidTicket, but is only offered/allowed on a ticket whose last
+  // action was a reissue (use voidTicket for the general case).
+  async withdrawTicket(
+    registrationId: string,
+    actorId: string,
+    reason: string,
+    password: string,
+  ) {
+    const passwordOk = await this.auth.verifyPassword(actorId, password);
+    if (!passwordOk) {
+      throw new UnauthorizedException('Incorrect password');
+    }
+
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { registrationId },
+    });
+    if (!ticket) {
+      throw new NotFoundException('No ticket exists for this registration.');
+    }
+    if (ticket.status === 'void') {
+      throw new ConflictException('This ticket is already void.');
+    }
+    if (ticket.lastActionType !== 'reissued') {
+      throw new ConflictException(
+        'Only a previously reissued ticket can be withdrawn — use Void instead.',
+      );
+    }
+
+    const withdrawn = await this.prisma.ticket.update({
+      where: { id: ticket.id },
+      data: {
+        status: 'void',
+        lastActionType: 'withdrawn',
+        lastActionReason: reason,
+        lastActionAt: new Date(),
+        lastActionByAdminId: actorId,
+      },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'withdraw_ticket',
+      targetType: 'ticket',
+      targetId: ticket.id,
+      metadata: { reason },
+    });
+
+    await this.ticketLifecycleEmailQueue.enqueue(ticket.id, 'withdrawn');
+
+    return { ticket: withdrawn };
   }
 
   // The soft-delete counterpart to voidTicket: cancels a registration that
@@ -439,6 +600,9 @@ export class AdminService {
         email: dto.email,
         passwordHash: await bcrypt.hash(dto.password, 10),
         role: dto.role,
+        // Explicit snapshot (not left empty) so it's independently editable
+        // per person from here on, per getEffectivePermissions' contract.
+        permissions: dto.permissions ?? ROLE_DEFAULT_PERMISSIONS[dto.role],
         mustChangePassword: true,
       },
     });
@@ -478,6 +642,7 @@ export class AdminService {
       role: user.role,
       createdAt: user.createdAt,
       mustChangePassword: user.mustChangePassword,
+      permissions: user.permissions,
     };
   }
 
@@ -490,6 +655,7 @@ export class AdminService {
       createdAt: true,
       mustChangePassword: true,
       notifyOnStudentRegistration: true,
+      permissions: true,
     };
 
     const [total, users] = await this.prisma.$transaction([
@@ -531,6 +697,13 @@ export class AdminService {
     }
 
     const roleChanged = dto.role !== undefined && dto.role !== existing.role;
+    // If the role changes and the caller didn't also specify a new
+    // permission set, reset to the new role's defaults — otherwise a
+    // demoted account (e.g. organizer -> door_staff) would silently keep
+    // its old, broader permissions array.
+    const permissions =
+      dto.permissions ??
+      (roleChanged ? ROLE_DEFAULT_PERMISSIONS[dto.role!] : undefined);
 
     const updated = await this.prisma.adminUser.update({
       where: { id },
@@ -538,6 +711,7 @@ export class AdminService {
         name: dto.name,
         email: dto.email,
         role: dto.role,
+        permissions,
         notifyOnStudentRegistration: dto.notifyOnStudentRegistration,
       },
     });
@@ -570,6 +744,7 @@ export class AdminService {
       createdAt: updated.createdAt,
       mustChangePassword: updated.mustChangePassword,
       notifyOnStudentRegistration: updated.notifyOnStudentRegistration,
+      permissions: updated.permissions,
     };
   }
 

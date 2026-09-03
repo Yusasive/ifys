@@ -33,14 +33,14 @@ export class TicketsService {
       return existing;
     }
 
-    for (let attempt = 0; attempt < MAX_CODE_COLLISION_RETRIES; attempt++) {
-      try {
+    return this.generateUniqueCodePair(
+      async (ticketCode, qrSecret) => {
         const [ticket] = await this.prisma.$transaction([
           this.prisma.ticket.create({
             data: {
               registrationId,
-              ticketCode: generateTicketCode(),
-              qrSecret: generateQrSecret(),
+              ticketCode,
+              qrSecret,
               status: 'unused',
             },
           }),
@@ -50,20 +50,51 @@ export class TicketsService {
           }),
         ]);
         return ticket;
+      },
+      () => this.prisma.ticket.findUnique({ where: { registrationId } }),
+    );
+  }
+
+  // Mints a brand-new ticketCode/qrSecret for an already-issued ticket,
+  // invalidating the old one (a stale printed/screenshotted copy of the
+  // previous code+QR simply won't match this row anymore). Used by
+  // AdminService.reissueTicket — e.g. a lost or compromised ticket.
+  async reissueTicket(ticketId: string) {
+    return this.generateUniqueCodePair(
+      (ticketCode, qrSecret) =>
+        this.prisma.ticket.update({
+          where: { id: ticketId },
+          data: { ticketCode, qrSecret },
+        }),
+      // No race-winner fallback here (unlike issueTicketForRegistration) —
+      // a ticketCode collision can only mean two reissues of two different
+      // tickets picked the same random code, never two reissues of this
+      // same ticket (there's nothing to "win" against), so a genuine
+      // unique-constraint hit here is always retry-worthy.
+      undefined,
+    );
+  }
+
+  // Shared by issueTicketForRegistration (create) and reissueTicket
+  // (update) — both need "keep generating a fresh code/QR pair until one
+  // doesn't collide," they just differ in what write they attempt with it.
+  private async generateUniqueCodePair<T>(
+    attempt: (ticketCode: string, qrSecret: string) => Promise<T>,
+    onCollisionCheckRaceWinner?: () => Promise<T | null>,
+  ): Promise<T> {
+    for (let i = 0; i < MAX_CODE_COLLISION_RETRIES; i++) {
+      try {
+        return await attempt(generateTicketCode(), generateQrSecret());
       } catch (err: unknown) {
         if (isPrismaUniqueConstraintError(err)) {
-          // Either the ticketCode collided (retry with a new one) or a
-          // concurrent call already issued a ticket for this registration
-          // (registrationId is also unique) — in the latter case, return
-          // the winner's ticket instead of erroring.
-          const raceWinner = await this.prisma.ticket.findUnique({
-            where: { registrationId },
-          });
-          if (raceWinner) {
-            return raceWinner;
+          if (onCollisionCheckRaceWinner) {
+            const raceWinner = await onCollisionCheckRaceWinner();
+            if (raceWinner) {
+              return raceWinner;
+            }
           }
           this.logger.warn(
-            `Ticket code collision on attempt ${attempt + 1} for registration ${registrationId}, retrying`,
+            `Ticket code collision on attempt ${i + 1}, retrying`,
           );
           continue;
         }

@@ -9,6 +9,7 @@ import {
   TicketProduct,
   VolunteerTeam,
 } from "./api";
+import { PermissionKey } from "./permissions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
@@ -30,6 +31,7 @@ export interface AdminUser {
   role: AdminRole;
   mustChangePassword: boolean;
   notifyOnStudentRegistration: boolean;
+  permissions: PermissionKey[];
 }
 
 const SAFE_METHODS = new Set(["GET", "HEAD", undefined]);
@@ -144,6 +146,9 @@ export interface RegistrationDetail extends RegistrationListItem {
         qrSecret: string;
         issuedAt: string;
         checkIns: CheckInRecord[];
+        lastActionType: "reissued" | "voided" | "restored" | "withdrawn" | null;
+        lastActionReason: string | null;
+        lastActionAt: string | null;
       }
     | null;
 }
@@ -165,9 +170,10 @@ export function fetchStats() {
   return adminRequest<AdminStats>("/admin/stats");
 }
 
-export function markPaid(registrationId: string) {
+export function markPaid(registrationId: string, reason: string) {
   return adminRequest(`/admin/registrations/${registrationId}/mark-paid`, {
     method: "POST",
+    body: JSON.stringify({ reason }),
   });
 }
 
@@ -177,11 +183,40 @@ export function resendTicket(registrationId: string) {
   });
 }
 
-export function voidTicket(registrationId: string, password: string) {
+export function voidTicket(
+  registrationId: string,
+  reason: string,
+  password: string,
+) {
   return adminRequest(`/admin/registrations/${registrationId}/void`, {
     method: "POST",
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ reason, password }),
   });
+}
+
+export function reissueTicket(registrationId: string, reason: string) {
+  return adminRequest(
+    `/admin/registrations/${registrationId}/reissue-ticket`,
+    { method: "POST", body: JSON.stringify({ reason }) },
+  );
+}
+
+export function restoreTicket(registrationId: string, reason: string) {
+  return adminRequest(
+    `/admin/registrations/${registrationId}/restore-ticket`,
+    { method: "POST", body: JSON.stringify({ reason }) },
+  );
+}
+
+export function withdrawTicket(
+  registrationId: string,
+  reason: string,
+  password: string,
+) {
+  return adminRequest(
+    `/admin/registrations/${registrationId}/withdraw-ticket`,
+    { method: "POST", body: JSON.stringify({ reason, password }) },
+  );
 }
 
 export function cancelRegistration(
@@ -298,6 +333,7 @@ export function createAdminUser(input: {
   email: string;
   password: string;
   role: CreatableAdminRole;
+  permissions?: PermissionKey[];
 }) {
   return adminRequest<AdminUserListItem>("/admin/users", {
     method: "POST",
@@ -312,6 +348,7 @@ export function updateAdminUser(
     email: string;
     role: CreatableAdminRole;
     notifyOnStudentRegistration: boolean;
+    permissions: PermissionKey[];
   }>,
 ) {
   return adminRequest<AdminUserListItem>(`/admin/users/${id}`, {

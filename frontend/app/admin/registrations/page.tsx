@@ -16,6 +16,7 @@ import { ApiError } from "@/lib/api";
 import { formatDateTime, formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 import { PaginationFooter } from "../pagination-footer";
+import { ReasonModal } from "../reason-modal";
 import { TableRowsSkeleton } from "../skeleton";
 import { StatusBadge } from "../status-badge";
 
@@ -70,6 +71,7 @@ export default function AdminRegistrationsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showBulkMarkPaidConfirm, setShowBulkMarkPaidConfirm] = useState(false);
 
   useEffect(() => {
     if (!session) return;
@@ -264,7 +266,7 @@ export default function AdminRegistrationsPage() {
           <span>{selectedIds.size} selected</span>
           <button
             disabled={bulkBusy}
-            onClick={() => void runBulk(markPaid, "marked paid")}
+            onClick={() => setShowBulkMarkPaidConfirm(true)}
             className="bg-emerald text-white px-4 py-1.5 rounded-full hover:bg-forest transition-colors disabled:opacity-50"
           >
             Mark paid
@@ -364,6 +366,21 @@ export default function AdminRegistrationsPage() {
       </div>
 
       <PaginationFooter page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+
+      <ReasonModal
+        open={showBulkMarkPaidConfirm}
+        title={`Mark ${selectedIds.size} registration${selectedIds.size === 1 ? "" : "s"} as paid`}
+        description="This issues a ticket and emails it to each attendee. The same reason applies to all selected registrations."
+        reasonLabel="Reason (e.g. bank transfer confirmed manually)"
+        confirmLabel="Confirm"
+        busy={bulkBusy}
+        onCancel={() => setShowBulkMarkPaidConfirm(false)}
+        onConfirm={(reason) =>
+          runBulk((id) => markPaid(id, reason), "marked paid").then(() =>
+            setShowBulkMarkPaidConfirm(false),
+          )
+        }
+      />
     </main>
   );
 }

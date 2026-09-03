@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin-api";
 import { ApiError, Sponsor, SponsorType } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
+import { FormModal } from "../form-modal";
 import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
 
@@ -31,6 +32,7 @@ export function DirectoryTab() {
   const [loaded, setLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
+  const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [logoKey, setLogoKey] = useState<string | undefined>(undefined);
@@ -69,6 +71,13 @@ export function DirectoryTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, reloadKey]);
 
+  function startCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setLogoKey(undefined);
+    setFormOpen(true);
+  }
+
   function startEdit(sponsor: Sponsor) {
     setEditingId(sponsor.id);
     setForm({
@@ -79,12 +88,14 @@ export function DirectoryTab() {
       isActive: sponsor.isActive,
     });
     setLogoKey(undefined);
+    setFormOpen(true);
   }
 
   function resetForm() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setLogoKey(undefined);
+    setFormOpen(false);
   }
 
   async function handleLogoChange(file: File) {
@@ -161,9 +172,19 @@ export function DirectoryTab() {
 
   return (
     <>
+      <div className="flex items-center justify-end mb-6">
+        <button
+          onClick={startCreate}
+          className="bg-coral text-white font-semibold px-5 py-2 rounded-full text-sm hover:bg-coral-deep transition-colors"
+        >
+          + Add entry
+        </button>
+      </div>
+
+      <FormModal open={formOpen} title={editingId ? "Edit entry" : "New entry"} onClose={resetForm}>
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="border border-emerald/20 rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
+        className="flex flex-col gap-4"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
@@ -253,13 +274,12 @@ export function DirectoryTab() {
                 ? "Save changes"
                 : "Add entry"}
           </button>
-          {editingId && (
-            <button type="button" onClick={resetForm} className="text-sm text-sage">
-              Cancel edit
-            </button>
-          )}
+          <button type="button" onClick={resetForm} className="text-sm text-sage">
+            Cancel
+          </button>
         </div>
       </form>
+      </FormModal>
 
       <div className="border border-emerald/20 rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">

@@ -5,8 +5,9 @@ import Link from "next/link";
 import { listAdminTicketProducts, updateTicketProduct } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError, TicketProduct } from "@/lib/api";
-import { CATEGORY_LABELS } from "@/lib/format";
+import { CATEGORY_LABELS, formatKobo } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
+import { FormModal } from "../form-modal";
 import { PauseToggle } from "../pause-toggle";
 import { StudentReviewNotifyPanel } from "./student-review-notify-panel";
 import { TicketCapacityCard } from "./ticket-capacity-card";
@@ -30,6 +31,7 @@ function TicketProductCard({
   onSaved: (updated: TicketProduct) => void;
 }) {
   const toast = useToast();
+  const [editOpen, setEditOpen] = useState(false);
   const [priceNaira, setPriceNaira] = useState(String(product.priceKobo / 100));
   const [discountPercent, setDiscountPercent] = useState(
     product.discountPercent !== null ? String(product.discountPercent) : "",
@@ -41,6 +43,16 @@ function TicketProductCard({
   const [cardNote, setCardNote] = useState(product.cardNote ?? "");
   const [isActive, setIsActive] = useState(product.isActive);
   const [saving, setSaving] = useState(false);
+
+  function openEdit() {
+    setPriceNaira(String(product.priceKobo / 100));
+    setDiscountPercent(product.discountPercent !== null ? String(product.discountPercent) : "");
+    setDiscountExpiresAt(toDatetimeLocal(product.discountExpiresAt));
+    setCardPriceLabel(product.cardPriceLabel ?? "");
+    setCardNote(product.cardNote ?? "");
+    setIsActive(product.isActive);
+    setEditOpen(true);
+  }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -56,6 +68,7 @@ function TicketProductCard({
       });
       onSaved(updated);
       toast.success(`${CATEGORY_LABELS[product.category]} ticket updated.`);
+      setEditOpen(false);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.body.message : "Failed to save.");
     } finally {
@@ -64,81 +77,112 @@ function TicketProductCard({
   }
 
   return (
-    <form
-      onSubmit={(e) => void handleSave(e)}
-      className="border border-emerald/20 rounded-2xl bg-white p-6 flex flex-col gap-4 shadow-sm"
-    >
-      <h2 className="font-display text-xl">{CATEGORY_LABELS[product.category]}</h2>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-sage">Price (NGN)</span>
-          <input
-            type="number"
-            min={0}
-            value={priceNaira}
-            onChange={(e) => setPriceNaira(e.target.value)}
-            className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-sage">Early-bird discount (%)</span>
-          <input
-            type="number"
-            min={1}
-            max={100}
-            value={discountPercent}
-            onChange={(e) => setDiscountPercent(e.target.value)}
-            placeholder="e.g. 30"
-            className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-sage">Discount expires</span>
-          <input
-            type="datetime-local"
-            value={discountExpiresAt}
-            onChange={(e) => setDiscountExpiresAt(e.target.value)}
-            className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-sage">Card price label</span>
-          <input
-            value={cardPriceLabel}
-            onChange={(e) => setCardPriceLabel(e.target.value)}
-            placeholder='e.g. "5K"'
-            className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
-          />
-        </label>
+    <div className="border border-emerald/20 rounded-2xl bg-white p-6 flex flex-col gap-3 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-xl">{CATEGORY_LABELS[product.category]}</h2>
+          <p className="text-sm text-sage mt-1">
+            {formatKobo(product.priceKobo, product.currency)}
+            {product.discountPercent !== null && ` · ${product.discountPercent}% early-bird discount`}
+          </p>
+        </div>
+        <span
+          className={`text-xs px-2.5 py-0.5 rounded-full whitespace-nowrap ${
+            product.isActive ? "bg-emerald/10 text-emerald" : "bg-emerald/5 text-sage"
+          }`}
+        >
+          {product.isActive ? "Available" : "Unavailable"}
+        </span>
       </div>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-sm text-sage">Card note</span>
-        <input
-          value={cardNote}
-          onChange={(e) => setCardNote(e.target.value)}
-          placeholder="e.g. *30% discount for early birds"
-          className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
-        />
-      </label>
-
-      <label className="flex items-center gap-2">
-        <input type="checkbox" className="accent-emerald" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-        <span className="text-sm text-sage">Available for purchase</span>
-      </label>
-
       <button
-        type="submit"
-        disabled={saving}
-        className="self-start bg-coral text-white font-semibold px-6 py-2.5 rounded-full hover:bg-coral-deep transition-colors disabled:opacity-50"
+        onClick={openEdit}
+        className="self-start text-sm text-ink underline"
       >
-        {saving ? "Saving…" : "Save changes"}
+        Edit
       </button>
-    </form>
+
+      <FormModal
+        open={editOpen}
+        title={`Edit ${CATEGORY_LABELS[product.category]} ticket`}
+        onClose={() => setEditOpen(false)}
+      >
+        <form onSubmit={(e) => void handleSave(e)} className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="flex flex-col gap-1">
+              <span className="text-sm text-sage">Price (NGN)</span>
+              <input
+                type="number"
+                min={0}
+                value={priceNaira}
+                onChange={(e) => setPriceNaira(e.target.value)}
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-sm text-sage">Early-bird discount (%)</span>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={discountPercent}
+                onChange={(e) => setDiscountPercent(e.target.value)}
+                placeholder="e.g. 30"
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-sm text-sage">Discount expires</span>
+              <input
+                type="datetime-local"
+                value={discountExpiresAt}
+                onChange={(e) => setDiscountExpiresAt(e.target.value)}
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-sm text-sage">Card price label</span>
+              <input
+                value={cardPriceLabel}
+                onChange={(e) => setCardPriceLabel(e.target.value)}
+                placeholder='e.g. "5K"'
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              />
+            </label>
+          </div>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-sage">Card note</span>
+            <input
+              value={cardNote}
+              onChange={(e) => setCardNote(e.target.value)}
+              placeholder="e.g. *30% discount for early birds"
+              className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+            />
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input type="checkbox" className="accent-emerald" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+            <span className="text-sm text-sage">Available for purchase</span>
+          </label>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={saving}
+              className="self-start bg-coral text-white font-semibold px-6 py-2.5 rounded-full hover:bg-coral-deep transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+            <button type="button" onClick={() => setEditOpen(false)} className="text-sm text-sage">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </FormModal>
+    </div>
   );
 }
 

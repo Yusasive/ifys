@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './jwt-payload';
+import { getEffectivePermissions, PermissionKey } from './permissions';
 
 export interface LoginResult {
   accessToken: string;
@@ -17,6 +18,7 @@ export interface LoginResult {
     email: string;
     role: string;
     mustChangePassword: boolean;
+    permissions: PermissionKey[];
   };
 }
 
@@ -65,6 +67,7 @@ export class AuthService {
     role: JwtPayload['role'];
     tokenVersion: number;
     mustChangePassword: boolean;
+    permissions: string[];
   }): Promise<LoginResult> {
     const csrfToken = randomBytes(32).toString('hex');
     const payload: JwtPayload = {
@@ -91,6 +94,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         mustChangePassword: user.mustChangePassword,
+        permissions: getEffectivePermissions(user),
       },
     };
   }

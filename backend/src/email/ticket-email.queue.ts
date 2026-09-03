@@ -10,11 +10,13 @@ import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from './email.service';
 import { CATEGORY_LABELS, TIER_LABELS } from './labels';
+import { TicketEmailVariant } from './ticket-email-template';
 
 const QUEUE_NAME = 'ticket-emails';
 
 interface TicketEmailJobData {
   ticketId: string;
+  variant: TicketEmailVariant;
 }
 
 // TRD §2: Redis-backed job queue so ticket email/QR generation never
@@ -55,8 +57,13 @@ export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
     this.connection.disconnect();
   }
 
-  async enqueue(ticketId: string) {
-    await this.queue.add('send', { ticketId });
+  // variant defaults to 'issued' so existing call sites (markPaid,
+  // approveStudentRegistration) need no changes; resendTicket passes
+  // 'resent', AdminService.reissueTicket passes 'reissued' — see
+  // TicketEmailVariant / VARIANT_INTROS in ticket-email-template.ts for
+  // the copy differences.
+  async enqueue(ticketId: string, variant: TicketEmailVariant = 'issued') {
+    await this.queue.add('send', { ticketId, variant });
   }
 
   private async process(job: Job<TicketEmailJobData>) {
@@ -90,6 +97,7 @@ export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
         // No fallback: an event-day ticket must carry a real support
         // contact, not a placeholder nobody reads (M6 exit criteria).
         supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
+        variant: job.data.variant,
       },
       ticket.qrSecret,
     );

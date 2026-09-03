@@ -13,6 +13,7 @@ import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError, CouponDiscountType } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
+import { FormModal } from "../form-modal";
 import { TableRowsSkeleton } from "../skeleton";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
@@ -38,6 +39,7 @@ export default function AdminCouponsPage() {
   const [couponsLoaded, setCouponsLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
+  const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -70,6 +72,12 @@ export default function AdminCouponsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, reloadKey]);
 
+  function startCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormOpen(true);
+  }
+
   function startEdit(coupon: Coupon) {
     setEditingId(coupon.id);
     setForm({
@@ -80,11 +88,13 @@ export default function AdminCouponsPage() {
       expiresAt: coupon.expiresAt ? coupon.expiresAt.slice(0, 16) : "",
       isActive: coupon.isActive,
     });
+    setFormOpen(true);
   }
 
   function resetForm() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setFormOpen(false);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -145,11 +155,20 @@ export default function AdminCouponsPage() {
         ← Back to registrations
       </Link>
 
-      <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest mb-6">Coupons</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest">Coupons</h1>
+        <button
+          onClick={startCreate}
+          className="bg-coral text-white font-semibold px-5 py-2 rounded-full text-sm hover:bg-coral-deep transition-colors"
+        >
+          + Add coupon
+        </button>
+      </div>
 
+      <FormModal open={formOpen} title={editingId ? "Edit coupon" : "New coupon"} onClose={resetForm}>
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="border border-emerald/20 rounded-2xl bg-white p-6 mb-8 flex flex-col gap-4 shadow-sm"
+        className="flex flex-col gap-4"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
@@ -231,13 +250,12 @@ export default function AdminCouponsPage() {
           >
             {submitting ? (editingId ? "Saving…" : "Adding…") : editingId ? "Save changes" : "Add coupon"}
           </button>
-          {editingId && (
-            <button type="button" onClick={resetForm} className="text-sm text-sage">
-              Cancel edit
-            </button>
-          )}
+          <button type="button" onClick={resetForm} className="text-sm text-sage">
+            Cancel
+          </button>
         </div>
       </form>
+      </FormModal>
 
       <div className="border border-emerald/20 rounded-2xl bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">

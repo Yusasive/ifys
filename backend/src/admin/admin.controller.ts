@@ -13,6 +13,8 @@ import { CsrfGuard } from '../auth/csrf.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { JwtPayload } from '../auth/jwt-payload';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/require-permissions.decorator';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CouponsService } from '../coupons/coupons.service';
@@ -39,6 +41,10 @@ import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { VoidTicketDto } from './dto/void-ticket.dto';
+import { MarkPaidDto } from './dto/mark-paid.dto';
+import { ReissueTicketDto } from './dto/reissue-ticket.dto';
+import { RestoreTicketDto } from './dto/restore-ticket.dto';
+import { WithdrawTicketDto } from './dto/withdraw-ticket.dto';
 import { CancelRegistrationDto } from './dto/cancel-registration.dto';
 import { ListSpeakersQueryDto } from '../speakers/dto/list-speakers.query';
 import { ListSponsorsQueryDto } from '../sponsors/dto/list-sponsors.query';
@@ -51,7 +57,7 @@ import { BulkApproveVolunteerApplicationsDto } from '../volunteers/dto/bulk-appr
 import { BulkRejectVolunteerApplicationsDto } from '../volunteers/dto/bulk-reject-volunteer-applications.dto';
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, RolesGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard, CsrfGuard)
 @Roles('organizer', 'super_admin')
 export class AdminController {
   constructor(
@@ -66,11 +72,13 @@ export class AdminController {
     private readonly volunteerApplications: VolunteerApplicationsService,
   ) {}
 
+  @RequirePermissions('registrations.view')
   @Get('registrations')
   listRegistrations(@Query() query: ListRegistrationsQueryDto) {
     return this.admin.listRegistrations(query);
   }
 
+  @RequirePermissions('registrations.view')
   @Get('registrations/:id')
   getRegistrationDetail(@Param('id') id: string) {
     return this.admin.getRegistrationDetail(id);
@@ -81,25 +89,63 @@ export class AdminController {
     return this.admin.getStats();
   }
 
+  @RequirePermissions('registrations.markPaid')
   @Post('registrations/:id/mark-paid')
-  markPaid(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    return this.admin.markPaid(id, user.sub);
+  markPaid(
+    @Param('id') id: string,
+    @Body() dto: MarkPaidDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.markPaid(id, user.sub, dto.reason);
   }
 
+  @RequirePermissions('registrations.resendTicket')
   @Post('registrations/:id/resend-ticket')
   resendTicket(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.admin.resendTicket(id, user.sub);
   }
 
+  @RequirePermissions('registrations.voidTicket')
   @Post('registrations/:id/void')
   voidTicket(
     @Param('id') id: string,
     @Body() dto: VoidTicketDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.admin.voidTicket(id, user.sub, dto.password);
+    return this.admin.voidTicket(id, user.sub, dto.reason, dto.password);
   }
 
+  @RequirePermissions('registrations.reissueTicket')
+  @Post('registrations/:id/reissue-ticket')
+  reissueTicket(
+    @Param('id') id: string,
+    @Body() dto: ReissueTicketDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.reissueTicket(id, user.sub, dto.reason);
+  }
+
+  @RequirePermissions('registrations.restoreTicket')
+  @Post('registrations/:id/restore-ticket')
+  restoreTicket(
+    @Param('id') id: string,
+    @Body() dto: RestoreTicketDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.restoreTicket(id, user.sub, dto.reason);
+  }
+
+  @RequirePermissions('registrations.withdrawTicket')
+  @Post('registrations/:id/withdraw-ticket')
+  withdrawTicket(
+    @Param('id') id: string,
+    @Body() dto: WithdrawTicketDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.withdrawTicket(id, user.sub, dto.reason, dto.password);
+  }
+
+  @RequirePermissions('registrations.cancel')
   @Post('registrations/:id/cancel')
   cancelRegistration(
     @Param('id') id: string,
@@ -114,6 +160,7 @@ export class AdminController {
     );
   }
 
+  @RequirePermissions('registrations.approveStudent')
   @Post('registrations/:id/approve-student')
   approveStudentRegistration(
     @Param('id') id: string,
@@ -122,6 +169,7 @@ export class AdminController {
     return this.admin.approveStudentRegistration(id, user.sub);
   }
 
+  @RequirePermissions('registrations.rejectStudent')
   @Post('registrations/:id/reject-student')
   rejectStudentRegistration(
     @Param('id') id: string,
@@ -136,6 +184,7 @@ export class AdminController {
     );
   }
 
+  @RequirePermissions('registrations.sendReminder')
   @Post('registrations/:id/send-reminder')
   sendPendingPaymentReminder(
     @Param('id') id: string,
@@ -186,11 +235,13 @@ export class AdminController {
     return this.admin.deleteAdminUser(id, user.sub);
   }
 
+  @RequirePermissions('eventSettings.manage')
   @Get('event-settings')
   getEventSettings(@Query('event') eventSlug: string) {
     return this.admin.getEventSettings(eventSlug);
   }
 
+  @RequirePermissions('eventSettings.manage')
   @Patch('event-settings')
   updateEventSettings(
     @Query('event') eventSlug: string,
@@ -200,6 +251,7 @@ export class AdminController {
     return this.admin.updateEventSettings(eventSlug, dto, user.sub);
   }
 
+  @RequirePermissions('speakers.manage')
   @Get('speakers')
   listSpeakers(
     @Query('event') eventSlug: string,
@@ -208,6 +260,7 @@ export class AdminController {
     return this.speakers.listAdmin(eventSlug, query);
   }
 
+  @RequirePermissions('speakers.manage')
   @Post('speakers')
   createSpeaker(
     @Body() dto: CreateSpeakerDto,
@@ -216,6 +269,7 @@ export class AdminController {
     return this.speakers.create(dto, user.sub);
   }
 
+  @RequirePermissions('speakers.manage')
   @Patch('speakers/:id')
   updateSpeaker(
     @Param('id') id: string,
@@ -225,16 +279,19 @@ export class AdminController {
     return this.speakers.update(id, dto, user.sub);
   }
 
+  @RequirePermissions('speakers.manage')
   @Delete('speakers/:id')
   deleteSpeaker(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.speakers.remove(id, user.sub);
   }
 
+  @RequirePermissions('speakers.manage')
   @Post('speakers/upload-url')
   createSpeakerPhotoUploadUrl(@Body() dto: SpeakerPhotoUploadUrlDto) {
     return this.speakers.createPhotoUploadUrl(dto);
   }
 
+  @RequirePermissions('sponsors.manage')
   @Get('sponsors')
   listSponsors(
     @Query('event') eventSlug: string,
@@ -243,6 +300,7 @@ export class AdminController {
     return this.sponsors.listAdmin(eventSlug, query);
   }
 
+  @RequirePermissions('sponsors.manage')
   @Post('sponsors')
   createSponsor(
     @Body() dto: CreateSponsorDto,
@@ -251,6 +309,7 @@ export class AdminController {
     return this.sponsors.create(dto, user.sub);
   }
 
+  @RequirePermissions('sponsors.manage')
   @Patch('sponsors/:id')
   updateSponsor(
     @Param('id') id: string,
@@ -260,16 +319,19 @@ export class AdminController {
     return this.sponsors.update(id, dto, user.sub);
   }
 
+  @RequirePermissions('sponsors.manage')
   @Delete('sponsors/:id')
   deleteSponsor(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.sponsors.remove(id, user.sub);
   }
 
+  @RequirePermissions('sponsors.manage')
   @Post('sponsors/upload-url')
   createSponsorLogoUploadUrl(@Body() dto: SponsorLogoUploadUrlDto) {
     return this.sponsors.createLogoUploadUrl(dto);
   }
 
+  @RequirePermissions('sponsors.manage')
   @Get('sponsor-applications')
   listSponsorApplications(
     @Query('event') eventSlug: string,
@@ -278,6 +340,7 @@ export class AdminController {
     return this.sponsorApplications.listAdmin(eventSlug, query);
   }
 
+  @RequirePermissions('sponsors.manage')
   @Post('sponsor-applications/:id/approve')
   approveSponsorApplication(
     @Param('id') id: string,
@@ -286,6 +349,7 @@ export class AdminController {
     return this.sponsorApplications.approve(id, user.sub);
   }
 
+  @RequirePermissions('sponsors.manage')
   @Post('sponsor-applications/:id/reject')
   rejectSponsorApplication(
     @Param('id') id: string,
@@ -294,11 +358,13 @@ export class AdminController {
     return this.sponsorApplications.reject(id, user.sub);
   }
 
+  @RequirePermissions('newsletter.manage')
   @Get('newsletter')
   listNewsletterSubscribers(@Query() query: ListNewsletterQueryDto) {
     return this.newsletter.listAdmin(query);
   }
 
+  @RequirePermissions('newsletter.manage')
   @Delete('newsletter/:id')
   deleteNewsletterSubscriber(
     @Param('id') id: string,
@@ -307,21 +373,25 @@ export class AdminController {
     return this.newsletter.remove(id, user.sub);
   }
 
+  @RequirePermissions('newsletter.manage')
   @Post('newsletter/export')
   requestNewsletterExport() {
     return this.newsletterExport.enqueue().then((jobId) => ({ jobId }));
   }
 
+  @RequirePermissions('newsletter.manage')
   @Get('newsletter/export/:jobId')
   getNewsletterExportStatus(@Param('jobId') jobId: string) {
     return this.newsletterExport.getStatus(jobId);
   }
 
+  @RequirePermissions('ticketSettings.manage')
   @Get('ticket-products')
   listTicketProducts(@Query('event') eventSlug: string) {
     return this.registrations.listAdminTicketProducts(eventSlug);
   }
 
+  @RequirePermissions('ticketSettings.manage')
   @Patch('ticket-products/:id')
   updateTicketProduct(
     @Param('id') id: string,
@@ -331,16 +401,19 @@ export class AdminController {
     return this.registrations.updateTicketProduct(id, dto, user.sub);
   }
 
+  @RequirePermissions('coupons.manage')
   @Get('coupons')
   listCoupons(@Query('event') eventSlug: string) {
     return this.coupons.listAdmin(eventSlug);
   }
 
+  @RequirePermissions('coupons.manage')
   @Post('coupons')
   createCoupon(@Body() dto: CreateCouponDto, @CurrentUser() user: JwtPayload) {
     return this.coupons.create(dto, user.sub);
   }
 
+  @RequirePermissions('coupons.manage')
   @Patch('coupons/:id')
   updateCoupon(
     @Param('id') id: string,
@@ -350,11 +423,13 @@ export class AdminController {
     return this.coupons.update(id, dto, user.sub);
   }
 
+  @RequirePermissions('coupons.manage')
   @Delete('coupons/:id')
   deleteCoupon(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.coupons.remove(id, user.sub);
   }
 
+  @RequirePermissions('volunteers.manage')
   @Get('volunteer-applications')
   listVolunteerApplications(
     @Query('event') eventSlug: string,
@@ -363,6 +438,7 @@ export class AdminController {
     return this.volunteerApplications.listAdmin(eventSlug, query);
   }
 
+  @RequirePermissions('volunteers.manage')
   @Post('volunteer-applications/:id/approve')
   approveVolunteerApplication(
     @Param('id') id: string,
@@ -372,6 +448,7 @@ export class AdminController {
     return this.volunteerApplications.approve(id, user.sub, dto.reason);
   }
 
+  @RequirePermissions('volunteers.manage')
   @Post('volunteer-applications/:id/reject')
   rejectVolunteerApplication(
     @Param('id') id: string,
@@ -381,6 +458,7 @@ export class AdminController {
     return this.volunteerApplications.reject(id, user.sub, dto.reason);
   }
 
+  @RequirePermissions('volunteers.manage')
   @Post('volunteer-applications/bulk-approve')
   bulkApproveVolunteerApplications(
     @Body() dto: BulkApproveVolunteerApplicationsDto,
@@ -393,6 +471,7 @@ export class AdminController {
     );
   }
 
+  @RequirePermissions('volunteers.manage')
   @Post('volunteer-applications/bulk-reject')
   bulkRejectVolunteerApplications(
     @Body() dto: BulkRejectVolunteerApplicationsDto,

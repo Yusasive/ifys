@@ -7,19 +7,30 @@ import {
   cancelRegistration,
   fetchRegistrationDetail,
   markPaid,
+  reissueTicket,
   RegistrationDetail,
   rejectStudentRegistration,
   resendTicket,
+  restoreTicket,
   sendPendingPaymentReminder,
   voidTicket,
+  withdrawTicket,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
 import { formatDateTime, formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
+import { hasPermission } from "@/lib/permissions";
 import { DetailCardSkeleton } from "../../skeleton";
 import { StatusBadge } from "../../status-badge";
 import { useToast } from "@/lib/toast-context";
 import { ReasonModal } from "../../reason-modal";
+
+const TICKET_ACTION_LABELS: Record<string, string> = {
+  reissued: "Reissued",
+  voided: "Voided",
+  restored: "Restored",
+  withdrawn: "Withdrawn",
+};
 
 export default function RegistrationDetailPage() {
   const { session, loading: authLoading } = useRequireAdminAuth();
@@ -27,10 +38,15 @@ export default function RegistrationDetailPage() {
   const router = useRouter();
   const [registration, setRegistration] = useState<RegistrationDetail | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showMarkPaidConfirm, setShowMarkPaidConfirm] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
+  const [showReissueConfirm, setShowReissueConfirm] = useState(false);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showRejectStudentConfirm, setShowRejectStudentConfirm] = useState(false);
   const toast = useToast();
+  const permissions = session?.user.permissions;
 
   async function load() {
     if (!session) return;
@@ -177,6 +193,16 @@ export default function RegistrationDetailPage() {
                 <dd className="text-right">{formatDateTime(registration.ticket.issuedAt)}</dd>
               </dl>
 
+              {registration.ticket.lastActionType && (
+                <p className="text-xs text-sage mt-2">
+                  Last action: {TICKET_ACTION_LABELS[registration.ticket.lastActionType]}
+                  {registration.ticket.lastActionAt &&
+                    ` · ${formatDateTime(registration.ticket.lastActionAt)}`}
+                  {registration.ticket.lastActionReason &&
+                    ` — "${registration.ticket.lastActionReason}"`}
+                </p>
+              )}
+
               {registration.ticket.checkIns.length > 0 && (
                 <div className="mt-4">
                   <h3 className="text-xs uppercase tracking-wide text-sage mb-2">
@@ -197,44 +223,43 @@ export default function RegistrationDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          {registration.status === "pending_review" && (
-            <button
-              disabled={busy}
-              onClick={() =>
-                void runAction(
-                  () => approveStudentRegistration(registration.id),
-                  "Approved — ticket issued and emailed.",
-                )
-              }
-              className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
-            >
-              Approve student registration
-            </button>
-          )}
-          {registration.status === "pending_review" && (
-            <button
-              disabled={busy}
-              onClick={() => setShowRejectStudentConfirm(true)}
-              className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
-            >
-              Reject student registration
-            </button>
-          )}
-          {registration.status !== "paid" && registration.status !== "pending_review" && (
-            <button
-              disabled={busy}
-              onClick={() =>
-                void runAction(
-                  () => markPaid(registration.id),
-                  "Marked as paid and ticket issued.",
-                )
-              }
-              className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
-            >
-              Mark as paid
-            </button>
-          )}
-          {registration.ticket && (
+          {registration.status === "pending_review" &&
+            hasPermission(permissions, "registrations.approveStudent") && (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  void runAction(
+                    () => approveStudentRegistration(registration.id),
+                    "Approved — ticket issued and emailed.",
+                  )
+                }
+                className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
+              >
+                Approve student registration
+              </button>
+            )}
+          {registration.status === "pending_review" &&
+            hasPermission(permissions, "registrations.rejectStudent") && (
+              <button
+                disabled={busy}
+                onClick={() => setShowRejectStudentConfirm(true)}
+                className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
+              >
+                Reject student registration
+              </button>
+            )}
+          {registration.status !== "paid" &&
+            registration.status !== "pending_review" &&
+            hasPermission(permissions, "registrations.markPaid") && (
+              <button
+                disabled={busy}
+                onClick={() => setShowMarkPaidConfirm(true)}
+                className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
+              >
+                Mark as paid
+              </button>
+            )}
+          {registration.ticket && hasPermission(permissions, "registrations.resendTicket") && (
             <button
               disabled={busy}
               onClick={() =>
@@ -248,38 +273,77 @@ export default function RegistrationDetailPage() {
               Resend ticket
             </button>
           )}
-          {registration.ticket && registration.ticket.status !== "void" && (
-            <button
-              disabled={busy}
-              onClick={() => setShowVoidConfirm(true)}
-              className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
-            >
-              Void ticket
-            </button>
-          )}
-          {registration.status === "pending_payment" && (
-            <button
-              disabled={busy}
-              onClick={() =>
-                void runAction(
-                  () => sendPendingPaymentReminder(registration.id),
-                  "Reminder email sent.",
-                )
-              }
-              className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
-            >
-              Send reminder
-            </button>
-          )}
-          {registration.status === "pending_payment" && (
-            <button
-              disabled={busy}
-              onClick={() => setShowCancelConfirm(true)}
-              className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
-            >
-              Cancel registration
-            </button>
-          )}
+          {registration.ticket &&
+            registration.ticket.status !== "void" &&
+            hasPermission(permissions, "registrations.reissueTicket") && (
+              <button
+                disabled={busy}
+                onClick={() => setShowReissueConfirm(true)}
+                className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
+              >
+                Reissue ticket
+              </button>
+            )}
+          {registration.ticket &&
+            registration.ticket.status === "void" &&
+            hasPermission(permissions, "registrations.restoreTicket") && (
+              <button
+                disabled={busy}
+                onClick={() => setShowRestoreConfirm(true)}
+                className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
+              >
+                Restore ticket
+              </button>
+            )}
+          {registration.ticket &&
+            registration.ticket.status !== "void" &&
+            registration.ticket.lastActionType !== "reissued" &&
+            hasPermission(permissions, "registrations.voidTicket") && (
+              <button
+                disabled={busy}
+                onClick={() => setShowVoidConfirm(true)}
+                className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
+              >
+                Void ticket
+              </button>
+            )}
+          {registration.ticket &&
+            registration.ticket.status !== "void" &&
+            registration.ticket.lastActionType === "reissued" &&
+            hasPermission(permissions, "registrations.withdrawTicket") && (
+              <button
+                disabled={busy}
+                onClick={() => setShowWithdrawConfirm(true)}
+                className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
+              >
+                Withdraw ticket
+              </button>
+            )}
+          {registration.status === "pending_payment" &&
+            hasPermission(permissions, "registrations.sendReminder") && (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  void runAction(
+                    () => sendPendingPaymentReminder(registration.id),
+                    "Reminder email sent.",
+                  )
+                }
+                className="border border-emerald text-emerald px-4 py-2 rounded-full text-sm hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
+              >
+                Send reminder
+              </button>
+            )}
+          {registration.status === "pending_payment" &&
+            hasPermission(permissions, "registrations.cancel") && (
+              <button
+                disabled={busy}
+                onClick={() => setShowCancelConfirm(true)}
+                className="border border-coral-deep text-coral-deep px-4 py-2 rounded-full text-sm hover:bg-coral-deep hover:text-white transition-colors disabled:opacity-50"
+              >
+                Cancel registration
+              </button>
+            )}
         </div>
 
         {registration.status === "pending_payment" && registration.pendingPaymentReminderSentAt && (
@@ -289,20 +353,84 @@ export default function RegistrationDetailPage() {
         )}
 
         <ReasonModal
+          open={showMarkPaidConfirm}
+          title="Mark as paid"
+          description="This issues a ticket and emails it to the attendee."
+          reasonLabel="Reason (e.g. bank transfer confirmed manually)"
+          confirmLabel="Confirm"
+          busy={busy}
+          onCancel={() => setShowMarkPaidConfirm(false)}
+          onConfirm={(reason) =>
+            runAction(async () => {
+              await markPaid(registration.id, reason);
+              setShowMarkPaidConfirm(false);
+            }, "Marked as paid and ticket issued.")
+          }
+        />
+
+        <ReasonModal
           open={showVoidConfirm}
           title="Void ticket"
-          description="Voiding a ticket cannot be undone. Re-enter your password to confirm."
-          reasonRequired={false}
+          description="Voiding a ticket cannot be undone. The attendee is emailed. Re-enter your password to confirm."
           requirePassword
           confirmTone="danger"
           confirmLabel="Confirm void"
           busy={busy}
           onCancel={() => setShowVoidConfirm(false)}
-          onConfirm={(_reason, password) =>
+          onConfirm={(reason, password) =>
             runAction(async () => {
-              await voidTicket(registration.id, password ?? "");
+              await voidTicket(registration.id, reason, password ?? "");
               setShowVoidConfirm(false);
             }, "Ticket voided.")
+          }
+        />
+
+        <ReasonModal
+          open={showReissueConfirm}
+          title="Reissue ticket"
+          description="Generates a new ticket code/QR — any earlier copy stops working. The attendee is emailed the new ticket."
+          reasonLabel="Reason (e.g. lost original, QR compromised)"
+          confirmLabel="Confirm reissue"
+          busy={busy}
+          onCancel={() => setShowReissueConfirm(false)}
+          onConfirm={(reason) =>
+            runAction(async () => {
+              await reissueTicket(registration.id, reason);
+              setShowReissueConfirm(false);
+            }, "Ticket reissued and emailed.")
+          }
+        />
+
+        <ReasonModal
+          open={showRestoreConfirm}
+          title="Restore ticket"
+          description="Brings this ticket back to a valid, scannable state using its existing code. The attendee is emailed."
+          reasonLabel="Reason (e.g. voided in error)"
+          confirmLabel="Confirm restore"
+          busy={busy}
+          onCancel={() => setShowRestoreConfirm(false)}
+          onConfirm={(reason) =>
+            runAction(async () => {
+              await restoreTicket(registration.id, reason);
+              setShowRestoreConfirm(false);
+            }, "Ticket restored.")
+          }
+        />
+
+        <ReasonModal
+          open={showWithdrawConfirm}
+          title="Withdraw ticket"
+          description="Revokes this reissued ticket — cannot be undone. The attendee is emailed. Re-enter your password to confirm."
+          requirePassword
+          confirmTone="danger"
+          confirmLabel="Confirm withdraw"
+          busy={busy}
+          onCancel={() => setShowWithdrawConfirm(false)}
+          onConfirm={(reason, password) =>
+            runAction(async () => {
+              await withdrawTicket(registration.id, reason, password ?? "");
+              setShowWithdrawConfirm(false);
+            }, "Ticket withdrawn.")
           }
         />
 

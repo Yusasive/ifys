@@ -25,11 +25,11 @@ export function AboutSection() {
           <div className="border border-emerald rounded-2xl p-6 sm:p-8 flex items-center">
             <p className="font-sans font-normal text-base sm:text-2xl lg:text-[32px] leading-relaxed lg:leading-[50px] tracking-normal text-forest text-center">
               The Islamic Finance Youth Summit is bringing together the ethical
-              generation to challenge outdated thinking, explore halal-first
+              generation to reimagine what is possible, explore halal-first
               innovation, and build the ideas, careers, and institutions that
-              will define tomorrow&apos;s economy. This is where the new
-              generation decides that ethical finance is no longer an
-              alternative, it is the standard.
+              will define tomorrow’s economy. This is where the new generation
+              comes together to shape a future where ethical finance is no
+              longer an alternative, but the standard.
             </p>
           </div>
         </div>

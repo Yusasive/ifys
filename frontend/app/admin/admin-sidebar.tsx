@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AdminRole } from "@/lib/admin-api";
+import { hasPermission, PermissionKey } from "@/lib/permissions";
 import { ADMIN_NAV_FOOTER_ITEMS, ADMIN_NAV_ITEMS, NavItem } from "./admin-nav-items";
 
 function isActive(pathname: string, href: string): boolean {
@@ -28,9 +29,11 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
 
 export function AdminSidebarNav({
   role,
+  permissions,
   onNavigate,
 }: {
   role?: AdminRole;
+  permissions?: PermissionKey[];
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -38,7 +41,8 @@ export function AdminSidebarNav({
   const canSeeSuperAdminOnly = role === "super_admin";
   const visible = (item: NavItem) =>
     (!item.organizerOnly || canSeeOrganizerOnly) &&
-    (!item.superAdminOnly || canSeeSuperAdminOnly);
+    (!item.superAdminOnly || canSeeSuperAdminOnly) &&
+    (!item.permission || hasPermission(permissions, item.permission));
   const items = ADMIN_NAV_ITEMS.filter(visible);
   const footerItems = ADMIN_NAV_FOOTER_ITEMS.filter(visible);
 

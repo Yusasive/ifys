@@ -70,7 +70,7 @@ export default async function Home() {
       <SiteHeader />
       <main className="flex-1">
         <HeroSection />
-        <CountdownSection />
+        <CountdownSection event={event} />
         <AboutSection />
         <SpeakersSection speakers={speakers} />
         <ExperienceSection />

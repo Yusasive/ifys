@@ -1,6 +1,13 @@
-import { IsEmail, IsIn, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 import { AdminRole } from '../../generated/prisma/enums';
 import { NormalizeEmail } from '../../auth/normalize-email.decorator';
+import { PERMISSION_KEYS, PermissionKey } from '../../auth/permissions';
 
 const ROLES: AdminRole[] = ['organizer', 'door_staff'];
 
@@ -19,4 +26,11 @@ export class CreateAdminUserDto {
 
   @IsIn(ROLES)
   role!: AdminRole;
+
+  // Omitted => AdminService.createAdminUser snapshots the role's defaults
+  // (see ROLE_DEFAULT_PERMISSIONS). Explicit here lets a super_admin tune
+  // an individual admin's access at creation time instead of after.
+  @IsOptional()
+  @IsIn(PERMISSION_KEYS, { each: true })
+  permissions?: PermissionKey[];
 }
