@@ -346,9 +346,14 @@ export function updateAdminUser(
   input: Partial<{
     name: string;
     email: string;
-    role: CreatableAdminRole;
+    // AdminRole (not CreatableAdminRole) — 'super_admin' is a valid target
+    // here, for promoting an existing organizer/door_staff. reason/password
+    // are required by the backend only when role is 'super_admin'.
+    role: AdminRole;
     notifyOnStudentRegistration: boolean;
     permissions: PermissionKey[];
+    reason: string;
+    password: string;
   }>,
 ) {
   return adminRequest<AdminUserListItem>(`/admin/users/${id}`, {

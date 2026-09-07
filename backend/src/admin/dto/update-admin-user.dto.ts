@@ -2,17 +2,22 @@ import {
   IsBoolean,
   IsEmail,
   IsIn,
+  IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { AdminRole } from '../../generated/prisma/enums';
 import { NormalizeEmail } from '../../auth/normalize-email.decorator';
 import { PERMISSION_KEYS, PermissionKey } from '../../auth/permissions';
 
-// Same manageable-role restriction as CreateAdminUserDto — super_admin is
-// never assignable through this endpoint, only seed/bootstrap-created.
-const ROLES: AdminRole[] = ['organizer', 'door_staff'];
+// super_admin IS assignable here (promoting an existing organizer/door_staff
+// — see AdminService.updateAdminUser), but only as a target: the service
+// separately still refuses to modify a row that's ALREADY super_admin, so
+// this is a one-way promotion path, never a way to edit or demote one.
+const ROLES: AdminRole[] = ['organizer', 'door_staff', 'super_admin'];
 
 export class UpdateAdminUserDto {
   @IsOptional()
@@ -40,4 +45,20 @@ export class UpdateAdminUserDto {
   @IsOptional()
   @IsIn(PERMISSION_KEYS, { each: true })
   permissions?: PermissionKey[];
+
+  // Required only when promoting someone to super_admin — the highest
+  // privilege in the system, so it gets the same re-auth + reason
+  // requirement as the ticket lifecycle's most destructive actions
+  // (void/withdraw), re-verified against the ACTING super_admin's own
+  // password, not the target account's.
+  @ValidateIf((o: UpdateAdminUserDto) => o.role === 'super_admin')
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason?: string;
+
+  @ValidateIf((o: UpdateAdminUserDto) => o.role === 'super_admin')
+  @IsString()
+  @IsNotEmpty()
+  password?: string;
 }

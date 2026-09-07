@@ -676,13 +676,26 @@ export class AdminService {
     if (!existing) {
       throw new NotFoundException('Admin user not found');
     }
-    // super_admin accounts are seed/bootstrap-only — never editable (and
-    // never assignable as a target role; UpdateAdminUserDto's @IsIn already
-    // rejects role: 'super_admin' in the request body) through this API.
+    // An existing super_admin row is still never editable/demotable through
+    // this endpoint (seed/bootstrap-only from here on out) — the only
+    // super_admin-related thing this method ever does is PROMOTE an
+    // organizer/door_staff up to it, one-way, below.
     if (existing.role === 'super_admin') {
       throw new ForbiddenException(
         'super_admin accounts cannot be modified through this endpoint',
       );
+    }
+
+    const promotingToSuperAdmin = dto.role === 'super_admin';
+    if (promotingToSuperAdmin) {
+      // Re-verify the ACTING super_admin's own password — the same re-auth
+      // requirement as the ticket lifecycle's most destructive actions
+      // (void/withdraw), since minting a new super_admin is the single
+      // highest-privilege action in the system.
+      const passwordOk = await this.auth.verifyPassword(actorId, dto.password!);
+      if (!passwordOk) {
+        throw new UnauthorizedException('Incorrect password');
+      }
     }
 
     if (dto.email && dto.email.toLowerCase() !== existing.email.toLowerCase()) {
@@ -726,13 +739,16 @@ export class AdminService {
 
     await this.auditLog.record({
       actorId,
-      action: 'update_admin_user',
+      action: promotingToSuperAdmin
+        ? 'promote_admin_to_super_admin'
+        : 'update_admin_user',
       targetType: 'admin_user',
       targetId: updated.id,
       metadata: {
         email: updated.email,
         role: updated.role,
         ...(roleChanged && { previousRole: existing.role }),
+        ...(promotingToSuperAdmin && { reason: dto.reason }),
       },
     });
 

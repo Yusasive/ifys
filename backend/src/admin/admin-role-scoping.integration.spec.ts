@@ -418,4 +418,103 @@ describe('Admin role scoping (integration)', () => {
       });
     expect(res.status).toBe(403);
   }, 45000);
+
+  it('lets a super_admin promote an organizer to super_admin with the correct password + reason', async () => {
+    const email = `test-organizer-${randomUUID()}@example.com`;
+    const created = await request(httpServer)
+      .post('/admin/users')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({
+        name: 'Test Organizer',
+        email,
+        password: 'temp-password-123',
+        role: 'organizer',
+      });
+    const userId = (created.body as { id: string }).id;
+
+    try {
+      const promoted = await request(httpServer)
+        .patch(`/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .send({
+          role: 'super_admin',
+          reason: 'Needs full access to cover for me next week',
+          password: 'dev-superadmin-pw',
+        });
+      expect(promoted.status).toBe(200);
+      const body = promoted.body as { role: string; permissions: string[] };
+      expect(body.role).toBe('super_admin');
+      expect(new Set(body.permissions)).toEqual(
+        new Set(ROLE_DEFAULT_PERMISSIONS.super_admin),
+      );
+
+      const auditEntry = await prisma.auditLog.findFirst({
+        where: { action: 'promote_admin_to_super_admin', targetId: userId },
+      });
+      expect(auditEntry).not.toBeNull();
+      expect(
+        (auditEntry?.metadataJson as { reason?: string } | null)?.reason,
+      ).toBe('Needs full access to cover for me next week');
+    } finally {
+      await prisma.auditLog.deleteMany({ where: { targetId: userId } });
+      await prisma.adminUser.delete({ where: { id: userId } });
+    }
+  }, 45000);
+
+  it('rejects a super_admin promotion with the wrong password', async () => {
+    const email = `test-organizer-${randomUUID()}@example.com`;
+    const created = await request(httpServer)
+      .post('/admin/users')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({
+        name: 'Test Organizer',
+        email,
+        password: 'temp-password-123',
+        role: 'organizer',
+      });
+    const userId = (created.body as { id: string }).id;
+
+    try {
+      const res = await request(httpServer)
+        .patch(`/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .send({
+          role: 'super_admin',
+          reason: 'Testing wrong password',
+          password: 'not-the-right-password',
+        });
+      expect(res.status).toBe(401);
+
+      const unchanged = await prisma.adminUser.findUniqueOrThrow({
+        where: { id: userId },
+      });
+      expect(unchanged.role).toBe('organizer');
+    } finally {
+      await prisma.adminUser.delete({ where: { id: userId } });
+    }
+  }, 45000);
+
+  it('rejects a super_admin promotion with no reason', async () => {
+    const email = `test-organizer-${randomUUID()}@example.com`;
+    const created = await request(httpServer)
+      .post('/admin/users')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({
+        name: 'Test Organizer',
+        email,
+        password: 'temp-password-123',
+        role: 'organizer',
+      });
+    const userId = (created.body as { id: string }).id;
+
+    try {
+      const res = await request(httpServer)
+        .patch(`/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .send({ role: 'super_admin', password: 'dev-superadmin-pw' });
+      expect(res.status).toBe(400);
+    } finally {
+      await prisma.adminUser.delete({ where: { id: userId } });
+    }
+  }, 45000);
 });

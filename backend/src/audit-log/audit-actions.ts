@@ -17,6 +17,7 @@ export const AUDIT_ACTIONS = [
   'send_pending_payment_reminder',
   'create_admin_user',
   'update_admin_user',
+  'promote_admin_to_super_admin',
   'delete_admin_user',
   'update_event_settings',
   'update_ticket_product',

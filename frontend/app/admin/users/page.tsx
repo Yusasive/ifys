@@ -3,6 +3,7 @@
 import { Fragment, FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  AdminRole,
   AdminUserListItem,
   CreatableAdminRole,
   createAdminUser,
@@ -29,7 +30,7 @@ const EMPTY_FORM = {
   name: "",
   email: "",
   password: "",
-  role: "door_staff" as CreatableAdminRole,
+  role: "door_staff" as AdminRole,
   permissions: ROLE_DEFAULT_PERMISSIONS.door_staff,
 };
 
@@ -44,6 +45,8 @@ export default function AdminUsersPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [promotionReason, setPromotionReason] = useState("");
+  const [promotionPassword, setPromotionPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -81,6 +84,8 @@ export default function AdminUsersPage() {
   function startCreate() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setPromotionReason("");
+    setPromotionPassword("");
     setFormOpen(true);
   }
 
@@ -90,7 +95,7 @@ export default function AdminUsersPage() {
       name: user.name,
       email: user.email,
       password: "",
-      role: user.role as CreatableAdminRole,
+      role: user.role,
       // An empty permissions array means "inherit the role's defaults"
       // (see backend/src/auth/permissions.ts) — resolve it here so the
       // checkboxes show what this person can actually do, not a
@@ -100,18 +105,24 @@ export default function AdminUsersPage() {
       permissions:
         user.permissions.length > 0
           ? user.permissions
-          : ROLE_DEFAULT_PERMISSIONS[user.role as CreatableAdminRole],
+          : ROLE_DEFAULT_PERMISSIONS[user.role],
     });
+    setPromotionReason("");
+    setPromotionPassword("");
     setFormOpen(true);
   }
 
-  function handleRoleChange(role: CreatableAdminRole) {
+  function handleRoleChange(role: AdminRole) {
     // Resetting to the new role's defaults on every role change, rather
     // than leaving the previous role's permissions in place, is what
     // prevents a demoted/promoted account from silently keeping a stale,
     // too-broad permission set — a super_admin can still hand-tune from
     // here before saving.
     setForm((f) => ({ ...f, role, permissions: ROLE_DEFAULT_PERMISSIONS[role] }));
+    if (role !== "super_admin") {
+      setPromotionReason("");
+      setPromotionPassword("");
+    }
   }
 
   function togglePermission(permission: PermissionKey) {
@@ -126,6 +137,8 @@ export default function AdminUsersPage() {
   function resetForm() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setPromotionReason("");
+    setPromotionPassword("");
     setFormOpen(false);
   }
 
@@ -135,19 +148,29 @@ export default function AdminUsersPage() {
     setSubmitting(true);
     try {
       if (editingId) {
+        const promotingToSuperAdmin = form.role === "super_admin";
         await updateAdminUser(editingId, {
           name: form.name,
           email: form.email,
           role: form.role,
           permissions: form.permissions,
+          ...(promotingToSuperAdmin
+            ? { reason: promotionReason, password: promotionPassword }
+            : {}),
         });
-        toast.success(`${form.name} updated.`);
+        toast.success(
+          promotingToSuperAdmin
+            ? `${form.name} promoted to Super Admin.`
+            : `${form.name} updated.`,
+        );
       } else {
+        // The role select never offers "super_admin" in create mode (see
+        // JSX below), so this narrowing is safe.
         await createAdminUser({
           name: form.name,
           email: form.email,
           password: form.password,
-          role: form.role,
+          role: form.role as CreatableAdminRole,
           permissions: form.permissions,
         });
         toast.success(`Account created for ${form.email}.`);
@@ -251,48 +274,97 @@ export default function AdminUsersPage() {
             <span className="text-sm text-sage">Role</span>
             <select
               value={form.role}
-              onChange={(e) => handleRoleChange(e.target.value as CreatableAdminRole)}
+              onChange={(e) => handleRoleChange(e.target.value as AdminRole)}
               className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
             >
               <option value="door_staff">Door staff (check-in only)</option>
               <option value="organizer">Organizer (full access)</option>
+              {/* Promotion only — never offered at creation, and only a
+                  super_admin can even see this option, since only they can
+                  submit it (backend is the authoritative enforcement). */}
+              {editingId && session.user.role === "super_admin" && (
+                <option value="super_admin">
+                  Super Admin (full access + can manage other admins)
+                </option>
+              )}
             </select>
           </label>
         </div>
 
-        <div>
-          <p className="text-sm text-sage mb-2">
-            Permissions — defaults to the role above, adjust for this person if needed
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-emerald/20 rounded-xl p-4">
-            {PERMISSION_GROUPS.map((group) => (
-              <div key={group.label}>
-                <p className="text-xs uppercase tracking-wide text-sage mb-2">{group.label}</p>
-                <div className="flex flex-col gap-1.5">
-                  {group.keys.map((key) => (
-                    <label key={key} className="flex items-start gap-2 text-sm text-ink">
-                      <input
-                        type="checkbox"
-                        checked={form.permissions.includes(key)}
-                        onChange={() => togglePermission(key)}
-                        className="mt-0.5"
-                      />
-                      {PERMISSION_LABELS[key]}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
+        {form.role === "super_admin" ? (
+          <div className="border border-coral/30 bg-coral/5 rounded-xl p-4 flex flex-col gap-3">
+            <p className="text-sm text-coral-deep">
+              Promoting to Super Admin grants full, unrestricted access to everything —
+              including creating, editing, and deleting other admin accounts. This cannot be
+              undone from this page. Re-enter your password to confirm.
+            </p>
+            <label className="flex flex-col gap-1">
+              <span className="text-sm text-sage">Reason for promotion</span>
+              <textarea
+                required
+                rows={2}
+                value={promotionReason}
+                onChange={(e) => setPromotionReason(e.target.value)}
+                maxLength={500}
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors resize-none"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-sm text-sage">Your password</span>
+              <input
+                type="password"
+                required
+                value={promotionPassword}
+                onChange={(e) => setPromotionPassword(e.target.value)}
+                className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
+              />
+            </label>
           </div>
-        </div>
+        ) : (
+          <div>
+            <p className="text-sm text-sage mb-2">
+              Permissions — defaults to the role above, adjust for this person if needed
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-emerald/20 rounded-xl p-4">
+              {PERMISSION_GROUPS.map((group) => (
+                <div key={group.label}>
+                  <p className="text-xs uppercase tracking-wide text-sage mb-2">{group.label}</p>
+                  <div className="flex flex-col gap-1.5">
+                    {group.keys.map((key) => (
+                      <label key={key} className="flex items-start gap-2 text-sm text-ink">
+                        <input
+                          type="checkbox"
+                          checked={form.permissions.includes(key)}
+                          onChange={() => togglePermission(key)}
+                          className="mt-0.5"
+                        />
+                        {PERMISSION_LABELS[key]}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <button
             type="submit"
             disabled={submitting}
-            className="self-start bg-coral text-white font-semibold px-6 py-2.5 rounded-full hover:bg-coral-deep transition-colors disabled:opacity-50"
+            className={`self-start text-white font-semibold px-6 py-2.5 rounded-full transition-colors disabled:opacity-50 ${
+              form.role === "super_admin"
+                ? "bg-coral-deep hover:bg-gold-deep"
+                : "bg-coral hover:bg-coral-deep"
+            }`}
           >
-            {submitting ? "Saving…" : editingId ? "Save changes" : "Create account"}
+            {submitting
+              ? "Saving…"
+              : form.role === "super_admin"
+                ? "Confirm promotion"
+                : editingId
+                  ? "Save changes"
+                  : "Create account"}
           </button>
           <button
             type="button"
