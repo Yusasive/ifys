@@ -103,7 +103,7 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
               )}
               <div className="mt-4 flex justify-center">
                 <Link
-                  href={`/speakers/${speaker.id}`}
+                  href={`/speakers/${speaker.slug}`}
                   className="inline-flex items-center gap-1 text-sm font-semibold text-coral hover:text-coral-deep transition-colors"
                 >
                   Read full bio →

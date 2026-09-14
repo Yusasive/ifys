@@ -52,6 +52,14 @@ const SAMPLE_SPEAKERS = [
   },
 ];
 
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 async function main() {
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -116,7 +124,12 @@ async function main() {
     const existing = await prisma.speaker.findFirst({
       where: { eventId: event.id, name: speaker.name },
     });
-    const data = { ...speaker, eventId: event.id, displayOrder: index };
+    const data = {
+      ...speaker,
+      eventId: event.id,
+      displayOrder: index,
+      slug: slugify(speaker.name),
+    };
     if (existing) {
       await prisma.speaker.update({ where: { id: existing.id }, data });
     } else {

@@ -8,6 +8,14 @@ import { ListSpeakersQueryDto } from './dto/list-speakers.query';
 import { SpeakerPhotoUploadUrlDto } from './dto/speaker-photo-upload-url.dto';
 import { UpdateSpeakerDto } from './dto/update-speaker.dto';
 
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 @Injectable()
 export class SpeakersService {
   constructor(
@@ -15,6 +23,25 @@ export class SpeakersService {
     private readonly storage: StorageService,
     private readonly auditLog: AuditLogService,
   ) {}
+
+  // Appends -2, -3, ... on collision (same name reused, or two names that
+  // slugify to the same value) so the slug stays unique and readable.
+  private async generateUniqueSlug(
+    name: string,
+    excludeId?: string,
+  ): Promise<string> {
+    const base = slugify(name) || 'speaker';
+    let slug = base;
+    let suffix = 2;
+    while (
+      await this.prisma.speaker.findFirst({
+        where: { slug, ...(excludeId ? { id: { not: excludeId } } : {}) },
+      })
+    ) {
+      slug = `${base}-${suffix++}`;
+    }
+    return slug;
+  }
 
   private async withPhotoUrls<T extends { photoKey: string | null }>(
     speakers: T[],
@@ -54,8 +81,8 @@ export class SpeakersService {
     };
   }
 
-  async getPublic(id: string) {
-    const speaker = await this.prisma.speaker.findUnique({ where: { id } });
+  async getPublicBySlug(slug: string) {
+    const speaker = await this.prisma.speaker.findUnique({ where: { slug } });
     if (!speaker || !speaker.isActive) {
       throw new NotFoundException('Speaker not found');
     }
@@ -101,6 +128,7 @@ export class SpeakersService {
       data: {
         eventId: event.id,
         name: dto.name,
+        slug: await this.generateUniqueSlug(dto.name),
         role: dto.role,
         tag: dto.tag ?? 'Speaker',
         bio: dto.bio,
@@ -130,6 +158,14 @@ export class SpeakersService {
       where: { id },
       data: {
         name: dto.name,
+        // Re-derive the slug whenever the name changes, so it never drifts
+        // out of sync with what's displayed; existing links to the old
+        // slug will 404, but this is an admin-managed lineup, not
+        // long-lived user content.
+        slug:
+          dto.name && dto.name !== existing.name
+            ? await this.generateUniqueSlug(dto.name, id)
+            : undefined,
         role: dto.role,
         tag: dto.tag,
         bio: dto.bio,

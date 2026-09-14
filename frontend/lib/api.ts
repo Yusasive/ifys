@@ -184,6 +184,7 @@ export function verifyRegistrationPayment(registrationId: string, token: string)
 
 export interface Speaker {
   id: string;
+  slug: string;
   name: string;
   role: string;
   tag: string;
@@ -199,8 +200,8 @@ export function listSpeakers(eventSlug: string) {
   );
 }
 
-export function getSpeaker(id: string) {
-  return request<Speaker>(`/speakers/${encodeURIComponent(id)}`);
+export function getSpeaker(slug: string) {
+  return request<Speaker>(`/speakers/${encodeURIComponent(slug)}`);
 }
 
 export type SponsorType = "sponsor" | "partner" | "exhibitor";

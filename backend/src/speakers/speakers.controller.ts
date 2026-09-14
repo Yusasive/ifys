@@ -10,8 +10,8 @@ export class SpeakersController {
     return this.speakers.listPublic(eventSlug);
   }
 
-  @Get(':id')
-  getPublic(@Param('id') id: string) {
-    return this.speakers.getPublic(id);
+  @Get(':slug')
+  getPublic(@Param('slug') slug: string) {
+    return this.speakers.getPublicBySlug(slug);
   }
 }

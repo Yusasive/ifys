@@ -13,11 +13,11 @@ export const dynamic = "force-dynamic";
 export default async function SpeakerPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
 
-  const speaker = await getSpeaker(id).catch((err) => {
+  const speaker = await getSpeaker(slug).catch((err) => {
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;
   });
