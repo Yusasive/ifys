@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Speaker } from "@/lib/api";
 
 export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
@@ -97,6 +98,19 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
               <p className="mt-1 text-sm text-muted text-center">
                 {speaker.role}
               </p>
+              {speaker.bio && (
+                <p className="mt-3 text-sm text-muted text-center line-clamp-3 whitespace-pre-wrap">
+                  {speaker.bio}
+                </p>
+              )}
+              <div className="mt-4 flex justify-center">
+                <Link
+                  href={`/speakers/${speaker.id}`}
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-coral hover:text-coral-deep transition-colors"
+                >
+                  Read full bio →
+                </Link>
+              </div>
             </div>
           ))}
         </div>

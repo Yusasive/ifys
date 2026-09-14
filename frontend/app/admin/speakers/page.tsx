@@ -249,14 +249,28 @@ export default function AdminSpeakersPage() {
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-sage">Bio</span>
+          <span className="text-sm text-sage">
+            Bio{" "}
+            <span className="text-xs text-sage/70">
+              (shown on the speaker&apos;s dedicated page exactly as typed)
+            </span>
+          </span>
           <textarea
             value={form.bio}
             onChange={(e) => setForm({ ...form, bio: e.target.value })}
-            rows={3}
+            rows={6}
             className="border border-emerald/20 rounded-xl px-3 py-2 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
           />
         </label>
+
+        {form.bio && (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm text-sage">Preview</span>
+            <div className="border border-emerald/20 rounded-xl px-3 py-2 bg-emerald/5">
+              <p className="whitespace-pre-wrap text-sm text-ink">{form.bio}</p>
+            </div>
+          </div>
+        )}
 
         <label className="flex flex-col gap-1">
           <span className="text-sm text-sage">Photo</span>

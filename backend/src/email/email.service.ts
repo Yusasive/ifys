@@ -58,7 +58,10 @@ export class EmailService {
   private readonly logoBuffer: Buffer | null;
 
   constructor(config: ConfigService) {
-    this.from = config.getOrThrow<string>('SMTP_FROM');
+    // Explicit display name — without one, mail clients fall back to
+    // whatever name is set on the SMTP_FROM mailbox's own provider profile
+    // (Zoho, here), which isn't necessarily "IFY Summit 2026".
+    this.from = `"IFY Summit 2026" <${config.getOrThrow<string>('SMTP_FROM')}>`;
     const port = Number(config.getOrThrow<string>('SMTP_PORT'));
     const user = config.get<string>('SMTP_USER');
     const password = config.get<string>('SMTP_PASSWORD');
@@ -73,7 +76,9 @@ export class EmailService {
     });
 
     try {
-      this.logoBuffer = readFileSync(join(__dirname, 'assets', 'logo.png'));
+      this.logoBuffer = readFileSync(
+        join(__dirname, 'assets', 'email-logo.png'),
+      );
     } catch (err) {
       // A missing logo asset must not take down transactional email — the
       // shell's <img> just renders broken, which is recoverable, unlike a
@@ -86,7 +91,11 @@ export class EmailService {
   private brandLogoAttachment(): Attachment[] {
     if (!this.logoBuffer) return [];
     return [
-      { filename: 'logo.png', content: this.logoBuffer, cid: 'brand-logo' },
+      {
+        filename: 'email-logo.png',
+        content: this.logoBuffer,
+        cid: 'brand-logo',
+      },
     ];
   }
 

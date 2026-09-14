@@ -54,6 +54,15 @@ export class SpeakersService {
     };
   }
 
+  async getPublic(id: string) {
+    const speaker = await this.prisma.speaker.findUnique({ where: { id } });
+    if (!speaker || !speaker.isActive) {
+      throw new NotFoundException('Speaker not found');
+    }
+    const [withUrl] = await this.withPhotoUrls([speaker]);
+    return withUrl;
+  }
+
   async listAdmin(eventSlug: string, query: ListSpeakersQueryDto) {
     const event = await this.prisma.event.findUnique({
       where: { slug: eventSlug },

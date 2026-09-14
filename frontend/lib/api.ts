@@ -199,6 +199,10 @@ export function listSpeakers(eventSlug: string) {
   );
 }
 
+export function getSpeaker(id: string) {
+  return request<Speaker>(`/speakers/${encodeURIComponent(id)}`);
+}
+
 export type SponsorType = "sponsor" | "partner" | "exhibitor";
 
 export interface Sponsor {
