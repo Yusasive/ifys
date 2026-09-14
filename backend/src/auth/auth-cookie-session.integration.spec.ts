@@ -9,11 +9,6 @@ import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPaidCheckoutFixture } from '../testing/fixtures';
 
-// Phase 1 remediation: admin auth moved from a bearer token in the login
-// response body to an httpOnly cookie, with CSRF double-submit protection
-// and server-side revocation (Redis denylist + tokenVersion). These tests
-// drive the real HTTP layer to prove the new contract end to end rather
-// than unit-testing the guards in isolation.
 describe('Cookie-based admin session (integration)', () => {
   let app: INestApplication;
   let httpServer: App;

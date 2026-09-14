@@ -208,8 +208,6 @@ export class AdminController {
     return this.admin.listAdminUsers(query);
   }
 
-  // Only a super_admin can mint new admin accounts — an organizer alone
-  // must not be able to create other organizer (or super_admin) accounts.
   @Roles('super_admin')
   @Post('users')
   createAdminUser(

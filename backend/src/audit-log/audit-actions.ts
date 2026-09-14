@@ -1,9 +1,3 @@
-// Every action string currently passed to AuditLogService#record() across
-// the codebase, kept here as a single shared list so the admin frontend's
-// audit-log filter dropdown has options that actually match what gets
-// written. Not enforced at the DB or DTO level (AuditLog.action is a plain
-// string) — if you add a new call site with a new action name, add it here
-// too so it shows up as a filter option.
 export const AUDIT_ACTIONS = [
   'mark_paid',
   'resend_ticket',

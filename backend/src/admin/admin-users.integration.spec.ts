@@ -8,9 +8,6 @@ import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { extractSessionToken } from '../testing/fixtures';
 
-// M6 + Phase 4 remediation: only super_admin can provision real accounts
-// without editing the seed script — organizer alone must not be able to
-// mint other organizer (or super_admin) accounts.
 describe('Admin user management (integration)', () => {
   let app: INestApplication;
   let httpServer: App;

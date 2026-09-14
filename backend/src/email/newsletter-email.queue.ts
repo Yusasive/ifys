@@ -15,8 +15,6 @@ interface NewsletterEmailJobData {
   email: string;
 }
 
-// Same reliability rationale as TicketEmailQueue / SponsorApplicationEmailQueue
-// — never block the public subscribe request on an outbound SMTP call.
 @Injectable()
 export class NewsletterEmailQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NewsletterEmailQueue.name);

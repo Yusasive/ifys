@@ -35,15 +35,10 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto): Promise<LoginResult> {
-    // Case-insensitive: LoginDto normalizes the typed email to lowercase,
-    // but a row created before that normalization existed (or created with
-    // stray casing some other way) may still be stored mixed-case —
-    // findUnique would exact-match-fail against it forever otherwise.
     const user = await this.prisma.adminUser.findFirst({
       where: { email: { equals: dto.email, mode: 'insensitive' } },
     });
-    // Deliberately identical error for "no such user" and "wrong password"
-    // — don't let the login endpoint reveal which admin emails exist.
+
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -58,8 +53,6 @@ export class AuthService {
     return this.mintSession(user);
   }
 
-  // Shared by login and changePassword — both need to sign a fresh JWT for
-  // a given AdminUser row and shape it into the same response contract.
   private async mintSession(user: {
     id: string;
     name: string;
@@ -99,8 +92,6 @@ export class AuthService {
     };
   }
 
-  // Denylists the current token's jti until it would have expired anyway —
-  // no point keeping it around longer than the JWT itself is valid for.
   async logout(jti: string, expiresAt: number): Promise<void> {
     const ttlSeconds = expiresAt - Math.floor(Date.now() / 1000);
     if (ttlSeconds <= 0) return;
@@ -112,9 +103,6 @@ export class AuthService {
     return value !== null;
   }
 
-  // Force-invalidates every token issued for this user (e.g. suspected
-  // compromise, or role/password change) by bumping the version every
-  // valid token must match against.
   async revokeAllSessions(userId: string): Promise<void> {
     await this.prisma.adminUser.update({
       where: { id: userId },
@@ -122,8 +110,6 @@ export class AuthService {
     });
   }
 
-  // Used by the void action's re-auth step (TRD §10: short-lived sessions
-  // plus a re-auth step for destructive actions).
   async verifyPassword(userId: string, password: string): Promise<boolean> {
     const user = await this.prisma.adminUser.findUnique({
       where: { id: userId },
@@ -132,12 +118,6 @@ export class AuthService {
     return bcrypt.compare(password, user.passwordHash);
   }
 
-  // Self-service password change — used both for the forced first-login
-  // flow (mustChangePassword) and a voluntary change later. Bumps
-  // tokenVersion (invalidates every other outstanding session for this
-  // user, e.g. one left signed in on another device with the old
-  // password) and immediately mints a replacement so the caller's own
-  // session keeps working instead of being logged out by its own request.
   async changePassword(
     userId: string,
     currentPassword: string,

@@ -20,13 +20,6 @@ interface AdminAccountEmailJobData {
   role: AdminRole;
 }
 
-// Same reliability rationale as TicketEmailQueue: never block the request
-// path — here, an already-privileged super_admin's POST /admin/users —
-// on an outbound SMTP call that may be slow or unreachable. Unlike the
-// other email queues, the job data carries a plaintext temp password
-// (nothing else in this flow retains it — it's hashed immediately on
-// create, never stored), so completed/failed jobs are dropped from Redis
-// right away instead of the default keep-forever behavior.
 @Injectable()
 export class AdminAccountEmailQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AdminAccountEmailQueue.name);

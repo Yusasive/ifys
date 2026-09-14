@@ -28,12 +28,7 @@ import { configValidationSchema } from './config-validation';
       validationSchema: configValidationSchema,
       validationOptions: { abortEarly: false },
     }),
-    // M6 load check: 60/min per IP throttled a burst of legitimate
-    // distinct users sharing one IP (e.g. campus/office WiFi NAT) — real
-    // for this event's audience. Raised to 300/min as the app-wide
-    // default; /checkin/scan keeps its own much stricter 20/min
-    // override, since that limit exists to blunt short-code
-    // brute-forcing, not to manage load.
+
     ThrottlerModule.forRoot({
       throttlers: [{ limit: 300, ttl: 60_000 }],
     }),

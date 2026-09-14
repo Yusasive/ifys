@@ -14,10 +14,6 @@ export interface ActorSummary {
 export class AuditLogService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // TRD §9: every manual action that changes money or ticket state is
-  // written here with actor, action, target, and timestamp — this is
-  // what answers "who marked this as paid and when" during event-week
-  // troubleshooting.
   record(params: {
     actorId: string;
     action: string;
@@ -36,9 +32,6 @@ export class AuditLogService {
     });
   }
 
-  // System-wide read: any actor, any target, filterable by action/actor/date
-  // range. Restricted to super_admin at the controller level — this is
-  // meant for org-wide oversight, not something every admin should see.
   async listSystemWide(query: ListAuditLogQueryDto) {
     const where = this.buildWhere(query);
 
@@ -65,12 +58,6 @@ export class AuditLogService {
     };
   }
 
-  // Personal read: "my activity". actorId always comes from the
-  // authenticated session (the controller passes req.user.sub here) — we
-  // deliberately never read query.actorId in this method. Trusting a
-  // client-supplied actorId for a "my own activity" endpoint would let any
-  // authenticated user (including door_staff) page through anyone else's
-  // audit history just by overriding a query param.
   async listForActor(actorId: string, query: ListAuditLogQueryDto) {
     const where = this.buildWhere({ ...query, actorId: undefined }, actorId);
 

@@ -52,15 +52,10 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private readonly transporter: Transporter;
   private readonly from: string;
-  // Read once at startup rather than per-send — the file never changes at
-  // runtime, and every outgoing email attaches it as the cid:brand-logo
-  // image referenced by email-shell.ts's <img> tag.
+
   private readonly logoBuffer: Buffer | null;
 
   constructor(config: ConfigService) {
-    // Explicit display name — without one, mail clients fall back to
-    // whatever name is set on the SMTP_FROM mailbox's own provider profile
-    // (Zoho, here), which isn't necessarily "IFY Summit 2026".
     this.from = `"IFY Summit 2026" <${config.getOrThrow<string>('SMTP_FROM')}>`;
     const port = Number(config.getOrThrow<string>('SMTP_PORT'));
     const user = config.get<string>('SMTP_USER');
@@ -69,8 +64,7 @@ export class EmailService {
     this.transporter = createTransport({
       host: config.getOrThrow<string>('SMTP_HOST'),
       port,
-      // 465 is SMTPS (implicit TLS); everything else (587, Mailpit's 1025)
-      // negotiates TLS via STARTTLS or runs unencrypted for local dev.
+
       secure: port === 465,
       auth: user && password ? { user, pass: password } : undefined,
     });
@@ -80,9 +74,6 @@ export class EmailService {
         join(__dirname, 'assets', 'email-logo.png'),
       );
     } catch (err) {
-      // A missing logo asset must not take down transactional email — the
-      // shell's <img> just renders broken, which is recoverable, unlike a
-      // failed ticket/confirmation send.
       this.logger.warn(`Could not load brand logo asset: ${String(err)}`);
       this.logoBuffer = null;
     }

@@ -9,11 +9,6 @@ import { AdminRole } from '../generated/prisma/enums';
 import { AuthenticatedRequest } from './jwt-auth.guard';
 import { ROLES_KEY } from './roles.decorator';
 
-// Runs after JwtAuthGuard (see @UseGuards ordering on each route) — reads
-// req.user set by the auth guard, so a missing/invalid token has already
-// been rejected before role scoping is even considered. Door staff (or
-// any role not listed via @Roles(...)) get a 403, never organizer-only
-// data — TRD §11 priority 5.
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}

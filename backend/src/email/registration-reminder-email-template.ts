@@ -12,11 +12,6 @@ export interface RegistrationReminderEmailData {
 export function renderRegistrationPendingPaymentReminderHtml(
   data: RegistrationReminderEmailData,
 ): string {
-  // fullName is user-supplied at registration time — escape it before
-  // interpolating into the HTML (see email-shell.ts's escapeHtml comment).
-  // categoryLabel/tierLabel come from our own label maps, not user input,
-  // but resumeUrl is built from a UUID + token (no free-text), so nothing
-  // else here carries injection risk.
   const safeName = escapeHtml(data.fullName);
   const bodyHtml = `
     <p style="margin:0 0 16px;font-size:22px;">Complete your registration</p>

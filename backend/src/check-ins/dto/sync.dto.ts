@@ -25,10 +25,6 @@ export class QueuedScanDto {
   @MinLength(1)
   stationId!: string;
 
-  // Client device clock — used only as the historical record of when the
-  // physical scan happened, never as the authority for who wins a
-  // conflict (that's server arrival order, since device clocks can't be
-  // trusted for fairness). See CheckInsService.syncOne.
   @IsDateString()
   scannedAt!: string;
 }

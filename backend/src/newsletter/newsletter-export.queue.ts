@@ -37,8 +37,6 @@ function toCsv(
   return `${header}\n${body}\n`;
 }
 
-// Mirrors backend/src/admin/export.queue.ts's pattern (TRD §9: CSV export
-// is a background job, not a synchronous request).
 @Injectable()
 export class NewsletterExportQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NewsletterExportQueue.name);

@@ -11,16 +11,46 @@ const DEV_ADMIN_USERS = [
   { name: 'Dev Door Staff', email: 'doorstaff@ifysummit.ng', password: 'dev-doorstaff-pw', role: 'door_staff' as const },
 ];
 
-// Launch pricing: Student 5k, Regular 7.5k, Professional/Founders/
-// Entrepreneurs 10k. `founder` is kept only so the seed can still deactivate
-// it below — its rows exist purely for historical registrations to resolve
-// against and are never active/selectable.
 const PRICING_KOBO = {
   student: { standard: 500000, premium: 500000 }, // NGN 5,000
   regular: { standard: 750000, premium: 750000 }, // NGN 7,500
   founder: { standard: 1000000, premium: 1000000 }, // NGN 10,000 (retired)
   professional: { standard: 1000000, premium: 1000000 }, // NGN 10,000
 } as const;
+
+// Sample speaker lineup for local development — no photoKey since that
+// requires a real object in the configured storage bucket; the public UI
+// falls back to a placeholder avatar when photoUrl is null.
+const SAMPLE_SPEAKERS = [
+  {
+    name: 'Dr. Amina Yusuf',
+    role: 'Chief Economist, Bank of Industry',
+    tag: 'Keynote Speaker',
+    bio: 'Dr. Amina Yusuf is a leading voice in Islamic finance policy across West Africa. Over the past 15 years she has advised central banks and multilateral institutions on structuring Shariah-compliant instruments that expand access to capital for underserved communities.\n\nShe holds a PhD in Islamic Economics from the International Islamic University Malaysia and speaks regularly at global finance forums.',
+    isActive: true,
+  },
+  {
+    name: 'Ibrahim Suleiman',
+    role: 'Founder & CEO, Halal Ventures',
+    tag: 'Speaker',
+    bio: 'Ibrahim Suleiman builds ethical investment platforms that connect diaspora capital with high-impact ventures across Nigeria. His work sits at the intersection of fintech, faith, and inclusive growth.',
+    isActive: true,
+  },
+  {
+    name: 'Fatima Bello',
+    role: 'Head of Product, TrustFund Pensions',
+    tag: 'Panelist',
+    bio: 'Fatima leads product strategy for Shariah-compliant retirement savings plans, helping design pension products that meet both regulatory requirements and Islamic finance principles.',
+    isActive: true,
+  },
+  {
+    name: 'Yusuf Abdulkarim',
+    role: 'Youth Advocate & Entrepreneur',
+    tag: 'Youth Speaker',
+    bio: 'Yusuf mentors young entrepreneurs on building values-driven businesses. He is the founder of a student-led microfinance initiative that has supported over 200 small businesses in Ilorin.',
+    isActive: true,
+  },
+];
 
 async function main() {
   const prisma = new PrismaClient({
@@ -62,8 +92,7 @@ async function main() {
         },
         update: {
           priceKobo: PRICING_KOBO[category][tier],
-          // `founder` is retired — never (re-)activated by the seed, even
-          // on re-run. Every other category is active.
+  
           isActive: category !== 'founder',
           ...cardFields,
         },
@@ -78,6 +107,20 @@ async function main() {
           ...cardFields,
         },
       });
+    }
+  }
+
+  // Speaker has no natural unique key beyond `id`, so upsert manually by
+  // (eventId, name) to keep re-running the seed idempotent.
+  for (const [index, speaker] of SAMPLE_SPEAKERS.entries()) {
+    const existing = await prisma.speaker.findFirst({
+      where: { eventId: event.id, name: speaker.name },
+    });
+    const data = { ...speaker, eventId: event.id, displayOrder: index };
+    if (existing) {
+      await prisma.speaker.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.speaker.create({ data });
     }
   }
 
@@ -96,6 +139,7 @@ async function main() {
 
   await prisma.$disconnect();
   console.log(`Seeded event "${event.slug}" with 8 ticket products.`);
+  console.log(`Seeded ${SAMPLE_SPEAKERS.length} sample speakers.`);
   console.log('Seeded dev admin users (DEV ONLY, not real credentials):');
   for (const admin of DEV_ADMIN_USERS) {
     console.log(`  ${admin.role}: ${admin.email} / ${admin.password}`);

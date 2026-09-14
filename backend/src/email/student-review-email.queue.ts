@@ -21,11 +21,6 @@ type StudentReviewJobData =
     }
   | { type: 'admin_notify'; registrationId: string };
 
-// Same reliability rationale as the other application-email queues: never
-// block the request path (Paystack webhook settlement, or an organizer's
-// approve/reject click) on an outbound SMTP call. Also fans a single
-// admin-notify job out to every admin flagged for it, rather than the
-// caller having to know the recipient list.
 @Injectable()
 export class StudentReviewEmailQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(StudentReviewEmailQueue.name);

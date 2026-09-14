@@ -67,20 +67,12 @@ describe('CheckInsService offline sync (integration)', () => {
     }
   });
 
-  // TRD §8's core conflict rule: two stations, both offline, both scan
-  // the same ticket. Whichever sync request the server confirms first
-  // wins; the other is flagged for manual review, not silently dropped
-  // or silently accepted as a second valid entry.
   it('resolves two offline stations syncing the same ticket to one winner and one flagged conflict', async () => {
     const fixture = await makeIssuedTicketFixture();
     try {
       const earlierScanTime = new Date(Date.now() - 120_000).toISOString();
       const laterScanTime = new Date(Date.now() - 90_000).toISOString();
 
-      // Station B's sync request arrives at the server first, even
-      // though station A's original scan happened earlier in real time —
-      // this is exactly the scenario the "server-confirmed" rule (not
-      // "device-clock scan time") is designed to resolve deterministically.
       const [resultB, resultA] = await Promise.all([
         checkIns.sync(
           [

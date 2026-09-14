@@ -27,9 +27,7 @@ describe('generateTicketCode', () => {
 
   it('produces distinct codes across many calls', () => {
     const codes = new Set(Array.from({ length: 1000 }, generateTicketCode));
-    // Birthday-bound collisions are possible but astronomically unlikely
-    // at this sample size given the alphabet size — near-total uniqueness
-    // is the meaningful signal here, not a hard guarantee.
+
     expect(codes.size).toBeGreaterThan(990);
   });
 });

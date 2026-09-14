@@ -17,8 +17,6 @@ export interface VerifyTransactionResult {
   currency: string;
 }
 
-// TRD §2: keep the payment integration behind an interface so a different
-// provider can be swapped in later without touching callers.
 export interface PaymentProvider {
   initializeTransaction(
     params: InitializeTransactionParams,

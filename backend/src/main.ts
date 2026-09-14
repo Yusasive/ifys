@@ -11,9 +11,6 @@ async function bootstrap() {
     rawBody: true,
   });
 
-  // Optional, best-effort step — must never be able to stop the API from
-  // starting (an uncaught rejection here, before app.listen(), would crash
-  // the process and fail every health check).
   try {
     await bootstrapSuperAdminIfNeeded(app);
   } catch (err) {
@@ -22,18 +19,13 @@ async function bootstrap() {
     );
   }
 
-  // M6: security headers on every response. Behind a reverse proxy in
-  // production, `trust proxy` is required for req.ip (and therefore
-  // per-client rate limiting) to reflect the real client, not the proxy.
   app.use(helmet());
   app.set('trust proxy', 1);
   app.use(cookieParser());
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3001',
-    // Required for the browser to send/receive the httpOnly session and
-    // CSRF cookies cross-origin (frontend and backend run on different
-    // ports/hosts).
+
     credentials: true,
   });
   app.useGlobalPipes(

@@ -11,8 +11,6 @@ import {
 } from '../testing/fixtures';
 import { TicketsService } from '../tickets/tickets.service';
 
-// TRD §4/§11: check-in is reachable by door_staff or organizer, and the
-// scan endpoint is where §5/§10's rate limiting explicitly applies.
 describe('Check-in role scoping and rate limiting (integration)', () => {
   let app: INestApplication;
   let httpServer: App;
@@ -119,9 +117,6 @@ describe('Check-in role scoping and rate limiting (integration)', () => {
     expect(res.body).toHaveProperty('totalTickets');
   });
 
-  // super_admin is a superset of organizer everywhere else in the admin
-  // API (see admin.controller.ts's @Roles('organizer', 'super_admin'))
-  // — check-in must not be the one place that locks super_admin out.
   it('allows a super admin to read live status counts', async () => {
     const res = await request(httpServer)
       .get('/checkin/status')

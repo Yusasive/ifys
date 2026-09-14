@@ -23,8 +23,6 @@ export class CreateCouponDto {
   @IsEnum(CouponDiscountType)
   discountType!: CouponDiscountType;
 
-  // Percent: 1-100. Fixed: kobo amount off (no upper bound — the checkout
-  // clamps the final price to 0 regardless).
   @IsInt()
   @Min(1)
   @ValidateIf((o: CreateCouponDto) => o.discountType === 'percent')

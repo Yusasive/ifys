@@ -66,10 +66,6 @@ export class PaystackProvider implements PaymentProvider {
     };
   }
 
-  // Paystack signs the raw request body with HMAC-SHA512 using the secret
-  // key; the caller must pass the exact bytes received on the wire (not a
-  // re-serialized JSON.stringify of the parsed body — field order/spacing
-  // differences would break the signature).
   verifyWebhookSignature(
     rawBody: Buffer,
     signatureHeader: string | undefined,
@@ -86,11 +82,6 @@ export class PaystackProvider implements PaymentProvider {
     return timingSafeEqual(expectedBuf, providedBuf);
   }
 
-  // The webhook signature alone proves the request came from Paystack, not
-  // that the transaction really succeeded for the expected amount — so
-  // re-verify server-side before claiming the order (Paystack's
-  // recommended integration pattern; same defense-in-depth as the
-  // Flutterwave provider this replaced).
   async verifyTransaction(reference: string): Promise<VerifyTransactionResult> {
     const secretKey = this.config.getOrThrow<string>('PAYSTACK_SECRET_KEY');
     const res = await fetch(

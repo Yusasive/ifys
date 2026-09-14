@@ -22,8 +22,6 @@ const VARIANT_INTROS: Record<TicketEmailVariant, string> = {
     "Here's your reissued ticket. The QR code and ticket number below are new — any earlier copy of this ticket will no longer scan at the door.",
 };
 
-// QR is attached as a CID image (see email-shell.ts) so it renders in real
-// mail clients (unlike a data: URI, which many block).
 export function renderTicketEmailHtml(data: TicketEmailData): string {
   const eventDate = data.startsAt.toLocaleString('en-NG', {
     dateStyle: 'full',

@@ -12,9 +12,6 @@ import {
   extractSessionToken,
 } from '../testing/fixtures';
 
-// TRD §11 priority 5: door staff must genuinely be unable to reach
-// organizer-only data or actions. This drives real HTTP requests through
-// the full guard chain (JwtAuthGuard -> RolesGuard), not a mocked one.
 describe('Admin role scoping (integration)', () => {
   let app: INestApplication;
   let httpServer: App;
@@ -58,12 +55,6 @@ describe('Admin role scoping (integration)', () => {
     superAdminToken = extractSessionToken(superAdminLogin);
   }, 20000);
 
-  // Generous timeout: app.close() waits for BullMQ workers to finish any
-  // in-flight job, and this file now exercises several email-enqueuing
-  // actions (mark-paid, void, reissue, restore, withdraw) — in this dev
-  // environment without real SMTP, a job can take a while to time out at
-  // the network level (slower than the fast-fail "Invalid login" case)
-  // before the worker is free to close.
   afterAll(async () => {
     await app.close();
   }, 60000);

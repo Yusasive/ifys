@@ -63,10 +63,6 @@ export class RegistrationsService {
     };
   }
 
-  // A ticket counts as "sold" the moment payment succeeds — a student
-  // registration already holds a slot while pending_review, even though it
-  // has no Ticket row yet (see PaymentsService.settleByReference). Counting
-  // paid Orders rather than Tickets keeps that slot counted the whole time.
   private async countTicketsSold(eventId: string): Promise<number> {
     return this.prisma.order.count({
       where: { status: 'paid', registration: { eventId } },
@@ -80,10 +76,6 @@ export class RegistrationsService {
     return { key, uploadUrl };
   }
 
-  // No separate draft-persistence step in M1: the wizard collects state
-  // client-side across steps and this is called once, at final review
-  // submission, creating the registration directly as pending_payment
-  // (there is no payment step yet to gate on — see milestone.md M1).
   async createRegistration(dto: CreateRegistrationDto) {
     try {
       validateRegistrationFormData(dto.category, dto.formData);
@@ -126,17 +118,10 @@ export class RegistrationsService {
       );
     }
 
-    // Validated here (before the registration/order even exists) so the
-    // review step can surface a bad code immediately — but not redeemed
-    // yet; redemptionCount only increments once payment actually succeeds
-    // (see PaymentsService.handlePaystackWebhook).
     const couponId = dto.couponCode
       ? (await this.coupons.findRedeemableCoupon(event.id, dto.couponCode)).id
       : null;
 
-    // A new Attendee row per registration — the same email can register
-    // (and buy multiple tickets) more than once, so attendee identity is
-    // scoped to the registration, not deduplicated globally by email.
     const attendee = await this.prisma.attendee.create({
       data: { fullName: dto.fullName, email: dto.email, phone: dto.phone },
     });
@@ -159,10 +144,6 @@ export class RegistrationsService {
       include: { ticketProduct: true, attendee: true },
     });
 
-    // Every registration starts life pending_payment — queue the one
-    // automatic nudge (delayed 24h) here, at the single call site that
-    // ever creates a registration, rather than trying to catch this from
-    // the payments/webhook side.
     await this.reminderQueue.enqueue(registration.id, {
       delayMs: PENDING_PAYMENT_REMINDER_DELAY_MS,
     });
@@ -175,24 +156,17 @@ export class RegistrationsService {
       where: { id },
       include: { ticketProduct: true, attendee: true, ticket: true },
     });
-    // Same 404 whether the id doesn't exist or the token is wrong/missing
-    // — the id alone must never confirm a registration exists to someone
-    // who doesn't hold its lookup token.
+
     if (!registration || !matchesLookupToken(registration.lookupToken, token)) {
       throw new NotFoundException('Registration not found');
     }
 
-    // lookupToken is intentionally never echoed back once past creation.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { ticket, lookupToken, ...rest } = registration;
     if (!ticket) {
       return { ...rest, ticket: null };
     }
 
-    // Encode the same qrSecret payload the emailed ticket and the
-    // check-in scanner already use (see check-ins.service's qrSecret
-    // lookup) — never expose the raw secret itself to the client, only
-    // the rendered image.
     const qrDataUrl = await QRCode.toDataURL(ticket.qrSecret, {
       margin: 1,
       width: 320,
@@ -207,9 +181,6 @@ export class RegistrationsService {
     };
   }
 
-  // Same auth model as findById: the lookup token is the only thing that
-  // proves the caller is allowed to see this registration's ticket, so a
-  // wrong/missing token gets the same 404 as a nonexistent id.
   async getTicketPdf(
     id: string,
     token: string | undefined,
@@ -309,9 +280,6 @@ export class RegistrationsService {
   }
 }
 
-// Constant-time comparison so a timing side-channel can't help an
-// attacker guess a valid token byte-by-byte. Also used by
-// PaymentsService.createCheckout, which guards the same registration id.
 export function matchesLookupToken(
   stored: string,
   provided: string | undefined,

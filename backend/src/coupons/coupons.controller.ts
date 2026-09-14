@@ -10,9 +10,6 @@ export class CouponsController {
     private readonly prisma: PrismaService,
   ) {}
 
-  // Preview-only: validates the code and previews the discount for the
-  // selected ticket, but does not reserve or redeem anything — used by
-  // the review step before the user submits registration/payment.
   @Post('validate')
   async validate(@Body() dto: ValidateCouponDto) {
     const event = await this.prisma.event.findUnique({

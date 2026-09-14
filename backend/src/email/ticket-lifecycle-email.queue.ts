@@ -18,10 +18,6 @@ interface TicketLifecycleEmailJobData {
   kind: TicketLifecycleKind;
 }
 
-// Informational-only sibling of TicketEmailQueue — void/restore/withdraw
-// never need a PDF/QR (the ticket code doesn't change for restore, and
-// void/withdraw have nothing valid to show), so this is a lighter template
-// than the full ticket email, modeled on StudentReviewEmailQueue.
 @Injectable()
 export class TicketLifecycleEmailQueue
   implements OnModuleInit, OnModuleDestroy

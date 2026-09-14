@@ -8,10 +8,6 @@ export interface TicketLifecycleEmailData {
   supportEmail: string;
 }
 
-// Fixed, generic copy per kind — deliberately does NOT interpolate the
-// admin's free-text reason (kept in the audit log / Ticket.lastActionReason
-// for internal use only), since admin shorthand ("suspected fraud",
-// "chargeback") isn't attendee-appropriate copy.
 const HEADINGS: Record<TicketLifecycleKind, string> = {
   voided: 'Your ticket has been voided',
   restored: 'Your ticket is valid again',

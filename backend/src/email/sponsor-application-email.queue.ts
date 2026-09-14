@@ -20,9 +20,6 @@ interface SponsorApplicationEmailJobData {
   kind: SponsorApplicationEmailKind;
 }
 
-// Same reliability rationale as TicketEmailQueue: never block the request
-// path (public submission, or an organizer's approve/reject click) on an
-// outbound SMTP call.
 @Injectable()
 export class SponsorApplicationEmailQueue
   implements OnModuleInit, OnModuleDestroy

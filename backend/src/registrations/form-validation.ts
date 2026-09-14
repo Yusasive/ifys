@@ -30,9 +30,6 @@ function checkOptionalLinkedin(
   }
 }
 
-// Category-specific required fields, per PRD §6.1 / TRD §3 form_data_json notes.
-// studentIdFileKey references the S3 object key from the signed-upload flow,
-// not the file itself — the registration only ever stores a pointer.
 export function validateRegistrationFormData(
   category: Category,
   formData: unknown,
@@ -54,9 +51,6 @@ export function validateRegistrationFormData(
       requireString(data, 'studentIdFileKey', errors);
       break;
     case 'founder':
-      // Retired category — no longer selectable at registration, but the
-      // validator is kept so any stray/legacy caller doesn't hit an
-      // unhandled case.
       requireString(data, 'startupName', errors);
       requireString(data, 'role', errors);
       requireString(data, 'industry', errors);

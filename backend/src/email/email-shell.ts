@@ -1,18 +1,8 @@
-// Shared table-based, inline-style shell for every transactional email —
-// per design.md §6.4: must render in dark/light clients and stay legible
-// printed in black and white, so no web fonts and no color-only signal.
-// The brand logo is attached as a CID image by EmailService (a `cid:` ref
-// renders reliably across real mail clients, unlike a `data:` URI, which
-// many block) — see EmailService.brandLogoAttachment.
 export const ORANGE = '#E8734A';
 export const INK = '#10201D';
 export const LINE = '#CABB9C';
 export const MUTED = '#6D6353';
 
-// Any user-supplied string interpolated into an email's HTML must go
-// through this first — unescaped, a `<`/`>`/`&` in e.g. a temp password
-// can silently truncate or mangle what actually renders, so what the
-// recipient copies out doesn't match what was hashed and stored.
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')

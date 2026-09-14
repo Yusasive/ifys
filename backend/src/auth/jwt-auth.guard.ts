@@ -51,12 +51,6 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Session has been revoked');
     }
 
-    // Permissions aren't signed into the JWT — they're read fresh on every
-    // request (piggybacking on the tokenVersion lookup already happening
-    // here), so a super_admin editing someone's permissions takes effect on
-    // that admin's very next request without forcing a re-login. Only a
-    // `role` change still needs a tokenVersion bump, since `role` itself is
-    // a JWT claim that drives RolesGuard.
     request.user = {
       ...payload,
       permissions: getEffectivePermissions(user),

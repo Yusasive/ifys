@@ -15,9 +15,6 @@ import { matchesLookupToken } from '../registrations/registrations.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { PaystackProvider } from './paystack.provider';
 
-// Early-bird discount is admin-managed on the ticket product itself
-// (discountPercent + discountExpiresAt) and, unlike a coupon, applies
-// automatically — no code needed — as long as it hasn't expired yet.
 function earlyBirdDiscountKobo(
   ticketProduct: {
     discountPercent: number | null;
@@ -70,11 +67,6 @@ export class PaymentsService {
       );
     }
 
-    // Never trust a client-supplied amount (TRD §6) — always derive it
-    // server-side from the ticket product the registration was created
-    // against, plus whatever discounts still validly apply at this
-    // moment (early-bird may have expired, or a coupon may have been
-    // deactivated, since the registration was created).
     const basePrice = registration.ticketProduct.priceKobo;
     const earlyBirdOff = earlyBirdDiscountKobo(
       registration.ticketProduct,
@@ -84,10 +76,6 @@ export class PaymentsService {
 
     let couponOff = 0;
     if (registration.couponId) {
-      // Re-validate rather than trusting the snapshot from registration
-      // time — the coupon could have expired, been deactivated, or hit
-      // its redemption cap in the meantime. If so, it silently just
-      // doesn't apply rather than blocking checkout.
       const coupon = await this.coupons
         .findRedeemableCoupon(registration.eventId, registration.coupon!.code)
         .catch(() => null);
@@ -117,9 +105,6 @@ export class PaymentsService {
       data: { discountAppliedKobo: totalDiscount },
     });
 
-    // Order.registrationId is unique — at most one order per registration
-    // ever. Re-checkout (abandoned payment, retry) regenerates the
-    // provider reference on the same row rather than creating a new one.
     await this.prisma.order.upsert({
       where: { registrationId: registration.id },
       update: {
@@ -162,12 +147,6 @@ export class PaymentsService {
     return { received: true };
   }
 
-  // Client-triggered fallback for when the webhook never arrives (wrong
-  // URL registered on Paystack's side, delivery failure, a slow/duplicate
-  // retry, etc.) — the confirmation page calls this on load instead of
-  // relying purely on the webhook to have already settled the order.
-  // Re-verifying directly with Paystack (not trusting the client) makes
-  // this safe to expose to anyone holding the registration's lookup token.
   async verifyRegistrationPayment(registrationId: string, token?: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id: registrationId },
@@ -192,16 +171,7 @@ export class PaymentsService {
     return { status: fresh.status };
   }
 
-  // Shared by the webhook and the client-triggered fallback above — both
-  // ultimately just want "go check with Paystack and settle this
-  // reference if it's really paid," so there's exactly one place that
-  // does the verify-then-claim dance.
   private async settleByReference(reference: string): Promise<void> {
-    // The caller (webhook signature, or the registration's own lookup
-    // token) only proves the request is legitimate, not that the
-    // transaction really succeeded for the expected amount — so always
-    // re-verify server-side before claiming the order (Paystack's
-    // recommended integration pattern).
     const verified = await this.paystack.verifyTransaction(reference);
     if (!verified.successful || verified.reference !== reference) {
       this.logger.warn(
@@ -218,15 +188,6 @@ export class PaymentsService {
       return;
     }
 
-    // Only underpayment is rejected — a discount-calc bug, a
-    // downgraded/tampered Paystack transaction, or a stale reference
-    // reused for a cheaper item must never reach the ticket-issuing code
-    // path below. Overpayment is allowed through: Paystack adds its own
-    // fee on top of the requested amount for some channels (international
-    // cards, certain bank transfers), which is legitimate and gains an
-    // attacker nothing, so blocking it only creates stuck orders for
-    // paying customers. amountMinor is updated to what was actually
-    // collected so the record matches reality.
     if (verified.amountMinor < order.amountMinor) {
       await this.prisma.order.updateMany({
         where: { providerReference: reference, status: 'pending' },
@@ -237,12 +198,6 @@ export class PaymentsService {
       );
       return;
     }
-
-    // Atomic claim: this UPDATE only affects a row still in `pending`
-    // status. A duplicate delivery of the same webhook event, a
-    // concurrently racing client-triggered verify, or both firing at
-    // once — whichever loses the race finds the row already `paid` and
-    // gets count 0, treated as an idempotent no-op.
     const claim = await this.prisma.order.updateMany({
       where: { providerReference: reference, status: 'pending' },
       data: {
@@ -264,17 +219,9 @@ export class PaymentsService {
       include: { ticketProduct: true },
     });
     if (registration.couponId) {
-      // Only now — payment confirmed — does the coupon actually get
-      // spent. An abandoned checkout never reaches this point.
       await this.coupons.redeem(registration.couponId);
     }
 
-    // Student-category registrations don't get a ticket issued yet — the
-    // payment is real and the slot counts as sold (see
-    // RegistrationsService.createRegistration's capacity check), but the
-    // uploaded student ID needs an admin's eyes before a Ticket exists.
-    // See AdminService.approveStudentRegistration/rejectStudentRegistration
-    // for how this status resolves.
     if (registration.ticketProduct.category === 'student') {
       await this.prisma.registration.update({
         where: { id: registration.id },

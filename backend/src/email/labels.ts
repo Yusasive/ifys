@@ -8,7 +8,7 @@ import {
 export const CATEGORY_LABELS: Record<Category, string> = {
   student: 'Student',
   regular: 'Regular',
-  // Retired — see the `founder` comment in schema.prisma's Category enum.
+
   founder: 'Founder / Entrepreneur',
   professional: 'Professional / Founders / Entrepreneurs',
 };

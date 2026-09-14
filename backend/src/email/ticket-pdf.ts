@@ -7,25 +7,17 @@ const ORANGE = '#E8734A';
 const INK = '#10201D';
 const MUTED = '#6D6353';
 
-// Loaded once and cached — same brand logo PNG the email shell attaches
-// as cid:brand-logo (see email.service.ts), just also usable here by any
-// caller that needs a standalone PDF (the ticket-email queue and the
-// GET /registrations/:id/ticket.pdf download endpoint both do).
 let cachedLogo: Buffer | null | undefined;
 function loadBrandLogo(): Buffer | null {
   if (cachedLogo !== undefined) return cachedLogo;
   try {
-    cachedLogo = readFileSync(join(__dirname, 'assets', 'logo.png'));
+    cachedLogo = readFileSync(join(__dirname, 'assets', 'email-logo.png'));
   } catch {
     cachedLogo = null;
   }
   return cachedLogo;
 }
 
-// A4-ish single-page ticket: orange header band with the brand logo, then
-// attendee/event details, then the QR code + short code to scan/read at
-// the door. Built with pdfkit (pure JS, no headless-browser dependency)
-// so it runs the same in the email worker as anywhere else in the process.
 export function generateTicketPdf(
   data: TicketEmailData,
   qrPngBuffer: Buffer,
@@ -46,8 +38,8 @@ export function generateTicketPdf(
       try {
         doc.image(logoPngBuffer, pageWidth / 2 - 60, 24, { width: 120 });
       } catch {
-        // Logo is optional cosmetic — a broken/missing asset must not fail
-        // ticket generation for a paying attendee.
+        // A corrupt/unreadable logo buffer must not break ticket PDF
+        // generation — worst case the header band just has no logo.
       }
     }
     doc

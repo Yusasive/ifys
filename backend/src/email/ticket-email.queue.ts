@@ -19,10 +19,6 @@ interface TicketEmailJobData {
   variant: TicketEmailVariant;
 }
 
-// TRD §2: Redis-backed job queue so ticket email/QR generation never
-// blocks the payment webhook response. The worker runs in-process for
-// M2 — splitting it into a separate worker process is a deploy-topology
-// change, not a code change, if load ever requires it.
 @Injectable()
 export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TicketEmailQueue.name);
@@ -57,11 +53,6 @@ export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
     this.connection.disconnect();
   }
 
-  // variant defaults to 'issued' so existing call sites (markPaid,
-  // approveStudentRegistration) need no changes; resendTicket passes
-  // 'resent', AdminService.reissueTicket passes 'reissued' — see
-  // TicketEmailVariant / VARIANT_INTROS in ticket-email-template.ts for
-  // the copy differences.
   async enqueue(ticketId: string, variant: TicketEmailVariant = 'issued') {
     await this.queue.add('send', { ticketId, variant });
   }
@@ -94,8 +85,7 @@ export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
         startsAt: registration.event.startsAt,
         ticketCode: ticket.ticketCode,
         ticketId: ticket.id,
-        // No fallback: an event-day ticket must carry a real support
-        // contact, not a placeholder nobody reads (M6 exit criteria).
+
         supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
         variant: job.data.variant,
       },

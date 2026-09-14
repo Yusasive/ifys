@@ -70,9 +70,7 @@ export function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
               <div className="speaker-card-frame rounded-2xl p-2.5 border border-line/60">
                 <div className="aspect-square rounded-xl bg-ink/85 flex items-center justify-center overflow-hidden relative">
                   {speaker.photoUrl ? (
-                    // unoptimized: photoUrl is a short-lived signed S3/R2
-                    // URL (see sponsors-section.tsx for why the image
-                    // proxy is skipped here).
+              
                     <Image
                       src={speaker.photoUrl}
                       alt={speaker.name}

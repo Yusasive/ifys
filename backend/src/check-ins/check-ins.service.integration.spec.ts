@@ -123,9 +123,6 @@ describe('CheckInsService.scan (integration)', () => {
     }
   });
 
-  // TRD §11 priority 2, re-verified at the check-in layer per M4's exit
-  // criteria: two stations scanning the same code within the same second
-  // must resolve to exactly one valid_first_use.
   it('resolves concurrent simultaneous scans of the same code to exactly one valid_first_use', async () => {
     const fixture = await makeIssuedTicketFixture();
     try {

@@ -133,11 +133,6 @@ export class CouponsService {
     return { deleted: true };
   }
 
-  // Shared validity check used both by the public preview endpoint and by
-  // registration creation — a coupon is redeemable if it's active, not
-  // expired, and under its redemption cap. Redemption count is only
-  // incremented once payment actually succeeds (see PaymentsService), so
-  // this never counts abandoned checkouts against the cap.
   async findRedeemableCoupon(eventId: string, code: string): Promise<Coupon> {
     const coupon = await this.prisma.coupon.findUnique({
       where: { eventId_code: { eventId, code: code.trim().toUpperCase() } },

@@ -5,24 +5,10 @@ import { PrismaService } from './prisma/prisma.service';
 
 const logger = new Logger('BootstrapAdmin');
 
-// Fill these in with the real super_admin credentials before pushing to
-// production, then revert this file (or at least blank the password back
-// out) once the account exists — it's only read on the one boot where
-// admin_users is empty, and it sits in plaintext in git history otherwise.
 const BOOTSTRAP_ADMIN_NAME: string = 'Yusuf Abdullahi';
 const BOOTSTRAP_ADMIN_EMAIL: string = 'yusufabdullahi2910@gmail.com';
 const BOOTSTRAP_ADMIN_PASSWORD: string = 'Yusasive2910@';
 
-// Runs on every boot (see main.ts). POST /admin/users itself requires an
-// existing super_admin (see AdminController) — so nothing in the app can
-// create the very first account. This closes that gap without any new
-// infra: on boot, if BOOTSTRAP_ADMIN_EMAIL doesn't already have a row,
-// create one from the constants above. Gated on that specific email,
-// not on admin_users being empty overall — an unrelated row (a dev seed
-// run against this DB, an earlier partial attempt) must not block this
-// account from ever getting created. Once the row exists, every later
-// boot is a no-op — safe to leave this file in place (though you should
-// still blank the password out once it's used).
 export async function bootstrapSuperAdminIfNeeded(app: INestApplication) {
   if (
     BOOTSTRAP_ADMIN_EMAIL === 'CHANGE_ME@example.com' ||
@@ -38,16 +24,9 @@ export async function bootstrapSuperAdminIfNeeded(app: INestApplication) {
   }
 
   const prisma = app.get(PrismaService);
-  // Email is stored/looked-up lowercase everywhere else (see
-  // NormalizeEmail + auth.service.login's case-insensitive match) — match
-  // that here too, whatever casing was typed into the constant above.
+
   const email = BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase();
 
-  // Never let a bootstrap hiccup (a transient DB error, a unique-violation
-  // race with another instance, anything) block the app from starting —
-  // this whole function only ever runs before app.listen() in main.ts, so
-  // an uncaught rejection here would crash the process before it can even
-  // serve a health check.
   try {
     const existing = await prisma.adminUser.findFirst({
       where: { email: { equals: email, mode: 'insensitive' } },

@@ -13,18 +13,12 @@ import { EmailService } from './email.service';
 
 const QUEUE_NAME = 'registration-reminder-emails';
 
-// A pending-payment registration gets exactly one automatic nudge, 24h
-// after it was created — long enough that a still-mid-checkout attendee
-// isn't nagged, short enough to matter before the event fills up.
 export const PENDING_PAYMENT_REMINDER_DELAY_MS = 24 * 60 * 60 * 1000;
 
 interface RegistrationReminderEmailJobData {
   registrationId: string;
 }
 
-// Same reliability rationale as every other transactional email queue in
-// this app: never block a request (registration creation, or an
-// organizer's manual "send reminder" click) on an outbound SMTP call.
 @Injectable()
 export class RegistrationReminderEmailQueue
   implements OnModuleInit, OnModuleDestroy
@@ -77,11 +71,6 @@ export class RegistrationReminderEmailQueue
       include: { attendee: true, ticketProduct: true, event: true },
     });
 
-    // Re-check at send time, not just at enqueue time — by the time a
-    // 24h-delayed job runs (or an organizer's immediate one races with
-    // something else), the registration may already be paid or cancelled.
-    // Sending "complete your payment" to an already-resolved registration
-    // would be actively wrong, so this is a required guard, not a nicety.
     if (registration.status !== 'pending_payment') {
       this.logger.debug(
         `Skipping reminder for registration ${registration.id}: status is ${registration.status}, not pending_payment`,

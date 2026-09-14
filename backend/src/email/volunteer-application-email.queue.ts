@@ -21,9 +21,6 @@ interface VolunteerApplicationEmailJobData {
   reason?: string;
 }
 
-// Same reliability rationale as the other application-email queues: never
-// block the request path (public submission, or an organizer's
-// approve/reject click) on an outbound SMTP call.
 @Injectable()
 export class VolunteerApplicationEmailQueue
   implements OnModuleInit, OnModuleDestroy

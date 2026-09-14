@@ -17,9 +17,6 @@ import { SyncDto } from './dto/sync.dto';
 export class CheckInsController {
   constructor(private readonly checkIns: CheckInsService) {}
 
-  // TRD §5/§10: rate limited specifically to blunt short-code
-  // brute-forcing — generous enough for a volunteer scanning quickly,
-  // tight enough that guessing through the code space isn't practical.
   @RequirePermissions('checkin.scan')
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('scan')
@@ -32,9 +29,6 @@ export class CheckInsController {
     return this.checkIns.getStatus();
   }
 
-  // TRD §8: downloaded once a station comes online, then relied on while
-  // offline. Not throttled like /scan — this is a full snapshot fetched
-  // occasionally, not a per-guess request.
   @RequirePermissions('checkin.scan')
   @Get('offline-index')
   getOfflineIndex() {

@@ -33,16 +33,11 @@ function makeEmailQueueSpy() {
   return { emailQueue, enqueueMock };
 }
 
-// Not under test here (no student-category fixtures in this file) — just
-// satisfies PaymentsService's constructor.
 const studentReviewEmailQueue = {
   enqueue: jest.fn().mockResolvedValue(undefined),
   enqueueAdminNotify: jest.fn().mockResolvedValue(undefined),
 } as unknown as StudentReviewEmailQueue;
 
-// Paystack's recommended integration re-verifies every webhook against
-// their API rather than trusting the payload — so these tests stub
-// `fetch` to stand in for that call instead of hitting the real API.
 function stubVerifyFetch(response: {
   status: string;
   reference: string;
@@ -158,9 +153,6 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
     }
   });
 
-  // TRD §11 priority 1: a webhook firing twice concurrently — not just
-  // sequentially — must still issue exactly one ticket and send exactly
-  // one email.
   it('resolves concurrent duplicate deliveries to exactly one ticket and one email', async () => {
     const fixture = await createPaidCheckoutFixture(prisma);
     try {
@@ -276,10 +268,6 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
     }
   });
 
-  // Phase 3 remediation: a verified-but-mismatched amount must be held for
-  // review, never silently issue a ticket — this is the regression test
-  // for the bug where the mismatch was only logged as a warning while the
-  // order was already claimed `paid` beforehand.
   it('holds the order for review and never issues a ticket when the verified amount does not match', async () => {
     const fixture = await createPaidCheckoutFixture(prisma);
     try {
@@ -324,10 +312,6 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
     }
   });
 
-  // Paystack adds its own fee on top of the requested amount for some
-  // channels (international cards, certain bank transfers) — that's
-  // legitimate and gains an attacker nothing, so it must settle normally
-  // rather than getting stuck exactly like an underpayment would.
   it('settles the order and issues a ticket when the verified amount is higher than expected', async () => {
     const fixture = await createPaidCheckoutFixture(prisma);
     try {

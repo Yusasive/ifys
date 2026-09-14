@@ -107,8 +107,6 @@ export class AdminService {
       throw new NotFoundException('Registration not found');
     }
 
-    // Signed URL generated fresh on each detail view — never store or
-    // expose a long-lived/public link to the uploaded ID (TRD §10).
     const studentIdSignedUrl = registration.studentIdFileUrl
       ? await this.storage.getDownloadUrl(registration.studentIdFileUrl)
       : null;
@@ -160,10 +158,6 @@ export class AdminService {
     };
   }
 
-  // Reuses the exact same ticket-issuance path as the webhook (TRD §6:
-  // "one single function that creates a ticket, not two divergent
-  // implementations"), just claiming payment manually instead of via a
-  // verified Paystack callback — e.g. a bank transfer reconciled by hand.
   async markPaid(registrationId: string, actorId: string, reason: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id: registrationId },
@@ -211,9 +205,6 @@ export class AdminService {
     return { ticket };
   }
 
-  // Reuses the exact same ticket-issuance path as markPaid/the webhook —
-  // approving a student registration just means "the payment is confirmed
-  // and the ID has now been verified, so issue the ticket we withheld."
   async approveStudentRegistration(registrationId: string, actorId: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id: registrationId },
@@ -240,12 +231,6 @@ export class AdminService {
     return { ticket };
   }
 
-  // Payment already succeeded by the time a registration reaches
-  // pending_review, so rejecting it doesn't undo the charge — it just
-  // stops a ticket from ever being issued and points the attendee at
-  // support for a manual refund (no Paystack refund API integration
-  // exists in this codebase). Password-gated like voidTicket/
-  // cancelRegistration since it's a destructive action on a paid record.
   async rejectStudentRegistration(
     registrationId: string,
     actorId: string,
@@ -289,9 +274,6 @@ export class AdminService {
     return updated;
   }
 
-  // Reuses the existing ticketCode/qrSecret — a resend must never mint a
-  // new code, or an old printed copy and the resent copy would stop
-  // agreeing with each other (TRD §7).
   async resendTicket(registrationId: string, actorId: string) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { registrationId },
@@ -359,10 +341,6 @@ export class AdminService {
     return { ticket: voided };
   }
 
-  // Regenerates the ticketCode/qrSecret for an already-issued ticket — e.g.
-  // the attendee lost their copy or the QR was compromised. The old code
-  // stops working the moment this returns, since it's the same DB row with
-  // a new code, not a second ticket.
   async reissueTicket(registrationId: string, actorId: string, reason: string) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { registrationId },
@@ -395,16 +373,11 @@ export class AdminService {
       metadata: { reason },
     });
 
-    // The attendee needs the actual new PDF/QR, not just a notification —
-    // reuses the full ticket-email pipeline, not the lightweight lifecycle
-    // one.
     await this.emailQueue.enqueue(reissued.id, 'reissued');
 
     return { ticket: reissued };
   }
 
-  // Un-voids a ticket, restoring the SAME ticketCode/qrSecret (unlike
-  // reissue, which mints a new one) — e.g. it was voided in error.
   async restoreTicket(registrationId: string, actorId: string, reason: string) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { registrationId },
@@ -417,9 +390,6 @@ export class AdminService {
       throw new ConflictException('This ticket is not void.');
     }
 
-    // A ticket that was scanned in, then voided, must come back as `used`
-    // (not `unused`) — otherwise restoring it would make it scannable a
-    // second time.
     const restoredStatus = ticket.checkIns.length > 0 ? 'used' : 'unused';
 
     const restored = await this.prisma.ticket.update({
@@ -446,9 +416,6 @@ export class AdminService {
     return { ticket: restored };
   }
 
-  // Revokes a previously-reissued ticket — ends in the same `void` status
-  // as voidTicket, but is only offered/allowed on a ticket whose last
-  // action was a reissue (use voidTicket for the general case).
   async withdrawTicket(
     registrationId: string,
     actorId: string,
@@ -499,10 +466,6 @@ export class AdminService {
     return { ticket: withdrawn };
   }
 
-  // The soft-delete counterpart to voidTicket: cancels a registration that
-  // never got paid, so it stops appearing as an open pending order (and,
-  // like void, requires re-entering the current password — TRD §10's
-  // re-auth step for destructive actions).
   async cancelRegistration(
     id: string,
     actorId: string,
@@ -542,9 +505,6 @@ export class AdminService {
     return updated;
   }
 
-  // Immediate (undelayed) send of the same reminder email that's
-  // otherwise auto-queued 24h after registration — lets an organizer
-  // manually nudge someone without waiting for the scheduled job.
   async sendPendingPaymentReminder(id: string, actorId: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id },
@@ -578,15 +538,7 @@ export class AdminService {
     return this.exportQueue.getStatus(jobId);
   }
 
-  // M6: door staff need real accounts provisioned before event day —
-  // this replaces "edit the seed script and redeploy" with an actual
-  // organizer-facing action, audit-logged like every other admin action
-  // that changes who can do what.
   async createAdminUser(dto: CreateAdminUserDto, actorId: string) {
-    // Case-insensitive: dto.email is already lowercased by
-    // CreateAdminUserDto's @NormalizeEmail, but check case-insensitively
-    // anyway so this can't create a case-variant duplicate of a row that
-    // predates that normalization.
     const existing = await this.prisma.adminUser.findFirst({
       where: { email: { equals: dto.email, mode: 'insensitive' } },
     });
@@ -600,8 +552,7 @@ export class AdminService {
         email: dto.email,
         passwordHash: await bcrypt.hash(dto.password, 10),
         role: dto.role,
-        // Explicit snapshot (not left empty) so it's independently editable
-        // per person from here on, per getEffectivePermissions' contract.
+
         permissions: dto.permissions ?? ROLE_DEFAULT_PERMISSIONS[dto.role],
         mustChangePassword: true,
       },
@@ -615,13 +566,6 @@ export class AdminService {
       metadata: { email: user.email, role: user.role },
     });
 
-    // Queued, not awaited inline — the account exists either way, and a
-    // slow/unreachable SMTP server must never delay this response (this
-    // endpoint is called synchronously from the admin dashboard). Same
-    // rationale as every other transactional email in this app; see
-    // AdminAccountEmailQueue for why this one additionally drops the job
-    // from Redis immediately instead of the default keep-forever behavior
-    // (its payload carries the plaintext temp password).
     try {
       await this.adminAccountEmailQueue.enqueue({
         name: user.name,
@@ -676,10 +620,7 @@ export class AdminService {
     if (!existing) {
       throw new NotFoundException('Admin user not found');
     }
-    // An existing super_admin row is still never editable/demotable through
-    // this endpoint (seed/bootstrap-only from here on out) — the only
-    // super_admin-related thing this method ever does is PROMOTE an
-    // organizer/door_staff up to it, one-way, below.
+
     if (existing.role === 'super_admin') {
       throw new ForbiddenException(
         'super_admin accounts cannot be modified through this endpoint',
@@ -688,10 +629,6 @@ export class AdminService {
 
     const promotingToSuperAdmin = dto.role === 'super_admin';
     if (promotingToSuperAdmin) {
-      // Re-verify the ACTING super_admin's own password — the same re-auth
-      // requirement as the ticket lifecycle's most destructive actions
-      // (void/withdraw), since minting a new super_admin is the single
-      // highest-privilege action in the system.
       const passwordOk = await this.auth.verifyPassword(actorId, dto.password!);
       if (!passwordOk) {
         throw new UnauthorizedException('Incorrect password');
@@ -710,10 +647,7 @@ export class AdminService {
     }
 
     const roleChanged = dto.role !== undefined && dto.role !== existing.role;
-    // If the role changes and the caller didn't also specify a new
-    // permission set, reset to the new role's defaults — otherwise a
-    // demoted account (e.g. organizer -> door_staff) would silently keep
-    // its old, broader permissions array.
+
     const permissions =
       dto.permissions ??
       (roleChanged ? ROLE_DEFAULT_PERMISSIONS[dto.role!] : undefined);
@@ -729,10 +663,6 @@ export class AdminService {
       },
     });
 
-    // A role change must take effect immediately, not next time their JWT
-    // happens to expire — bump tokenVersion so their current session (still
-    // carrying the old role claim) is rejected on its next request and they
-    // have to log in again to get a token reflecting the new role.
     if (roleChanged) {
       await this.auth.revokeAllSessions(id);
     }

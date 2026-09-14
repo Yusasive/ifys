@@ -1,8 +1,5 @@
 import * as Joi from 'joi';
 
-// Fails fast at boot with a clear error naming the missing/invalid key,
-// instead of the previous behavior where a missing secret only surfaced
-// as a `getOrThrow` crash on the first request that happened to need it.
 export const configValidationSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid('development', 'test', 'production')
@@ -15,8 +12,7 @@ export const configValidationSchema = Joi.object({
   S3_ENDPOINT: Joi.string().uri().required(),
   S3_REGION: Joi.string().required(),
   S3_BUCKET: Joi.string().required(),
-  // Optional: production relies on the ECS task role via the AWS SDK's
-  // default credential chain instead of static keys (see storage.service.ts).
+
   S3_ACCESS_KEY_ID: Joi.string().optional(),
   S3_SECRET_ACCESS_KEY: Joi.string().optional(),
   S3_FORCE_PATH_STYLE: Joi.string().valid('true', 'false').default('false'),

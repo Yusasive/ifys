@@ -31,10 +31,6 @@ describe('TicketsService.issueTicketForRegistration (integration)', () => {
     }
   });
 
-  // TRD §11 priority 2: concurrent/simultaneous issuance for the same
-  // registration must resolve to exactly one ticket — this is the same
-  // invariant a duplicate webhook delivery or two racing admin actions
-  // would need to hold.
   it('resolves concurrent simultaneous calls to exactly one ticket', async () => {
     const fixture = await createPaidCheckoutFixture(prisma);
     try {
