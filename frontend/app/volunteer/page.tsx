@@ -1,8 +1,13 @@
+import { Metadata } from "next";
 import { fetchVolunteerApplicationStatus } from "@/lib/api";
 import { SiteHeader } from "../site-header";
 import { FormBackButton } from "../form-back-button";
 import { StatusCard } from "../status-card";
 import { VolunteerForm } from "./volunteer-form";
+
+export const metadata: Metadata = {
+  title: "Volunteer",
+};
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 

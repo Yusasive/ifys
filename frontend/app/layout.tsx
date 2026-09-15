@@ -41,7 +41,10 @@ const siteUrl = "https://ifysummit.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title,
+  title: {
+    default: title,
+    template: `%s | ${title}`,
+  },
   description,
   openGraph: {
     title,

@@ -1,9 +1,14 @@
+import { Metadata } from "next";
 import { fetchTicketProducts } from "@/lib/api";
 import { RegistrationWizard } from "./registration-wizard";
 import { RegisterBackButton } from "./register-back-button";
 import { SiteFooter } from "../site-footer";
 import { StatusCard } from "../status-card";
 import { TicketsRemaining } from "../tickets-remaining";
+
+export const metadata: Metadata = {
+  title: "Register",
+};
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 

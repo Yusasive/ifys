@@ -1,6 +1,11 @@
 import { Suspense } from "react";
+import { Metadata } from "next";
 import { ConfirmationClient } from "./confirmation-client";
 import { FormBackButton } from "../../form-back-button";
+
+export const metadata: Metadata = {
+  title: "Registration Confirmed",
+};
 
 export const dynamic = "force-dynamic";
 

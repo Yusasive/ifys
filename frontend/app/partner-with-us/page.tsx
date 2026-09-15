@@ -1,8 +1,13 @@
+import { Metadata } from "next";
 import { fetchSponsorApplicationStatus } from "@/lib/api";
 import { SiteHeader } from "../site-header";
 import { FormBackButton } from "../form-back-button";
 import { StatusCard } from "../status-card";
 import { SponsorForm } from "./sponsor-form";
+
+export const metadata: Metadata = {
+  title: "Partner With Us",
+};
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 

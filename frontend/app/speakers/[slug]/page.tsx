@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ApiError, getSpeaker } from "@/lib/api";
 import { SiteHeader } from "../../site-header";
@@ -10,11 +11,23 @@ import { FormBackButton } from "../../form-back-button";
 // be rendered per-request rather than statically.
 export const dynamic = "force-dynamic";
 
-export default async function SpeakerPage({
+type SpeakerPageParams = { params: Promise<{ slug: string }> };
+
+// Gives each speaker's page its own browser-tab title instead of the
+// generic site title, so it reads as that speaker's dedicated page.
+export async function generateMetadata({
   params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+}: SpeakerPageParams): Promise<Metadata> {
+  const { slug } = await params;
+  const speaker = await getSpeaker(slug).catch(() => null);
+  if (!speaker) return { title: "Speaker Not Found" };
+  return {
+    title: speaker.name,
+    description: speaker.bio ?? `${speaker.name} — ${speaker.role}`,
+  };
+}
+
+export default async function SpeakerPage({ params }: SpeakerPageParams) {
   const { slug } = await params;
 
   const speaker = await getSpeaker(slug).catch((err) => {
@@ -65,7 +78,7 @@ export default async function SpeakerPage({
               // it (line breaks and spacing included) instead of collapsing
               // it, so the admin-side textarea is a true WYSIWYG preview of
               // this page.
-              <p className="whitespace-pre-wrap font-plex text-base sm:text-lg leading-relaxed text-ink">
+              <p className="whitespace-pre-wrap font-sans text-base sm:text-lg leading-relaxed text-ink">
                 {speaker.bio}
               </p>
             ) : (
