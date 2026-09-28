@@ -73,7 +73,15 @@ async function main() {
 
   const event = await prisma.event.upsert({
     where: { slug: 'ify-summit-2026' },
-    update: {},
+    // Re-applied on every seed run so edits to these fields here (e.g. the
+    // Nov 7 -> Nov 5 date correction) actually reach an event row that
+    // already exists, instead of silently only taking effect on first
+    // creation.
+    update: {
+      name: 'Islamic Finance Youth Summit 2026',
+      venue: 'Ilorin Innovation Hub, Multipurpose Hall',
+      startsAt: new Date('2026-11-05T09:00:00+01:00'),
+    },
     create: {
       orgId: org.id,
       name: 'Islamic Finance Youth Summit 2026',
