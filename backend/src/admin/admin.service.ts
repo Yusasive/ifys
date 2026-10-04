@@ -24,6 +24,7 @@ import { ListAdminUsersQueryDto } from './dto/list-admin-users.query';
 import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
+import { getCategoryAvailability } from '../registrations/category-availability';
 import { ExportQueue } from './export.queue';
 
 @Injectable()
@@ -725,17 +726,25 @@ export class AdminService {
   async getEventSettings(eventSlug: string) {
     const event = await this.prisma.event.findUnique({
       where: { slug: eventSlug },
-      select: {
-        ticketPurchasingPaused: true,
-        volunteerApplicationsPaused: true,
-        sponsorshipApplicationsPaused: true,
-        ticketCapacity: true,
-      },
     });
     if (!event) {
       throw new NotFoundException(`No event found for slug "${eventSlug}"`);
     }
-    return event;
+    return this.eventSettingsFor(event);
+  }
+
+  private async eventSettingsFor(event: {
+    id: string;
+    ticketPurchasingPaused: boolean;
+    volunteerApplicationsPaused: boolean;
+    sponsorshipApplicationsPaused: boolean;
+  }) {
+    return {
+      ticketPurchasingPaused: event.ticketPurchasingPaused,
+      volunteerApplicationsPaused: event.volunteerApplicationsPaused,
+      sponsorshipApplicationsPaused: event.sponsorshipApplicationsPaused,
+      categoryCapacities: await getCategoryAvailability(this.prisma, event.id),
+    };
   }
 
   async updateEventSettings(
@@ -750,21 +759,24 @@ export class AdminService {
       throw new NotFoundException(`No event found for slug "${eventSlug}"`);
     }
 
-    const updated = await this.prisma.event.update({
-      where: { id: event.id },
-      data: {
-        ticketPurchasingPaused: dto.ticketPurchasingPaused,
-        volunteerApplicationsPaused: dto.volunteerApplicationsPaused,
-        sponsorshipApplicationsPaused: dto.sponsorshipApplicationsPaused,
-        ticketCapacity: dto.ticketCapacity,
-      },
-      select: {
-        ticketPurchasingPaused: true,
-        volunteerApplicationsPaused: true,
-        sponsorshipApplicationsPaused: true,
-        ticketCapacity: true,
-      },
+    const updatedEvent = await this.prisma.$transaction(async (tx) => {
+      for (const { category, capacity } of dto.categoryCapacities ?? []) {
+        await tx.categoryCapacity.upsert({
+          where: { eventId_category: { eventId: event.id, category } },
+          update: { capacity },
+          create: { eventId: event.id, category, capacity },
+        });
+      }
+      return tx.event.update({
+        where: { id: event.id },
+        data: {
+          ticketPurchasingPaused: dto.ticketPurchasingPaused,
+          volunteerApplicationsPaused: dto.volunteerApplicationsPaused,
+          sponsorshipApplicationsPaused: dto.sponsorshipApplicationsPaused,
+        },
+      });
     });
+    const updated = await this.eventSettingsFor(updatedEvent);
 
     await this.auditLog.record({
       actorId,

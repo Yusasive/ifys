@@ -144,13 +144,26 @@ model Event {
   volunteerApplicationsPaused   Boolean @default(false) @map("volunteer_applications_paused")
   sponsorshipApplicationsPaused Boolean @default(false) @map("sponsorship_applications_paused")
 
-  // Total tickets ever sellable across all categories/tiers combined —
-  // admin-editable so it can be raised without a deploy. Enforced at
-  // checkout in RegistrationsService.createRegistration by counting paid
-  // Orders (see that method's comment for why paid Orders, not Tickets).
-  ticketCapacity Int @default(300) @map("ticket_capacity")
+  // Per-category ticket limits (see CategoryCapacity).
+  categoryCapacities CategoryCapacity[]
 
   @@map("events")
+}
+
+// How many tickets each category (student / regular / professional) may
+// sell, across both tiers — admin-editable so a limit can be raised without
+// a deploy. Enforced at checkout in RegistrationsService.createRegistration
+// by counting paid Orders for that category. A category with no row here
+// has no sellable tickets.
+model CategoryCapacity {
+  id       String   @id @default(uuid())
+  eventId  String   @map("event_id")
+  category Category
+  capacity Int
+  event    Event    @relation(fields: [eventId], references: [id])
+
+  @@unique([eventId, category])
+  @@map("category_capacities")
 }
 
 // The sellable combination of category x tier (PRD §5, TRD §3).

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import type { Category, TicketProduct } from "@/lib/api";
+import type { Category, CategoryAvailability, TicketProduct } from "@/lib/api";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setCategory, setStep, setTier } from "@/lib/registration-slice";
 
@@ -41,7 +41,13 @@ const CATEGORIES: { value: Category; label: string; icon: ReactElement }[] = [
   },
 ];
 
-export function CategoryStep({ ticketProducts }: { ticketProducts: TicketProduct[] }) {
+export function CategoryStep({
+  ticketProducts,
+  availability,
+}: {
+  ticketProducts: TicketProduct[];
+  availability: CategoryAvailability[];
+}) {
   const dispatch = useAppDispatch();
   const selected = useAppSelector((s) => s.registration.category);
 
@@ -53,21 +59,28 @@ export function CategoryStep({ ticketProducts }: { ticketProducts: TicketProduct
     <div className="w-full lg:w-[541px] lg:h-[421px] mx-auto bg-rust rounded-[10px] p-5 sm:p-9 lg:p-[36px] flex flex-col justify-center gap-4 sm:gap-6 lg:gap-[24px]">
       {CATEGORIES.map((c) => {
         const product = priceFor(c.value);
+        // A category with no configured limit has nothing to sell.
+        const remaining = availability.find((a) => a.category === c.value)?.remaining ?? 0;
+        const soldOut = remaining === 0;
+        const status = soldOut ? "Sold Out" : `${remaining} left`;
         return (
           <button
             key={c.value}
             type="button"
+            disabled={soldOut}
             aria-pressed={selected === c.value}
-            aria-label={product ? `${c.label}, ${product.priceKobo / 100} ${product.currency}` : c.label}
+            aria-label={`${product ? `${c.label}, ${product.priceKobo / 100} ${product.currency}` : c.label}, ${status}`}
             onClick={() => {
               dispatch(setCategory(c.value));
               dispatch(setTier("standard"));
               dispatch(setStep("details"));
             }}
-            className={`flex items-center justify-center gap-2 sm:gap-3 rounded-full border px-3 sm:px-6 py-3 sm:py-5 text-white font-sans font-medium text-sm sm:text-lg lg:text-xl text-center transition-colors ${
-              selected === c.value
-                ? "border-white bg-white/10"
-                : "border-white/70 hover:border-white hover:bg-white/5"
+            className={`flex items-center justify-center gap-2 sm:gap-3 rounded-full border px-3 sm:px-6 py-3 sm:py-5 text-white font-sans font-medium text-sm sm:text-lg lg:text-xl text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              soldOut
+                ? "border-white/40"
+                : selected === c.value
+                  ? "border-white bg-white/10"
+                  : "border-white/70 hover:border-white hover:bg-white/5"
             }`}
           >
             <svg
@@ -80,6 +93,9 @@ export function CategoryStep({ ticketProducts }: { ticketProducts: TicketProduct
               {c.icon}
             </svg>
             {c.label}
+            <span className="ml-1 shrink-0 rounded-full bg-white/15 px-2 py-0.5 font-plex text-[10px] sm:text-xs uppercase tracking-[0.1em]">
+              {status}
+            </span>
           </button>
         );
       })}

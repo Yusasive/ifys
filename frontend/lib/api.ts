@@ -17,6 +17,14 @@ export interface TicketProduct {
   cardNote: string | null;
 }
 
+export interface CategoryAvailability {
+  category: Category;
+  capacity: number;
+  soldCount: number;
+  remaining: number;
+  soldOut: boolean;
+}
+
 export interface EventSummary {
   id: string;
   name: string;
@@ -24,9 +32,12 @@ export interface EventSummary {
   startsAt: string;
   slug: string;
   ticketPurchasingPaused: boolean;
+  // Totals across every category — derived from categoryAvailability.
   ticketCapacity: number;
   ticketsSoldCount: number;
+  // True only once every category is sold out.
   soldOut: boolean;
+  categoryAvailability: CategoryAvailability[];
 }
 
 export interface ApiFieldError {

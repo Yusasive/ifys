@@ -60,11 +60,7 @@ export function TicketsSection({
           Register for the Islamic Finance Youth Summit
         </h2>
 
-        <TicketsRemaining
-          eventSlug={event.slug}
-          initialSoldCount={event.ticketsSoldCount}
-          initialCapacity={event.ticketCapacity}
-        />
+        <TicketsRemaining event={event} />
 
         <div className="grid sm:grid-cols-3 gap-6 mb-10">
           {tickets.map((product) => {
@@ -81,7 +77,8 @@ export function TicketsSection({
                   <p className={`font-bricolage font-bold text-4xl sm:text-5xl ${tone.text} mb-6`}>
                     {product.cardPriceLabel ?? formatKobo(product.priceKobo, product.currency)}
                   </p>
-                  {note && <p className={`text-sm ${tone.text} opacity-80`}>{note}</p>}
+                  {note && <p className={`text-sm ${tone.text} opacity-80 mb-4`}>{note}</p>}
+                  <TicketsRemaining event={event} category={product.category} variant="badge" />
                 </div>
               </div>
             );

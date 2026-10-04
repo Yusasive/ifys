@@ -126,6 +126,20 @@ async function main() {
     }
   }
 
+  // Initial per-category ticket limits. `update: {}` so re-running the seed
+  // never clobbers a limit an admin has since changed.
+  for (const [category, capacity] of [
+    ['student', 40],
+    ['regular', 60],
+    ['professional', 60],
+  ] as const) {
+    await prisma.categoryCapacity.upsert({
+      where: { eventId_category: { eventId: event.id, category } },
+      update: {},
+      create: { eventId: event.id, category, capacity },
+    });
+  }
+
   // Speaker has no natural unique key beyond `id`, so upsert manually by
   // (eventId, name) to keep re-running the seed idempotent.
   for (const [index, speaker] of SAMPLE_SPEAKERS.entries()) {

@@ -1,4 +1,23 @@
-import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { Category } from '../../generated/prisma/enums';
+
+export class CategoryCapacityDto {
+  @IsEnum(Category)
+  category!: Category;
+
+  @IsInt()
+  @Min(0)
+  capacity!: number;
+}
 
 export class UpdateEventSettingsDto {
   @IsOptional()
@@ -14,7 +33,8 @@ export class UpdateEventSettingsDto {
   sponsorshipApplicationsPaused?: boolean;
 
   @IsOptional()
-  @IsInt()
-  @Min(0)
-  ticketCapacity?: number;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CategoryCapacityDto)
+  categoryCapacities?: CategoryCapacityDto[];
 }

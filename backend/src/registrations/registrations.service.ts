@@ -17,6 +17,10 @@ import {
   RegistrationReminderEmailQueue,
 } from '../email/registration-reminder-email.queue';
 import { generateTicketPdf } from '../email/ticket-pdf';
+import {
+  countTicketsSold,
+  getCategoryAvailability,
+} from './category-availability';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { UpdateTicketProductDto } from './dto/update-ticket-product.dto';
 import { StudentIdUploadUrlDto } from './dto/upload-url.dto';
@@ -46,7 +50,18 @@ export class RegistrationsService {
     if (!event) {
       throw new NotFoundException(`No event found for slug "${eventSlug}"`);
     }
-    const ticketsSoldCount = await this.countTicketsSold(event.id);
+    const categoryAvailability = await getCategoryAvailability(
+      this.prisma,
+      event.id,
+    );
+    const ticketCapacity = categoryAvailability.reduce(
+      (sum, c) => sum + c.capacity,
+      0,
+    );
+    const ticketsSoldCount = categoryAvailability.reduce(
+      (sum, c) => sum + c.soldCount,
+      0,
+    );
     return {
       event: {
         id: event.id,
@@ -55,18 +70,13 @@ export class RegistrationsService {
         startsAt: event.startsAt,
         slug: event.slug,
         ticketPurchasingPaused: event.ticketPurchasingPaused,
-        ticketCapacity: event.ticketCapacity,
+        ticketCapacity,
         ticketsSoldCount,
-        soldOut: ticketsSoldCount >= event.ticketCapacity,
+        soldOut: categoryAvailability.every((c) => c.soldOut),
+        categoryAvailability,
       },
       ticketProducts: event.ticketProducts,
     };
-  }
-
-  private async countTicketsSold(eventId: string): Promise<number> {
-    return this.prisma.order.count({
-      where: { status: 'paid', registration: { eventId } },
-    });
   }
 
   async createStudentIdUploadUrl(dto: StudentIdUploadUrlDto) {
@@ -98,9 +108,20 @@ export class RegistrationsService {
     if (event.ticketPurchasingPaused) {
       throw new BadRequestException('Ticket purchasing is not currently open');
     }
-    const ticketsSoldCount = await this.countTicketsSold(event.id);
-    if (ticketsSoldCount >= event.ticketCapacity) {
-      throw new BadRequestException('All tickets have been sold');
+    const categoryCapacity = await this.prisma.categoryCapacity.findUnique({
+      where: {
+        eventId_category: { eventId: event.id, category: dto.category },
+      },
+    });
+    const ticketsSoldCount = await countTicketsSold(
+      this.prisma,
+      event.id,
+      dto.category,
+    );
+    if (!categoryCapacity || ticketsSoldCount >= categoryCapacity.capacity) {
+      throw new BadRequestException(
+        `All ${CATEGORY_LABELS[dto.category]} tickets have been sold`,
+      );
     }
 
     const ticketProduct = await this.prisma.ticketProduct.findUnique({

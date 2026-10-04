@@ -1,5 +1,6 @@
 import {
   ApiError,
+  CategoryAvailability,
   Category,
   CouponDiscountType,
   Speaker,
@@ -545,7 +546,14 @@ export interface EventSettings {
   ticketPurchasingPaused: boolean;
   volunteerApplicationsPaused: boolean;
   sponsorshipApplicationsPaused: boolean;
-  ticketCapacity: number;
+  categoryCapacities: CategoryAvailability[];
+}
+
+export interface UpdateEventSettingsInput {
+  ticketPurchasingPaused?: boolean;
+  volunteerApplicationsPaused?: boolean;
+  sponsorshipApplicationsPaused?: boolean;
+  categoryCapacities?: { category: Category; capacity: number }[];
 }
 
 export function getEventSettings(eventSlug: string) {
@@ -556,7 +564,7 @@ export function getEventSettings(eventSlug: string) {
 
 export function updateEventSettings(
   eventSlug: string,
-  input: Partial<EventSettings>,
+  input: UpdateEventSettingsInput,
 ) {
   return adminRequest<EventSettings>(
     `/admin/event-settings?event=${encodeURIComponent(eventSlug)}`,

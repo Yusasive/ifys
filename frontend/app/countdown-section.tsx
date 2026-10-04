@@ -86,12 +86,7 @@ export function CountdownSection({ event }: { event: EventSummary | null }) {
         </h2>
 
         {event && (
-          <TicketsRemaining
-            eventSlug={event.slug}
-            initialSoldCount={event.ticketsSoldCount}
-            initialCapacity={event.ticketCapacity}
-            variant="hero"
-          />
+          <TicketsRemaining event={event} variant="hero" />
         )}
 
         <div
