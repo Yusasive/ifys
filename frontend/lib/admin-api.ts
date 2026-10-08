@@ -606,6 +606,8 @@ export interface Coupon {
   redemptionCount: number;
   expiresAt: string | null;
   isActive: boolean;
+  // Empty = valid for every category.
+  categories: Category[];
   createdAt: string;
 }
 
@@ -619,9 +621,10 @@ export interface CouponInput {
   code: string;
   discountType: CouponDiscountType;
   discountValue: number;
-  maxRedemptions?: number;
+  maxRedemptions?: number | null;
   expiresAt?: string | null;
   isActive?: boolean;
+  categories?: Category[];
 }
 
 export function createCoupon(input: CouponInput & { eventSlug: string }) {

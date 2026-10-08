@@ -140,7 +140,13 @@ export class RegistrationsService {
     }
 
     const couponId = dto.couponCode
-      ? (await this.coupons.findRedeemableCoupon(event.id, dto.couponCode)).id
+      ? (
+          await this.coupons.findRedeemableCoupon(
+            event.id,
+            dto.couponCode,
+            dto.category,
+          )
+        ).id
       : null;
 
     const attendee = await this.prisma.attendee.create({

@@ -1,16 +1,15 @@
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
-  Max,
   Min,
   MinLength,
-  ValidateIf,
 } from 'class-validator';
-import { CouponDiscountType } from '../../generated/prisma/enums';
+import { Category, CouponDiscountType } from '../../generated/prisma/enums';
 
 export class UpdateCouponDto {
   @IsOptional()
@@ -25,14 +24,13 @@ export class UpdateCouponDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @ValidateIf((o: UpdateCouponDto) => o.discountType === 'percent')
-  @Max(100)
   discountValue?: number;
 
+  // null clears the limit (unlimited redemptions).
   @IsOptional()
   @IsInt()
   @Min(1)
-  maxRedemptions?: number;
+  maxRedemptions?: number | null;
 
   @IsOptional()
   @IsDateString()
@@ -41,4 +39,9 @@ export class UpdateCouponDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Category, { each: true })
+  categories?: Category[];
 }

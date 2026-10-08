@@ -8,28 +8,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import { CouponsService } from '../coupons/coupons.service';
+import { Coupon } from '../generated/prisma/client';
 import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { matchesLookupToken } from '../registrations/registrations.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { PaystackProvider } from './paystack.provider';
-
-function earlyBirdDiscountKobo(
-  ticketProduct: {
-    discountPercent: number | null;
-    discountExpiresAt: Date | null;
-  },
-  priceKobo: number,
-): number {
-  if (!ticketProduct.discountPercent || !ticketProduct.discountExpiresAt) {
-    return 0;
-  }
-  if (ticketProduct.discountExpiresAt.getTime() < Date.now()) {
-    return 0;
-  }
-  return Math.round((priceKobo * ticketProduct.discountPercent) / 100);
-}
 
 interface PaystackChargeEvent {
   event: string;
@@ -56,42 +41,61 @@ export class PaymentsService {
   async createCheckout(registrationId: string, token?: string) {
     const registration = await this.prisma.registration.findUnique({
       where: { id: registrationId },
-      include: { attendee: true, ticketProduct: true, coupon: true },
+      include: {
+        attendee: true,
+        ticketProduct: true,
+        coupon: true,
+        order: true,
+      },
     });
     if (!registration || !matchesLookupToken(registration.lookupToken, token)) {
       throw new NotFoundException('Registration not found');
     }
-    if (registration.status === 'paid') {
+    if (
+      registration.status === 'paid' ||
+      registration.order?.status === 'paid'
+    ) {
       throw new ConflictException(
         'This registration has already been paid for.',
       );
     }
 
-    const basePrice = registration.ticketProduct.priceKobo;
-    const earlyBirdOff = earlyBirdDiscountKobo(
-      registration.ticketProduct,
-      basePrice,
-    );
-    const priceAfterEarlyBird = basePrice - earlyBirdOff;
-
-    let couponOff = 0;
+    let coupon: Coupon | null = null;
     if (registration.couponId) {
-      const coupon = await this.coupons
-        .findRedeemableCoupon(registration.eventId, registration.coupon!.code)
+      coupon = await this.coupons
+        .findRedeemableCoupon(
+          registration.eventId,
+          registration.coupon!.code,
+          registration.ticketProduct.category,
+        )
         .catch(() => null);
-      if (coupon) {
-        couponOff = this.coupons.computeDiscountKobo(
-          coupon,
-          priceAfterEarlyBird,
-        );
+      // The code stopped being redeemable since registration (expired,
+      // deactivated, limit hit) — drop it so settlement doesn't count a
+      // redemption for a discount that was never applied.
+      if (!coupon) {
+        await this.prisma.registration.update({
+          where: { id: registration.id },
+          data: { couponId: null },
+        });
       }
     }
+    const quote = this.coupons.quote(registration.ticketProduct, coupon);
+    const finalAmount = quote.finalPriceKobo;
+    const totalDiscount = quote.totalDiscountKobo;
 
-    const finalAmount = Math.max(0, priceAfterEarlyBird - couponOff);
-    const totalDiscount = basePrice - finalAmount;
+    const callbackUrl = `${this.config.getOrThrow<string>('FRONTEND_ORIGIN')}/register/confirmation?registration=${registration.id}&token=${registration.lookupToken}`;
+
+    if (finalAmount === 0) {
+      return this.completeFreeCheckout(
+        registration.id,
+        registration.ticketProduct.currency,
+        coupon?.id ?? null,
+        totalDiscount,
+        callbackUrl,
+      );
+    }
 
     const reference = `ify-${registration.id.slice(0, 8)}-${randomUUID().slice(0, 8)}`;
-    const callbackUrl = `${this.config.getOrThrow<string>('FRONTEND_ORIGIN')}/register/confirmation?registration=${registration.id}&token=${registration.lookupToken}`;
 
     const { authorizationUrl } = await this.paystack.initializeTransaction({
       email: registration.attendee.email,
@@ -124,6 +128,63 @@ export class PaymentsService {
     });
 
     return { authorizationUrl, reference };
+  }
+
+  // Nothing to charge (e.g. a 100% coupon), so Paystack is skipped
+  // entirely — it rejects zero-amount transactions. The order is settled
+  // right here and the client is sent straight to the confirmation page,
+  // which then sees the registration as paid/pending_review as usual.
+  private async completeFreeCheckout(
+    registrationId: string,
+    currency: string,
+    couponId: string | null,
+    totalDiscount: number,
+    callbackUrl: string,
+  ) {
+    const reference = `ify-free-${registrationId.slice(0, 8)}-${randomUUID().slice(0, 8)}`;
+
+    await this.prisma.order.upsert({
+      where: { registrationId },
+      update: {
+        providerReference: reference,
+        provider: 'free',
+        status: 'pending',
+        amountMinor: 0,
+        currency,
+      },
+      create: {
+        registrationId,
+        amountMinor: 0,
+        currency,
+        provider: 'free',
+        providerReference: reference,
+        status: 'pending',
+      },
+    });
+
+    if (couponId && !(await this.coupons.claimRedemption(couponId))) {
+      await this.prisma.order.updateMany({
+        where: { providerReference: reference, status: 'pending' },
+        data: { status: 'failed' },
+      });
+      throw new BadRequestException(
+        'This coupon code has reached its redemption limit.',
+      );
+    }
+
+    const claim = await this.prisma.order.updateMany({
+      where: { providerReference: reference, status: 'pending' },
+      data: { status: 'paid', paidAt: new Date() },
+    });
+    if (claim.count === 1) {
+      await this.prisma.registration.update({
+        where: { id: registrationId },
+        data: { discountAppliedKobo: totalDiscount },
+      });
+      await this.fulfil(registrationId);
+    }
+
+    return { authorizationUrl: callbackUrl, reference };
   }
 
   async handlePaystackWebhook(
@@ -216,11 +277,21 @@ export class PaymentsService {
 
     const registration = await this.prisma.registration.findUniqueOrThrow({
       where: { id: order.registrationId },
-      include: { ticketProduct: true },
     });
     if (registration.couponId) {
       await this.coupons.redeem(registration.couponId);
     }
+
+    await this.fulfil(order.registrationId);
+  }
+
+  // Post-payment hand-off: students go to manual ID review, everyone else
+  // gets their ticket issued and emailed.
+  private async fulfil(registrationId: string): Promise<void> {
+    const registration = await this.prisma.registration.findUniqueOrThrow({
+      where: { id: registrationId },
+      include: { ticketProduct: true },
+    });
 
     if (registration.ticketProduct.category === 'student') {
       await this.prisma.registration.update({
@@ -233,7 +304,7 @@ export class PaymentsService {
     }
 
     const ticket = await this.tickets.issueTicketForRegistration(
-      order.registrationId,
+      registration.id,
     );
     await this.emailQueue.enqueue(ticket.id);
   }

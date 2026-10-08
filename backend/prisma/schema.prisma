@@ -44,6 +44,9 @@ enum RegistrationStatus {
 
 enum OrderProvider {
   paystack
+  // Zero-amount checkout (e.g. a 100% coupon) — settled server-side
+  // without ever touching Paystack.
+  free
 }
 
 enum OrderStatus {
@@ -206,6 +209,8 @@ model Coupon {
   redemptionCount Int                @default(0) @map("redemption_count")
   expiresAt       DateTime?          @map("expires_at")
   isActive        Boolean            @default(true) @map("is_active")
+  // Ticket categories this code applies to. Empty = every category.
+  categories      Category[]         @default([])
   createdAt       DateTime           @default(now()) @map("created_at")
 
   event         Event          @relation(fields: [eventId], references: [id])

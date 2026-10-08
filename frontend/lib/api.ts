@@ -121,6 +121,8 @@ export interface CouponValidation {
   discountType: CouponDiscountType;
   discountValue: number;
   priceKobo: number;
+  // Active early-bird discount, applied before the coupon.
+  earlyBirdKobo: number;
   discountKobo: number;
   finalPriceKobo: number;
 }

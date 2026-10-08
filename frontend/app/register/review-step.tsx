@@ -15,6 +15,19 @@ import { setStep } from "@/lib/registration-slice";
 import { tierPerks } from "@/lib/tier-perks";
 import { BackButton } from "./back-button";
 
+// Mirrors the backend's earlyBirdDiscountKobo so the total shown before a
+// coupon is applied matches what checkout will charge.
+function earlyBirdPriceKobo(product: TicketProduct): number {
+  if (
+    !product.discountPercent ||
+    !product.discountExpiresAt ||
+    new Date(product.discountExpiresAt).getTime() < Date.now()
+  ) {
+    return product.priceKobo;
+  }
+  return product.priceKobo - Math.round((product.priceKobo * product.discountPercent) / 100);
+}
+
 const FIELD_LABELS: Record<string, string> = {
   institution: "Institution",
   startupName: "Startup / company name",
@@ -44,6 +57,12 @@ export function ReviewStep({
   const product = ticketProducts.find(
     (p) => p.category === registration.category && p.tier === registration.tier,
   );
+  const totalKobo = appliedCoupon
+    ? appliedCoupon.finalPriceKobo
+    : product
+      ? earlyBirdPriceKobo(product)
+      : null;
+  const isFree = totalKobo === 0;
 
   async function handleApplyCoupon() {
     if (!couponInput.trim() || !registration.category || !registration.tier) return;
@@ -93,7 +112,8 @@ export function ReviewStep({
       // Server owns payment initialization end-to-end: it derives the
       // amount from the ticket product and builds the callback URL, so
       // the client only ever redirects — it never assembles anything
-      // payment-related itself.
+      // payment-related itself. A zero total (e.g. a 100% coupon) skips
+      // Paystack and comes back pointing at the confirmation page.
       const { authorizationUrl } = await createCheckout(
         created.id,
         created.lookupToken,
@@ -235,11 +255,7 @@ export function ReviewStep({
         <div className="border-t border-rust/20 mt-3 pt-3 flex items-baseline justify-between">
           <span className="text-base font-medium text-emerald/70">Total</span>
           <span className="font-mono text-2xl font-semibold text-rust">
-            {product &&
-              formatKobo(
-                appliedCoupon ? appliedCoupon.finalPriceKobo : product.priceKobo,
-                product.currency,
-              )}
+            {product && totalKobo !== null && formatKobo(totalKobo, product.currency)}
           </span>
         </div>
       </div>
@@ -254,13 +270,14 @@ export function ReviewStep({
       )}
 
       <p className="text-sm text-muted text-center">
-        You&apos;ll be redirected to Paystack to complete a secure payment
-        {product &&
-          ` of ${formatKobo(
-            appliedCoupon ? appliedCoupon.finalPriceKobo : product.priceKobo,
-            product.currency,
-          )}`}
-        .
+        {isFree ? (
+          "Your coupon covers the full price — no payment needed."
+        ) : (
+          <>
+            You&apos;ll be redirected to Paystack to complete a secure payment
+            {product && totalKobo !== null && ` of ${formatKobo(totalKobo, product.currency)}`}.
+          </>
+        )}
       </p>
 
       <div className="flex justify-between items-center">
@@ -271,7 +288,13 @@ export function ReviewStep({
           disabled={submitting}
           className="bg-rust text-white font-semibold text-base sm:text-lg px-6 sm:px-8 py-2.5 sm:py-3 rounded-full hover:bg-rust/90 transition-colors disabled:opacity-40"
         >
-          {submitting ? "Redirecting to payment…" : "Proceed to payment"}
+          {isFree
+            ? submitting
+              ? "Completing registration…"
+              : "Complete registration"
+            : submitting
+              ? "Redirecting to payment…"
+              : "Proceed to payment"}
         </button>
       </div>
     </div>

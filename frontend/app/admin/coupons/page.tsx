@@ -10,14 +10,19 @@ import {
   updateCoupon,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError, CouponDiscountType } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
+import { ApiError, Category, CouponDiscountType } from "@/lib/api";
+import { CATEGORY_LABELS, formatDateTime } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
 import { TableRowsSkeleton } from "../skeleton";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 
+// Categories currently on sale — `founder` is retired (see CATEGORY_LABELS).
+const COUPON_CATEGORIES: Category[] = ["student", "regular", "professional"];
+
+// discountValue is held in the form as the admin types it: a percent, or
+// whole naira for fixed coupons. The API stores fixed amounts in kobo.
 const EMPTY_FORM = {
   code: "",
   discountType: "percent" as CouponDiscountType,
@@ -25,12 +30,29 @@ const EMPTY_FORM = {
   maxRedemptions: "",
   expiresAt: "",
   isActive: true,
+  categories: [] as Category[],
 };
 
+// <input type="datetime-local"> works in the browser's local time, so an
+// ISO (UTC) timestamp has to be shifted before it's shown, or every edit
+// would silently move the expiry by the timezone offset.
+function toLocalInputValue(iso: string): string {
+  const date = new Date(iso);
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function categoriesLabel(categories: Category[]): string {
+  return categories.length === 0
+    ? "All categories"
+    : categories.map((c) => CATEGORY_LABELS[c]).join(", ");
+}
+
 function discountLabel(coupon: Coupon): string {
-  return coupon.discountType === "percent"
-    ? `${coupon.discountValue}% off`
-    : `₦${(coupon.discountValue / 100).toLocaleString("en-NG")} off`;
+  if (coupon.discountType === "percent") {
+    return coupon.discountValue === 100 ? "Free (100% off)" : `${coupon.discountValue}% off`;
+  }
+  return `₦${(coupon.discountValue / 100).toLocaleString("en-NG")} off`;
 }
 
 export default function AdminCouponsPage() {
@@ -83,10 +105,12 @@ export default function AdminCouponsPage() {
     setForm({
       code: coupon.code,
       discountType: coupon.discountType,
-      discountValue: coupon.discountValue,
+      discountValue:
+        coupon.discountType === "fixed" ? coupon.discountValue / 100 : coupon.discountValue,
       maxRedemptions: coupon.maxRedemptions !== null ? String(coupon.maxRedemptions) : "",
-      expiresAt: coupon.expiresAt ? coupon.expiresAt.slice(0, 16) : "",
+      expiresAt: coupon.expiresAt ? toLocalInputValue(coupon.expiresAt) : "",
       isActive: coupon.isActive,
+      categories: coupon.categories,
     });
     setFormOpen(true);
   }
@@ -105,10 +129,14 @@ export default function AdminCouponsPage() {
       const input = {
         code: form.code,
         discountType: form.discountType,
-        discountValue: Number(form.discountValue),
-        maxRedemptions: form.maxRedemptions === "" ? undefined : Number(form.maxRedemptions),
+        discountValue:
+          form.discountType === "fixed"
+            ? Math.round(Number(form.discountValue) * 100)
+            : Number(form.discountValue),
+        maxRedemptions: form.maxRedemptions === "" ? null : Number(form.maxRedemptions),
         expiresAt: form.expiresAt === "" ? null : new Date(form.expiresAt).toISOString(),
         isActive: form.isActive,
+        categories: form.categories,
       };
       if (editingId) {
         await updateCoupon(editingId, input);
@@ -196,7 +224,7 @@ export default function AdminCouponsPage() {
 
           <label className="flex flex-col gap-1">
             <span className="text-sm text-sage">
-              {form.discountType === "percent" ? "Discount (%)" : "Discount (NGN)"}
+              {form.discountType === "percent" ? "Discount (%) — 100 makes it free" : "Discount (NGN)"}
             </span>
             <input
               required
@@ -232,6 +260,31 @@ export default function AdminCouponsPage() {
           </label>
         </div>
 
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm text-sage mb-1">Valid for</legend>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {COUPON_CATEGORIES.map((category) => (
+              <label key={category} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="accent-emerald"
+                  checked={form.categories.includes(category)}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      categories: e.target.checked
+                        ? [...form.categories, category]
+                        : form.categories.filter((c) => c !== category),
+                    })
+                  }
+                />
+                <span className="text-sm text-ink">{CATEGORY_LABELS[category]}</span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-sage">Leave all unticked to allow every category.</p>
+        </fieldset>
+
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -263,6 +316,7 @@ export default function AdminCouponsPage() {
             <tr className="border-b border-emerald/20 text-left text-xs uppercase tracking-wide text-sage">
               <th className="px-4 py-2">Code</th>
               <th className="px-4 py-2">Discount</th>
+              <th className="px-4 py-2">Categories</th>
               <th className="px-4 py-2">Redemptions</th>
               <th className="px-4 py-2">Expires</th>
               <th className="px-4 py-2">Status</th>
@@ -270,12 +324,13 @@ export default function AdminCouponsPage() {
             </tr>
           </thead>
           <tbody>
-            {!couponsLoaded && <TableRowsSkeleton rows={3} cols={6} />}
+            {!couponsLoaded && <TableRowsSkeleton rows={3} cols={7} />}
             {coupons.map((coupon) => (
               <Fragment key={coupon.id}>
                 <tr className="border-b border-emerald/20 last:border-0">
                   <td className="px-4 py-2 font-mono">{coupon.code}</td>
                   <td className="px-4 py-2 text-sage">{discountLabel(coupon)}</td>
+                  <td className="px-4 py-2 text-sage">{categoriesLabel(coupon.categories)}</td>
                   <td className="px-4 py-2 text-sage">
                     {coupon.redemptionCount}
                     {coupon.maxRedemptions !== null ? ` / ${coupon.maxRedemptions}` : ""}
@@ -306,7 +361,7 @@ export default function AdminCouponsPage() {
                 </tr>
                 {deleteConfirmId === coupon.id && (
                   <tr className="border-b border-emerald/20 last:border-0">
-                    <td colSpan={6} className="px-4 py-3 bg-coral/10">
+                    <td colSpan={7} className="px-4 py-3 bg-coral/10">
                       <div className="flex items-center gap-3">
                         <p className="text-sm">Delete {coupon.code}? This cannot be undone.</p>
                         <button

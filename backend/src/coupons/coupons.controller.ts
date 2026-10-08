@@ -34,20 +34,22 @@ export class CouponsController {
       );
     }
 
-    const coupon = await this.coupons.findRedeemableCoupon(event.id, dto.code);
-    const discountKobo = this.coupons.computeDiscountKobo(
-      coupon,
-      ticketProduct.priceKobo,
+    const coupon = await this.coupons.findRedeemableCoupon(
+      event.id,
+      dto.code,
+      dto.category,
     );
+    const quote = this.coupons.quote(ticketProduct, coupon);
 
     return {
       valid: true,
       code: coupon.code,
       discountType: coupon.discountType,
       discountValue: coupon.discountValue,
-      priceKobo: ticketProduct.priceKobo,
-      discountKobo,
-      finalPriceKobo: ticketProduct.priceKobo - discountKobo,
+      priceKobo: quote.basePriceKobo,
+      earlyBirdKobo: quote.earlyBirdKobo,
+      discountKobo: quote.couponKobo,
+      finalPriceKobo: quote.finalPriceKobo,
     };
   }
 }

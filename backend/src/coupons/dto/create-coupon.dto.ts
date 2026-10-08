@@ -1,16 +1,15 @@
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
-  Max,
   Min,
   MinLength,
-  ValidateIf,
 } from 'class-validator';
-import { CouponDiscountType } from '../../generated/prisma/enums';
+import { Category, CouponDiscountType } from '../../generated/prisma/enums';
 
 export class CreateCouponDto {
   @IsString()
@@ -23,10 +22,10 @@ export class CreateCouponDto {
   @IsEnum(CouponDiscountType)
   discountType!: CouponDiscountType;
 
+  // Percent: 1-100 (checked in CouponsService, since the cap depends on
+  // discountType). Fixed: kobo amount off.
   @IsInt()
   @Min(1)
-  @ValidateIf((o: CreateCouponDto) => o.discountType === 'percent')
-  @Max(100)
   discountValue!: number;
 
   @IsOptional()
@@ -41,4 +40,10 @@ export class CreateCouponDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  // Empty or omitted = valid for every category.
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Category, { each: true })
+  categories?: Category[];
 }
