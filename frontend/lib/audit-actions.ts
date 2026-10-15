@@ -5,6 +5,7 @@
 export const AUDIT_ACTIONS = [
   "mark_paid",
   "resend_ticket",
+  "resend_ticket_date_update",
   "void_ticket",
   "cancel_registration",
   "send_pending_payment_reminder",

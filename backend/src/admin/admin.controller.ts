@@ -42,6 +42,7 @@ import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { VoidTicketDto } from './dto/void-ticket.dto';
 import { MarkPaidDto } from './dto/mark-paid.dto';
+import { ResendDateUpdateDto } from './dto/resend-date-update.dto';
 import { ReissueTicketDto } from './dto/reissue-ticket.dto';
 import { RestoreTicketDto } from './dto/restore-ticket.dto';
 import { WithdrawTicketDto } from './dto/withdraw-ticket.dto';
@@ -231,6 +232,22 @@ export class AdminController {
   @Delete('users/:id')
   deleteAdminUser(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.admin.deleteAdminUser(id, user.sub);
+  }
+
+  @Roles('super_admin')
+  @Get('tickets/date-update-resend')
+  getDateUpdateResendStatus(@Query('event') eventSlug: string) {
+    return this.admin.getDateUpdateResendStatus(eventSlug);
+  }
+
+  @Roles('super_admin')
+  @Post('tickets/date-update-resend')
+  sendDateUpdateResend(
+    @Query('event') eventSlug: string,
+    @Body() dto: ResendDateUpdateDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.sendDateUpdateResend(eventSlug, user.sub, dto.password);
   }
 
   @RequirePermissions('eventSettings.manage')

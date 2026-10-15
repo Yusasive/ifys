@@ -9,6 +9,7 @@ import { CATEGORY_LABELS, formatKobo } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
 import { PauseToggle } from "../pause-toggle";
+import { DateUpdateResendPanel } from "./date-update-resend-panel";
 import { StudentReviewNotifyPanel } from "./student-review-notify-panel";
 import { TicketCapacityCard } from "./ticket-capacity-card";
 
@@ -241,6 +242,8 @@ export default function AdminTicketsPage() {
       <PauseToggle eventSlug={EVENT_SLUG} field="ticketPurchasingPaused" label="Ticket purchasing" />
 
       <TicketCapacityCard eventSlug={EVENT_SLUG} />
+
+      {session.user.role === "super_admin" && <DateUpdateResendPanel eventSlug={EVENT_SLUG} />}
 
       {session.user.role === "super_admin" && <StudentReviewNotifyPanel />}
 
