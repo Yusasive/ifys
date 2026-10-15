@@ -184,6 +184,27 @@ export function resendTicket(registrationId: string) {
   });
 }
 
+export interface DateUpdateResendStatus {
+  eventStartsAt: string;
+  totalTickets: number;
+  alreadySent: number;
+  pending: number;
+  lastSentAt: string | null;
+}
+
+export function getDateUpdateResendStatus(eventSlug: string) {
+  return adminRequest<DateUpdateResendStatus>(
+    `/admin/tickets/date-update-resend?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
+export function sendDateUpdateResend(eventSlug: string, password: string) {
+  return adminRequest<{ queued: number }>(
+    `/admin/tickets/date-update-resend?event=${encodeURIComponent(eventSlug)}`,
+    { method: "POST", body: JSON.stringify({ password }) },
+  );
+}
+
 export function voidTicket(
   registrationId: string,
   reason: string,

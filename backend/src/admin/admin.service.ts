@@ -297,6 +297,80 @@ export class AdminService {
     return { resent: true };
   }
 
+  // One-time bulk resend after the event date moved (Nov 7 -> Nov 5). Every
+  // non-void ticket gets its existing QR code and ticket code re-emailed with
+  // a short date-update note. Each send is recorded in the audit log, which
+  // is also how a second run knows to skip people who already got it.
+  private async findDateUpdateTickets(eventSlug: string) {
+    if (!eventSlug) {
+      throw new BadRequestException('Query parameter "event" is required.');
+    }
+    const event = await this.prisma.event.findUnique({
+      where: { slug: eventSlug },
+    });
+    if (!event) {
+      throw new NotFoundException(`No event found for slug "${eventSlug}"`);
+    }
+    const tickets = await this.prisma.ticket.findMany({
+      where: { status: { not: 'void' }, registration: { eventId: event.id } },
+      select: { id: true },
+    });
+    const sentLogs = await this.prisma.auditLog.findMany({
+      where: {
+        action: 'resend_ticket_date_update',
+        targetId: { in: tickets.map((t) => t.id) },
+      },
+      select: { targetId: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    const sentIds = new Set(sentLogs.map((l) => l.targetId));
+    return {
+      event,
+      tickets,
+      pending: tickets.filter((t) => !sentIds.has(t.id)),
+      sentCount: sentIds.size,
+      lastSentAt: sentLogs[0]?.createdAt ?? null,
+    };
+  }
+
+  async getDateUpdateResendStatus(eventSlug: string) {
+    const { event, tickets, pending, sentCount, lastSentAt } =
+      await this.findDateUpdateTickets(eventSlug);
+    return {
+      eventStartsAt: event.startsAt,
+      totalTickets: tickets.length,
+      alreadySent: sentCount,
+      pending: pending.length,
+      lastSentAt,
+    };
+  }
+
+  async sendDateUpdateResend(
+    eventSlug: string,
+    actorId: string,
+    password: string,
+  ) {
+    const passwordOk = await this.auth.verifyPassword(actorId, password);
+    if (!passwordOk) {
+      throw new UnauthorizedException('Incorrect password');
+    }
+    const { pending } = await this.findDateUpdateTickets(eventSlug);
+
+    for (const ticket of pending) {
+      // Recorded per ticket, so pressing Send again later only reaches
+      // tickets that were not included in an earlier run.
+      await this.auditLog.record({
+        actorId,
+        action: 'resend_ticket_date_update',
+        targetType: 'ticket',
+        targetId: ticket.id,
+      });
+      await this.emailQueue.enqueue(ticket.id, 'date_updated');
+    }
+
+    return { queued: pending.length };
+  }
+
   async voidTicket(
     registrationId: string,
     actorId: string,
