@@ -1,6 +1,7 @@
 import { escapeHtml, INK, LINE, MUTED, renderEmailShell } from './email-shell';
 
-export type TicketEmailVariant = 'issued' | 'resent' | 'reissued';
+export type TicketEmailVariant =
+  'issued' | 'resent' | 'reissued' | 'date_updated';
 
 export interface TicketEmailData {
   fullName: string;
@@ -20,6 +21,8 @@ const VARIANT_INTROS: Record<TicketEmailVariant, string> = {
   resent: '',
   reissued:
     "Here's your reissued ticket. The QR code and ticket number below are new — any earlier copy of this ticket will no longer scan at the door.",
+  date_updated:
+    'Quick update: the summit has moved to Thursday, 5 November 2026. Here is your ticket with the correct date. Your QR code and ticket code have not changed, so any copy you already have will still scan at the door.',
 };
 
 export function renderTicketEmailHtml(data: TicketEmailData): string {

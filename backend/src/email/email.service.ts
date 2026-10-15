@@ -100,7 +100,9 @@ export class EmailService {
     const subject =
       data.variant === 'reissued'
         ? `Your new ticket — ${data.eventName}`
-        : `Your ticket — ${data.eventName}`;
+        : data.variant === 'date_updated'
+          ? `Date update: your ticket for ${data.eventName}`
+          : `Your ticket — ${data.eventName}`;
 
     await this.transporter.sendMail({
       from: this.from,
