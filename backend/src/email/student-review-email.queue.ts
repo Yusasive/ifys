@@ -5,12 +5,23 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Job, Queue, Worker } from 'bullmq';
+import { Job, JobsOptions, Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from './email.service';
 
 const QUEUE_NAME = 'student-review-emails';
+
+// SMTP providers (Zoho in production) reject or throttle sends from time to
+// time. Without retries a single rejected send meant the email was lost for
+// good, so every job now retries with backoff and failed jobs are kept in
+// Redis so they can be inspected.
+const DEFAULT_JOB_OPTIONS: JobsOptions = {
+  attempts: 6,
+  backoff: { type: 'exponential', delay: 60_000 },
+  removeOnComplete: { count: 1000 },
+  removeOnFail: { count: 5000 },
+};
 
 type StudentReviewJobData =
   | {
@@ -19,7 +30,11 @@ type StudentReviewJobData =
       kind: 'pending' | 'rejected';
       reason?: string;
     }
-  | { type: 'admin_notify'; registrationId: string };
+  // Looks up the opted-in admins and fans out one admin_notify_one job each.
+  | { type: 'admin_notify'; registrationId: string }
+  // One email to one admin, so a failure for one recipient is retried on
+  // its own and never blocks or duplicates the others.
+  | { type: 'admin_notify_one'; registrationId: string; email: string };
 
 @Injectable()
 export class StudentReviewEmailQueue implements OnModuleInit, OnModuleDestroy {
@@ -38,15 +53,28 @@ export class StudentReviewEmailQueue implements OnModuleInit, OnModuleDestroy {
     this.connection = new IORedis(this.config.getOrThrow<string>('REDIS_URL'), {
       maxRetriesPerRequest: null,
     });
-    this.queue = new Queue(QUEUE_NAME, { connection: this.connection });
+    this.queue = new Queue(QUEUE_NAME, {
+      connection: this.connection,
+      defaultJobOptions: DEFAULT_JOB_OPTIONS,
+    });
     this.worker = new Worker<StudentReviewJobData>(
       QUEUE_NAME,
       (job) => this.process(job),
       { connection: this.connection },
     );
     this.worker.on('failed', (job, err) => {
+      if (!job) {
+        this.logger.error(`Student review email job failed: ${err.message}`);
+        return;
+      }
+      const attempts = job.opts.attempts ?? 1;
+      const final = job.attemptsMade >= attempts;
+      const target =
+        job.data.type === 'admin_notify_one'
+          ? ` to admin ${job.data.email}`
+          : '';
       this.logger.error(
-        `Student review email job ${job?.id} failed: ${err.message}`,
+        `Student review email job ${job.id} (${job.data.type}${target}, registration ${job.data.registrationId}) failed on attempt ${job.attemptsMade}/${attempts}${final ? ', giving up' : ', will retry'}: ${err.message}`,
       );
     });
   }
@@ -75,6 +103,11 @@ export class StudentReviewEmailQueue implements OnModuleInit, OnModuleDestroy {
   }
 
   private async process(job: Job<StudentReviewJobData>) {
+    if (job.data.type === 'admin_notify') {
+      await this.fanOutAdminNotify(job.data.registrationId);
+      return;
+    }
+
     const registration = await this.prisma.registration.findUniqueOrThrow({
       where: { id: job.data.registrationId },
       include: { attendee: true, event: true },
@@ -102,18 +135,43 @@ export class StudentReviewEmailQueue implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const reviewUrl = `${this.config.getOrThrow<string>('FRONTEND_ORIGIN')}/admin/registrations/${registration.id}`;
+    await this.emailService.sendStudentReviewAdminNotifyEmail(job.data.email, {
+      eventName: registration.event.name,
+      supportEmail,
+      attendeeName: registration.attendee.fullName,
+      reviewUrl,
+    });
+  }
+
+  private async fanOutAdminNotify(registrationId: string) {
     const admins = await this.prisma.adminUser.findMany({
       where: { notifyOnStudentRegistration: true },
-      select: { email: true },
+      select: { id: true, email: true },
     });
-    const reviewUrl = `${this.config.getOrThrow<string>('FRONTEND_ORIGIN')}/admin/registrations/${registration.id}`;
-    for (const admin of admins) {
-      await this.emailService.sendStudentReviewAdminNotifyEmail(admin.email, {
-        eventName: registration.event.name,
-        supportEmail,
-        attendeeName: registration.attendee.fullName,
-        reviewUrl,
-      });
+
+    if (admins.length === 0) {
+      this.logger.warn(
+        `Student registration ${registrationId} is awaiting review but no admin has student review notifications turned on, so nobody was emailed`,
+      );
+      return;
     }
+
+    await this.queue.addBulk(
+      admins.map((admin) => ({
+        name: 'send',
+        data: {
+          type: 'admin_notify_one' as const,
+          registrationId,
+          email: admin.email,
+        },
+        // Deterministic id: if this fan-out job is retried, admins already
+        // queued are not queued (and emailed) a second time.
+        opts: { jobId: `admin-notify-${registrationId}-${admin.id}` },
+      })),
+    );
+    this.logger.log(
+      `Queued student review notification for registration ${registrationId} to ${admins.length} admin(s)`,
+    );
   }
 }
