@@ -70,6 +70,12 @@ export function getEffectivePermissions(user: {
   role: AdminRole;
   permissions: string[];
 }): PermissionKey[] {
+  // A super_admin always has everything. Their stored list is a snapshot
+  // taken at promotion and can't be edited afterwards, so without this
+  // they'd never receive permissions added later (e.g. messaging.send).
+  if (user.role === 'super_admin') {
+    return ALL_PERMISSIONS;
+  }
   if (user.permissions.length > 0) {
     return user.permissions.filter(isPermissionKey);
   }

@@ -245,9 +245,10 @@ describe('Email broadcasts (integration)', () => {
     });
     expect(stored.bodyHtml).not.toContain('<script');
 
-    // Wait for the worker to drain the two jobs.
+    // Wait for the worker to drain the two jobs — generously, since the
+    // queue is rate-limited and shared with any jobs left in Redis.
     let current = stored;
-    for (let i = 0; i < 40 && current.sentCount < 2; i++) {
+    for (let i = 0; i < 120 && current.sentCount < 2; i++) {
       await new Promise((r) => setTimeout(r, 250));
       current = await prisma.emailBroadcast.findUniqueOrThrow({
         where: { id: sent.id },
@@ -278,7 +279,7 @@ describe('Email broadcasts (integration)', () => {
     expect(latest.id).toBe(sent.id);
     expect(latest.recipientCount).toBe(2);
     expect(latest.createdByName).toBeTruthy();
-  }, 30000);
+  }, 60000);
 
   it('refuses to send when nobody matches', async () => {
     const res = await post('', {
