@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   fetchRegistrations,
@@ -14,7 +15,9 @@ import {
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
 import { formatDateTime, formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
+import { hasPermission } from "@/lib/permissions";
 import { useToast } from "@/lib/toast-context";
+import { PRESELECTED_STORAGE_KEY } from "../messages/preselected";
 import { PaginationFooter } from "../pagination-footer";
 import { ReasonModal } from "../reason-modal";
 import { TableRowsSkeleton } from "../skeleton";
@@ -55,6 +58,7 @@ function SortHeader({
 export default function AdminRegistrationsPage() {
   const { session, loading: authLoading } = useRequireAdminAuth();
   const toast = useToast();
+  const router = useRouter();
   const [registrations, setRegistrations] = useState<RegistrationListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -69,6 +73,10 @@ export default function AdminRegistrationsPage() {
   const [exportState, setExportState] = useState<string | null>(null);
   const [exportUrl, setExportUrl] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Name/email for every selected row (across pages), for "Email selected".
+  const [selectedPeople, setSelectedPeople] = useState<
+    Map<string, { fullName: string; email: string }>
+  >(new Map());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showBulkMarkPaidConfirm, setShowBulkMarkPaidConfirm] = useState(false);
@@ -142,20 +150,51 @@ export default function AdminRegistrationsPage() {
   }
 
   function toggleAllVisible() {
-    setSelectedIds((prev) => {
-      const allSelected = registrations.every((r) => prev.has(r.id));
-      if (allSelected) return new Set();
-      return new Set(registrations.map((r) => r.id));
-    });
+    const allSelected = registrations.every((r) => selectedIds.has(r.id));
+    if (allSelected) {
+      clearSelection();
+      return;
+    }
+    setSelectedIds(new Set(registrations.map((r) => r.id)));
+    setSelectedPeople(
+      new Map(
+        registrations.map((r) => [
+          r.id,
+          { fullName: r.attendee.fullName, email: r.attendee.email },
+        ]),
+      ),
+    );
   }
 
-  function toggleRow(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  function toggleRow(r: RegistrationListItem) {
+    const nextIds = new Set(selectedIds);
+    const nextPeople = new Map(selectedPeople);
+    if (nextIds.has(r.id)) {
+      nextIds.delete(r.id);
+      nextPeople.delete(r.id);
+    } else {
+      nextIds.add(r.id);
+      nextPeople.set(r.id, { fullName: r.attendee.fullName, email: r.attendee.email });
+    }
+    setSelectedIds(nextIds);
+    setSelectedPeople(nextPeople);
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+    setSelectedPeople(new Map());
+  }
+
+  function emailSelected() {
+    try {
+      sessionStorage.setItem(
+        PRESELECTED_STORAGE_KEY,
+        JSON.stringify([...selectedPeople.entries()]),
+      );
+    } catch {
+      toast.error("Could not hand the selection over — pick people on the Email participants page instead.");
+    }
+    router.push("/admin/messages");
   }
 
   async function runBulk(
@@ -170,7 +209,7 @@ export default function AdminRegistrationsPage() {
     const failed = results.length - succeeded;
     if (succeeded > 0) toast.success(`${succeeded} ${verb}.`);
     if (failed > 0) toast.error(`${failed} failed to ${verb.replace(/\.$/, "")}.`);
-    setSelectedIds(new Set());
+    clearSelection();
     setBulkBusy(false);
     setRefreshKey((k) => k + 1);
   }
@@ -285,7 +324,16 @@ export default function AdminRegistrationsPage() {
           >
             Send reminder
           </button>
-          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-sage underline">
+          {hasPermission(session.user.permissions, "messaging.send") && (
+            <button
+              disabled={bulkBusy}
+              onClick={emailSelected}
+              className="border border-emerald text-emerald px-4 py-1.5 rounded-full hover:bg-emerald hover:text-white transition-colors disabled:opacity-50"
+            >
+              Email selected
+            </button>
+          )}
+          <button onClick={clearSelection} className="ml-auto text-sage underline">
             Clear
           </button>
         </div>
@@ -322,7 +370,7 @@ export default function AdminRegistrationsPage() {
                     type="checkbox"
                     className="accent-emerald"
                     checked={selectedIds.has(r.id)}
-                    onChange={() => toggleRow(r.id)}
+                    onChange={() => toggleRow(r)}
                     aria-label={`Select ${r.attendee.fullName}`}
                   />
                 </td>

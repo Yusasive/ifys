@@ -9,6 +9,8 @@ import {
   AdminAccountEmailData,
   renderAdminAccountCreatedHtml,
 } from './admin-account-email-template';
+import { BroadcastBodyData, renderBroadcastBodyHtml } from './broadcast-html';
+import { renderEmailShell } from './email-shell';
 import {
   NewsletterEmailData,
   renderNewsletterConfirmationHtml,
@@ -309,5 +311,27 @@ export class EmailService {
       attachments: this.brandLogoAttachment(),
     });
     this.logger.log(`Ticket ${kind} email sent to ${to}`);
+  }
+
+  async sendBroadcastEmail(
+    to: string,
+    data: BroadcastBodyData & {
+      subject: string;
+      eventName: string;
+      supportEmail: string;
+    },
+  ) {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: data.subject,
+      html: renderEmailShell({
+        eventName: data.eventName,
+        bodyHtml: renderBroadcastBodyHtml(data),
+        supportEmail: data.supportEmail,
+      }),
+      attachments: this.brandLogoAttachment(),
+    });
+    this.logger.log(`Broadcast email sent to ${to}`);
   }
 }

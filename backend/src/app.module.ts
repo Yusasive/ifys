@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { AdminModule } from './admin/admin.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { AuthModule } from './auth/auth.module';
+import { BroadcastsModule } from './broadcasts/broadcasts.module';
 import { CouponsModule } from './coupons/coupons.module';
 import { RegistrationsModule } from './registrations/registrations.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
@@ -47,6 +48,7 @@ import { configValidationSchema } from './config-validation';
     VolunteersModule,
     CheckInsModule,
     AdminModule,
+    BroadcastsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

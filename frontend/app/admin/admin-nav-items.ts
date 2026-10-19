@@ -18,6 +18,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     label: "Registrations",
     permission: "registrations.view",
   },
+  {
+    href: "/admin/messages",
+    label: "Email participants",
+    organizerOnly: true,
+    permission: "messaging.send",
+  },
   // Not gated by a permission key — admin-user management (viewable by
   // organizer, but only super_admin can create/edit/delete) is deliberately
   // not itself delegable via the permission system, to prevent an organizer

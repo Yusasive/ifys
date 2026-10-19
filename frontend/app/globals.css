@@ -101,3 +101,23 @@ body {
     animation: none;
   }
 }
+
+/* Admin "Email participants" rich-text editor (Tiptap) — Tailwind's
+   preflight resets list/heading styles, so restore them inside the editor
+   to roughly match how the email will render. */
+.broadcast-editor-content p { margin: 0 0 0.75rem; line-height: 1.6; }
+.broadcast-editor-content h2 { font-size: 1.25rem; font-weight: 700; margin: 0 0 0.75rem; }
+.broadcast-editor-content h3 { font-size: 1.075rem; font-weight: 700; margin: 0 0 0.6rem; }
+.broadcast-editor-content ul { list-style: disc; padding-left: 1.4rem; margin: 0 0 0.75rem; }
+.broadcast-editor-content ol { list-style: decimal; padding-left: 1.4rem; margin: 0 0 0.75rem; }
+.broadcast-editor-content li p { margin: 0 0 0.25rem; }
+.broadcast-editor-content blockquote { border-left: 3px solid var(--coral); padding-left: 0.75rem; margin: 0 0 0.75rem; color: var(--ink-2); }
+.broadcast-editor-content a { color: var(--coral-deep); text-decoration: underline; }
+.broadcast-editor-content hr { border: 0; border-top: 1px solid #e5e5e5; margin: 1rem 0; }
+.broadcast-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--sage);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

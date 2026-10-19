@@ -9,6 +9,7 @@ export const AUDIT_ACTIONS = [
   "void_ticket",
   "cancel_registration",
   "send_pending_payment_reminder",
+  "send_email_broadcast",
   "create_admin_user",
   "update_admin_user",
   "delete_admin_user",

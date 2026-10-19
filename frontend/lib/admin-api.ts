@@ -276,6 +276,71 @@ export function sendPendingPaymentReminder(registrationId: string) {
   });
 }
 
+export interface BroadcastAudience {
+  registrationIds?: string[];
+  categories?: Category[];
+  tiers?: Tier[];
+  statuses?: string[];
+}
+
+export interface BroadcastContent {
+  subject: string;
+  bodyHtml: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+}
+
+export interface EmailBroadcast {
+  id: string;
+  subject: string;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  audienceJson: BroadcastAudience;
+  recipientCount: number;
+  sentCount: number;
+  failedCount: number;
+  createdAt: string;
+  createdByName: string | null;
+}
+
+export function listBroadcasts(eventSlug: string) {
+  return adminRequest<EmailBroadcast[]>(
+    `/admin/broadcasts?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
+export function previewBroadcastAudience(eventSlug: string, audience: BroadcastAudience) {
+  return adminRequest<{ count: number; sample: { email: string; fullName: string }[] }>(
+    "/admin/broadcasts/audience-preview",
+    { method: "POST", body: JSON.stringify({ eventSlug, audience }) },
+  );
+}
+
+export function renderBroadcastPreview(eventSlug: string, content: BroadcastContent) {
+  return adminRequest<{ html: string }>("/admin/broadcasts/preview", {
+    method: "POST",
+    body: JSON.stringify({ eventSlug, ...content }),
+  });
+}
+
+export function sendTestBroadcast(eventSlug: string, content: BroadcastContent) {
+  return adminRequest<{ sentTo: string }>("/admin/broadcasts/test", {
+    method: "POST",
+    body: JSON.stringify({ eventSlug, ...content }),
+  });
+}
+
+export function sendBroadcast(
+  eventSlug: string,
+  content: BroadcastContent,
+  audience: BroadcastAudience,
+) {
+  return adminRequest<{ id: string; recipientCount: number }>("/admin/broadcasts", {
+    method: "POST",
+    body: JSON.stringify({ eventSlug, ...content, audience }),
+  });
+}
+
 export function requestExport() {
   return adminRequest<{ jobId: string }>("/admin/export", { method: "POST" });
 }

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AdminAccountEmailQueue } from './admin-account-email.queue';
+import { BroadcastEmailQueue } from './broadcast-email.queue';
 import { EmailService } from './email.service';
 import { NewsletterEmailQueue } from './newsletter-email.queue';
 import { RegistrationReminderEmailQueue } from './registration-reminder-email.queue';
@@ -20,6 +21,7 @@ import { VolunteerApplicationEmailQueue } from './volunteer-application-email.qu
     AdminAccountEmailQueue,
     RegistrationReminderEmailQueue,
     StudentReviewEmailQueue,
+    BroadcastEmailQueue,
   ],
   exports: [
     EmailService,
@@ -31,6 +33,7 @@ import { VolunteerApplicationEmailQueue } from './volunteer-application-email.qu
     AdminAccountEmailQueue,
     RegistrationReminderEmailQueue,
     StudentReviewEmailQueue,
+    BroadcastEmailQueue,
   ],
 })
 export class EmailModule {}
