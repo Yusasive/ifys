@@ -192,6 +192,42 @@ export interface DateUpdateResendStatus {
   lastSentAt: string | null;
 }
 
+export type TicketEmailKind = "ticket" | "date_update";
+
+export type TicketEmailDeliveryStatus = "sent" | "failed" | "queued" | "untracked" | "not_sent";
+
+export interface TicketEmailDeliveryRow {
+  ticketId: string;
+  registrationId: string;
+  ticketCode: string;
+  fullName: string;
+  email: string;
+  status: TicketEmailDeliveryStatus;
+  error: string | null;
+  sentAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface TicketEmailDeliveries {
+  total: number;
+  summary: Record<TicketEmailDeliveryStatus, number>;
+  rows: TicketEmailDeliveryRow[];
+}
+
+export function getTicketEmailDeliveries(eventSlug: string, kind: TicketEmailKind) {
+  return adminRequest<TicketEmailDeliveries>(
+    `/admin/tickets/email-deliveries?event=${encodeURIComponent(eventSlug)}&kind=${kind}`,
+  );
+}
+
+// Without ticketIds, resends to everyone whose email of this kind failed.
+export function resendTicketEmails(eventSlug: string, kind: TicketEmailKind, ticketIds?: string[]) {
+  return adminRequest<{ queued: number }>(
+    `/admin/tickets/email-deliveries/resend?event=${encodeURIComponent(eventSlug)}`,
+    { method: "POST", body: JSON.stringify({ kind, ticketIds }) },
+  );
+}
+
 export function getDateUpdateResendStatus(eventSlug: string) {
   return adminRequest<DateUpdateResendStatus>(
     `/admin/tickets/date-update-resend?event=${encodeURIComponent(eventSlug)}`,
@@ -306,6 +342,24 @@ export interface EmailBroadcast {
 export function listBroadcasts(eventSlug: string) {
   return adminRequest<EmailBroadcast[]>(
     `/admin/broadcasts?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
+export interface BroadcastFailure {
+  email: string;
+  fullName: string;
+  error: string;
+  failedAt: string;
+}
+
+export function listBroadcastFailures(broadcastId: string) {
+  return adminRequest<BroadcastFailure[]>(`/admin/broadcasts/${broadcastId}/failures`);
+}
+
+export function resendFailedBroadcast(broadcastId: string) {
+  return adminRequest<{ recipientCount: number }>(
+    `/admin/broadcasts/${broadcastId}/resend-failed`,
+    { method: "POST" },
   );
 }
 

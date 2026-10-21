@@ -402,10 +402,46 @@ model Ticket {
   lastActionAt        DateTime?         @map("last_action_at")
   lastActionByAdminId String?           @map("last_action_by_admin_id")
 
-  registration Registration @relation(fields: [registrationId], references: [id])
-  checkIns     CheckIn[]
+  registration    Registration           @relation(fields: [registrationId], references: [id])
+  checkIns        CheckIn[]
+  emailDeliveries TicketEmailDelivery[]
 
   @@map("tickets")
+}
+
+// Which ticket email a delivery row tracks: the ticket itself (first send,
+// resends and reissues) or the one-time "event date changed" resend.
+enum TicketEmailKind {
+  ticket
+  date_update
+}
+
+enum TicketEmailStatus {
+  // Waiting in the queue or between retries.
+  queued
+  sent
+  // Out of retries — needs a resend.
+  failed
+}
+
+// Latest delivery outcome of one kind of email for one ticket, so admins
+// can see who got their ticket and resend to those who didn't. "sent"
+// means the SMTP server accepted it; a later bounce (e.g. a mistyped
+// address) is not visible here.
+model TicketEmailDelivery {
+  id        String            @id @default(uuid())
+  ticketId  String            @map("ticket_id")
+  kind      TicketEmailKind
+  status    TicketEmailStatus
+  error     String?
+  sentAt    DateTime?         @map("sent_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, kind])
+  @@index([kind, status])
+  @@map("ticket_email_deliveries")
 }
 
 model CheckIn {
@@ -511,8 +547,25 @@ model EmailBroadcast {
   createdById    String   @map("created_by_id")
   createdAt      DateTime @default(now()) @map("created_at")
 
-  event Event @relation(fields: [eventId], references: [id])
+  event    Event                   @relation(fields: [eventId], references: [id])
+  failures EmailBroadcastFailure[]
 
   @@index([eventId, createdAt])
   @@map("email_broadcasts")
+}
+
+// A recipient whose email still failed after every retry. Kept so an admin
+// can see why and resend to just these people; deleted when re-queued.
+model EmailBroadcastFailure {
+  id          String   @id @default(uuid())
+  broadcastId String   @map("broadcast_id")
+  email       String
+  fullName    String   @map("full_name")
+  error       String
+  failedAt    DateTime @default(now()) @map("failed_at")
+
+  broadcast EmailBroadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  @@unique([broadcastId, email])
+  @@map("email_broadcast_failures")
 }

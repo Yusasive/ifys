@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -186,6 +187,67 @@ export class BroadcastsService {
     });
 
     return { id: broadcast.id, recipientCount: recipients.length };
+  }
+
+  // Recipients whose email still failed after every retry, with the reason.
+  async listFailures(broadcastId: string) {
+    await this.prisma.emailBroadcast
+      .findUniqueOrThrow({
+        where: { id: broadcastId },
+      })
+      .catch(() => {
+        throw new NotFoundException('Broadcast not found');
+      });
+    return this.prisma.emailBroadcastFailure.findMany({
+      where: { broadcastId },
+      select: { email: true, fullName: true, error: true, failedAt: true },
+      orderBy: { failedAt: 'asc' },
+    });
+  }
+
+  // Re-queues the same message to everyone it failed for. Their failure
+  // rows are removed and failedCount drops back, so they show as "sending"
+  // again and are re-recorded if they fail a second time. Queuing happens
+  // inside the transaction: if it throws, the failures are kept.
+  async resendFailed(broadcastId: string, actorId: string) {
+    const recipients = await this.prisma.$transaction(async (tx) => {
+      const failures = await tx.emailBroadcastFailure.findMany({
+        where: { broadcastId },
+      });
+      if (failures.length === 0) {
+        throw new BadRequestException(
+          'There are no failed recipients to resend to.',
+        );
+      }
+      const deleted = await tx.emailBroadcastFailure.deleteMany({
+        where: { id: { in: failures.map((f) => f.id) } },
+      });
+      if (deleted.count !== failures.length) {
+        throw new ConflictException(
+          'A resend for these recipients is already in progress.',
+        );
+      }
+      await tx.emailBroadcast.update({
+        where: { id: broadcastId },
+        data: { failedCount: { decrement: failures.length } },
+      });
+      const list = failures.map((f) => ({
+        email: f.email,
+        fullName: f.fullName,
+      }));
+      await this.broadcastQueue.enqueueAll(broadcastId, list);
+      return list;
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'resend_email_broadcast_failures',
+      targetType: 'email_broadcast',
+      targetId: broadcastId,
+      metadata: { recipientCount: recipients.length },
+    });
+
+    return { recipientCount: recipients.length };
   }
 
   async list(eventSlug: string) {

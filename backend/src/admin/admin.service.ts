@@ -15,6 +15,7 @@ import { AdminAccountEmailQueue } from '../email/admin-account-email.queue';
 import { RegistrationReminderEmailQueue } from '../email/registration-reminder-email.queue';
 import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
+import { TicketEmailKind } from '../generated/prisma/enums';
 import { TicketLifecycleEmailQueue } from '../email/ticket-lifecycle-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -301,7 +302,7 @@ export class AdminService {
   // non-void ticket gets its existing QR code and ticket code re-emailed with
   // a short date-update note. Each send is recorded in the audit log, which
   // is also how a second run knows to skip people who already got it.
-  private async findDateUpdateTickets(eventSlug: string) {
+  private async findEventBySlug(eventSlug: string) {
     if (!eventSlug) {
       throw new BadRequestException('Query parameter "event" is required.');
     }
@@ -311,6 +312,11 @@ export class AdminService {
     if (!event) {
       throw new NotFoundException(`No event found for slug "${eventSlug}"`);
     }
+    return event;
+  }
+
+  private async findDateUpdateTickets(eventSlug: string) {
+    const event = await this.findEventBySlug(eventSlug);
     const tickets = await this.prisma.ticket.findMany({
       where: { status: { not: 'void' }, registration: { eventId: event.id } },
       select: { id: true },
@@ -369,6 +375,115 @@ export class AdminService {
     }
 
     return { queued: pending.length };
+  }
+
+  // Delivery status of one kind of ticket email for every valid ticket of
+  // the event. "untracked" means it went out before tracking existed and
+  // Redis no longer knows the outcome; "not_sent" (new-date email only)
+  // means it was never queued for that ticket.
+  async getTicketEmailDeliveries(eventSlug: string, kind: TicketEmailKind) {
+    const event = await this.findEventBySlug(eventSlug);
+    const tickets = await this.prisma.ticket.findMany({
+      where: { status: { not: 'void' }, registration: { eventId: event.id } },
+      select: {
+        id: true,
+        ticketCode: true,
+        registration: {
+          select: {
+            id: true,
+            attendee: { select: { fullName: true, email: true } },
+          },
+        },
+        emailDeliveries: { where: { kind } },
+      },
+      orderBy: { issuedAt: 'asc' },
+    });
+
+    let everQueued: Set<string> | null = null;
+    if (kind === 'date_update') {
+      const logs = await this.prisma.auditLog.findMany({
+        where: {
+          action: 'resend_ticket_date_update',
+          targetId: { in: tickets.map((t) => t.id) },
+        },
+        select: { targetId: true },
+      });
+      everQueued = new Set(logs.map((l) => l.targetId));
+    }
+
+    const rows = tickets.map((t) => {
+      const delivery = t.emailDeliveries[0];
+      const status =
+        delivery?.status ??
+        (everQueued && !everQueued.has(t.id) ? 'not_sent' : 'untracked');
+      return {
+        ticketId: t.id,
+        registrationId: t.registration.id,
+        ticketCode: t.ticketCode,
+        fullName: t.registration.attendee.fullName,
+        email: t.registration.attendee.email,
+        status,
+        error: delivery?.error ?? null,
+        sentAt: delivery?.sentAt ?? null,
+        updatedAt: delivery?.updatedAt ?? null,
+      };
+    });
+
+    const summary = {
+      sent: 0,
+      failed: 0,
+      queued: 0,
+      untracked: 0,
+      not_sent: 0,
+    };
+    for (const row of rows) summary[row.status]++;
+    return { total: rows.length, summary, rows };
+  }
+
+  // Re-queues a ticket email: to the given tickets, or to everyone whose
+  // email of this kind failed. Same QR code and ticket code as before.
+  async resendTicketEmails(
+    eventSlug: string,
+    kind: TicketEmailKind,
+    actorId: string,
+    ticketIds?: string[],
+  ) {
+    const event = await this.findEventBySlug(eventSlug);
+    const targets = await this.prisma.ticket.findMany({
+      where: {
+        status: { not: 'void' },
+        registration: { eventId: event.id },
+        ...(ticketIds
+          ? { id: { in: ticketIds } }
+          : { emailDeliveries: { some: { kind, status: 'failed' } } }),
+      },
+      select: { id: true },
+    });
+    if (targets.length === 0) {
+      throw new BadRequestException(
+        ticketIds
+          ? 'None of these tickets can be resent.'
+          : 'There are no failed emails to resend.',
+      );
+    }
+
+    for (const ticket of targets) {
+      await this.auditLog.record({
+        actorId,
+        action:
+          kind === 'date_update'
+            ? 'resend_ticket_date_update'
+            : 'resend_ticket',
+        targetType: 'ticket',
+        targetId: ticket.id,
+      });
+      await this.emailQueue.enqueue(
+        ticket.id,
+        kind === 'date_update' ? 'date_updated' : 'resent',
+      );
+    }
+
+    return { queued: targets.length };
   }
 
   async voidTicket(

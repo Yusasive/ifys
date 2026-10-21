@@ -11,6 +11,7 @@ export const AUDIT_ACTIONS = [
   'reject_student_registration',
   'send_pending_payment_reminder',
   'send_email_broadcast',
+  'resend_email_broadcast_failures',
   'create_admin_user',
   'update_admin_user',
   'promote_admin_to_super_admin',

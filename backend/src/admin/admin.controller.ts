@@ -2,14 +2,17 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
+  ParseEnumPipe,
   Patch,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { CsrfGuard } from '../auth/csrf.guard';
+import { TicketEmailKind } from '../generated/prisma/enums';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { JwtPayload } from '../auth/jwt-payload';
@@ -43,6 +46,7 @@ import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { VoidTicketDto } from './dto/void-ticket.dto';
 import { MarkPaidDto } from './dto/mark-paid.dto';
 import { ResendDateUpdateDto } from './dto/resend-date-update.dto';
+import { ResendTicketEmailsDto } from './dto/resend-ticket-emails.dto';
 import { ReissueTicketDto } from './dto/reissue-ticket.dto';
 import { RestoreTicketDto } from './dto/restore-ticket.dto';
 import { WithdrawTicketDto } from './dto/withdraw-ticket.dto';
@@ -248,6 +252,37 @@ export class AdminController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.admin.sendDateUpdateResend(eventSlug, user.sub, dto.password);
+  }
+
+  @RequirePermissions('registrations.view')
+  @Get('tickets/email-deliveries')
+  getTicketEmailDeliveries(
+    @Query('event') eventSlug: string,
+    @Query('kind', new ParseEnumPipe(TicketEmailKind)) kind: TicketEmailKind,
+  ) {
+    return this.admin.getTicketEmailDeliveries(eventSlug, kind);
+  }
+
+  // Ticket resends need the resend permission; the new-date email stays
+  // super-admin only, like the bulk new-date send.
+  @RequirePermissions('registrations.resendTicket')
+  @Post('tickets/email-deliveries/resend')
+  resendTicketEmails(
+    @Query('event') eventSlug: string,
+    @Body() dto: ResendTicketEmailsDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (dto.kind === 'date_update' && user.role !== 'super_admin') {
+      throw new ForbiddenException(
+        'Only a super admin can resend the new-date email.',
+      );
+    }
+    return this.admin.resendTicketEmails(
+      eventSlug,
+      dto.kind,
+      user.sub,
+      dto.ticketIds,
+    );
   }
 
   @RequirePermissions('eventSettings.manage')

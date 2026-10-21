@@ -8,10 +8,10 @@ import { ConfigService } from '@nestjs/config';
 import { Job, Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
+import { EMAIL_JOB_OPTIONS } from './email-job-options';
 import { EmailService } from './email.service';
 
 const QUEUE_NAME = 'broadcast-emails';
-const MAX_ATTEMPTS = 3;
 
 interface BroadcastEmailJobData {
   broadcastId: string;
@@ -51,21 +51,74 @@ export class BroadcastEmailQueue implements OnModuleInit, OnModuleDestroy {
     );
     this.worker.on('failed', (job, err) => {
       this.logger.error(
-        `Broadcast email job ${job?.id} failed: ${err.message}`,
+        `Broadcast email job ${job?.id} (broadcast ${job?.data.broadcastId}, to ${job?.data.email}) failed on attempt ${job?.attemptsMade}/${job?.opts.attempts ?? 1}: ${err.message}`,
       );
       if (job && job.attemptsMade >= (job.opts.attempts ?? 1)) {
-        void this.prisma.emailBroadcast
-          .update({
-            where: { id: job.data.broadcastId },
-            data: { failedCount: { increment: 1 } },
-          })
-          .catch((e: unknown) =>
-            this.logger.error(
-              `Could not record failure for broadcast ${job.data.broadcastId}: ${String(e)}`,
-            ),
-          );
+        void this.recordFailure(job, err.message);
       }
     });
+
+    void this.backfillFailures();
+  }
+
+  // Out of retries: remember who it was so an admin can resend to them,
+  // then drop the job — the failure row now holds everything it did.
+  private async recordFailure(job: Job<BroadcastEmailJobData>, error: string) {
+    const { broadcastId, email, fullName } = job.data;
+    try {
+      await this.prisma.$transaction([
+        this.prisma.emailBroadcastFailure.createMany({
+          data: [{ broadcastId, email, fullName, error }],
+          skipDuplicates: true,
+        }),
+        this.prisma.emailBroadcast.update({
+          where: { id: broadcastId },
+          data: { failedCount: { increment: 1 } },
+        }),
+      ]);
+      await job.remove();
+    } catch (e) {
+      this.logger.error(
+        `Could not record failure for broadcast ${broadcastId} (${email}): ${String(e)}`,
+      );
+    }
+  }
+
+  // Jobs that failed before failures were stored in the database are still
+  // in Redis. Copy them over once so those recipients can be resent to too.
+  // They were already counted in failedCount, so only the rows are added.
+  private async backfillFailures() {
+    try {
+      const failed = (await this.queue.getFailed()).filter(
+        (job) => job.attemptsMade >= (job.opts.attempts ?? 1),
+      );
+      if (failed.length === 0) return;
+
+      const existing = await this.prisma.emailBroadcast.findMany({
+        where: {
+          id: { in: [...new Set(failed.map((j) => j.data.broadcastId))] },
+        },
+        select: { id: true },
+      });
+      const known = new Set(existing.map((b) => b.id));
+      const jobs = failed.filter((j) => known.has(j.data.broadcastId));
+
+      await this.prisma.emailBroadcastFailure.createMany({
+        data: jobs.map((j) => ({
+          broadcastId: j.data.broadcastId,
+          email: j.data.email,
+          fullName: j.data.fullName,
+          error: j.failedReason || 'Unknown error',
+        })),
+        skipDuplicates: true,
+      });
+      await Promise.all(jobs.map((j) => j.remove()));
+      this.logger.log(
+        `Backfilled ${jobs.length} failed broadcast recipient(s) from Redis`,
+      );
+    } catch (e) {
+      this.logger.error(`Could not backfill broadcast failures: ${String(e)}`);
+    }
   }
 
   async onModuleDestroy() {
@@ -82,12 +135,7 @@ export class BroadcastEmailQueue implements OnModuleInit, OnModuleDestroy {
       recipients.map((r) => ({
         name: 'send',
         data: { broadcastId, email: r.email, fullName: r.fullName },
-        opts: {
-          attempts: MAX_ATTEMPTS,
-          backoff: { type: 'exponential', delay: 30_000 },
-          removeOnComplete: true,
-          removeOnFail: 1000,
-        },
+        opts: EMAIL_JOB_OPTIONS,
       })),
     );
   }

@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Job, Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
+import { EMAIL_JOB_OPTIONS } from './email-job-options';
 import { EmailService } from './email.service';
 import { TicketLifecycleKind } from './ticket-lifecycle-email-template';
 
@@ -37,7 +38,10 @@ export class TicketLifecycleEmailQueue
     this.connection = new IORedis(this.config.getOrThrow<string>('REDIS_URL'), {
       maxRetriesPerRequest: null,
     });
-    this.queue = new Queue(QUEUE_NAME, { connection: this.connection });
+    this.queue = new Queue(QUEUE_NAME, {
+      connection: this.connection,
+      defaultJobOptions: EMAIL_JOB_OPTIONS,
+    });
     this.worker = new Worker<TicketLifecycleEmailJobData>(
       QUEUE_NAME,
       (job) => this.process(job),
@@ -45,7 +49,7 @@ export class TicketLifecycleEmailQueue
     );
     this.worker.on('failed', (job, err) => {
       this.logger.error(
-        `Ticket lifecycle email job ${job?.id} failed: ${err.message}`,
+        `Ticket lifecycle email job ${job?.id} (${job?.data.kind}, ticket ${job?.data.ticketId}) failed on attempt ${job?.attemptsMade}/${job?.opts.attempts ?? 1}: ${err.message}`,
       );
     });
   }

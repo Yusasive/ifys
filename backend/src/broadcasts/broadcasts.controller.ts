@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CsrfGuard } from '../auth/csrf.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -37,6 +46,19 @@ export class BroadcastsController {
   @Post('test')
   sendTest(@Body() dto: TestBroadcastDto, @CurrentUser() user: JwtPayload) {
     return this.broadcasts.sendTest(dto.eventSlug, dto, user.sub);
+  }
+
+  @Get(':id/failures')
+  listFailures(@Param('id', ParseUUIDPipe) id: string) {
+    return this.broadcasts.listFailures(id);
+  }
+
+  @Post(':id/resend-failed')
+  resendFailed(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.broadcasts.resendFailed(id, user.sub);
   }
 
   @Post()

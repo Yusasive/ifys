@@ -4,10 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BroadcastAudience,
   BroadcastContent,
+  BroadcastFailure,
   EmailBroadcast,
+  listBroadcastFailures,
   listBroadcasts,
   previewBroadcastAudience,
   renderBroadcastPreview,
+  resendFailedBroadcast,
   sendBroadcast,
   sendTestBroadcast,
 } from "@/lib/admin-api";
@@ -102,7 +105,9 @@ export default function AdminMessagesPage() {
 
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [busy, setBusy] = useState<"preview" | "test" | "send" | null>(null);
+  const [busy, setBusy] = useState<"preview" | "test" | "send" | "resend" | null>(null);
+  const [failuresFor, setFailuresFor] = useState<EmailBroadcast | null>(null);
+  const [failures, setFailures] = useState<BroadcastFailure[] | null>(null);
 
   useEffect(() => {
     try {
@@ -230,6 +235,34 @@ export default function AdminMessagesPage() {
       void loadHistory();
     } catch (err) {
       toast.error(errorMessage(err, "Could not send the message."));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function openFailures(broadcast: EmailBroadcast) {
+    setFailuresFor(broadcast);
+    setFailures(null);
+    try {
+      setFailures(await listBroadcastFailures(broadcast.id));
+    } catch (err) {
+      toast.error(errorMessage(err, "Could not load the failed recipients."));
+      setFailuresFor(null);
+    }
+  }
+
+  async function handleResendFailed() {
+    if (!failuresFor) return;
+    setBusy("resend");
+    try {
+      const { recipientCount } = await resendFailedBroadcast(failuresFor.id);
+      toast.success(
+        `Resending to ${recipientCount} ${recipientCount === 1 ? "person" : "people"}. Progress is shown below.`,
+      );
+      setFailuresFor(null);
+      void loadHistory();
+    } catch (err) {
+      toast.error(errorMessage(err, "Could not resend the message."));
     } finally {
       setBusy(null);
     }
@@ -425,7 +458,13 @@ export default function AdminMessagesPage() {
                         <span className="text-emerald text-xs">done</span>
                       )}
                       {b.failedCount > 0 && (
-                        <span className="text-coral-deep text-xs ml-1">· {b.failedCount} failed</span>
+                        <button
+                          type="button"
+                          onClick={() => void openFailures(b)}
+                          className="text-coral-deep text-xs ml-1 underline hover:text-coral"
+                        >
+                          · {b.failedCount} failed
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -458,6 +497,70 @@ export default function AdminMessagesPage() {
             className="w-full h-[60vh] rounded-xl border border-emerald/20"
           />
         )}
+      </FormModal>
+
+      <FormModal
+        open={failuresFor !== null}
+        title="Failed recipients"
+        description={
+          failuresFor
+            ? `"${failuresFor.subject}" could not be delivered to these people after several attempts.`
+            : undefined
+        }
+        onClose={() => busy !== "resend" && setFailuresFor(null)}
+        size="lg"
+      >
+        {failures === null ? (
+          <p className="text-sm text-sage">Loading…</p>
+        ) : failures.length === 0 ? (
+          <p className="text-sm text-sage">
+            There are no failed recipients on record for this message. Sends that failed before failures were tracked
+            can&apos;t be listed.
+          </p>
+        ) : (
+          <div className="border border-emerald/20 rounded-xl overflow-x-auto max-h-[50vh] overflow-y-auto mb-5">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-emerald/20 text-left text-xs uppercase tracking-wide text-sage">
+                  <th className="px-3 py-2">Name</th>
+                  <th className="px-3 py-2">Email</th>
+                  <th className="px-3 py-2">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {failures.map((f) => (
+                  <tr key={f.email} className="border-b border-emerald/20 last:border-0 align-top">
+                    <td className="px-3 py-2 text-ink">{f.fullName}</td>
+                    <td className="px-3 py-2 text-ink break-all">{f.email}</td>
+                    <td className="px-3 py-2 text-sage text-xs break-words">{f.error}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            disabled={busy === "resend"}
+            onClick={() => setFailuresFor(null)}
+            className="text-sage underline text-sm"
+          >
+            Close
+          </button>
+          {!!failures?.length && (
+            <button
+              type="button"
+              disabled={busy === "resend"}
+              onClick={() => void handleResendFailed()}
+              className="bg-emerald text-white px-5 py-2 rounded-full text-sm hover:bg-forest transition-colors disabled:opacity-50"
+            >
+              {busy === "resend"
+                ? "Resending…"
+                : `Resend to ${failures.length} ${failures.length === 1 ? "person" : "people"}`}
+            </button>
+          )}
+        </div>
       </FormModal>
 
       <FormModal

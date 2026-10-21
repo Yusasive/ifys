@@ -69,6 +69,14 @@ export class EmailService {
 
       secure: port === 465,
       auth: user && password ? { user, pass: password } : undefined,
+      // One shared, rate-limited connection pool for every queue. Without
+      // it each email opened (and authenticated) its own SMTP connection,
+      // so a broadcast plus ticket emails at the same moment hit Zoho as an
+      // unthrottled burst of logins and sends, and Zoho rejected some.
+      pool: true,
+      maxConnections: 2,
+      rateDelta: 1000,
+      rateLimit: 3,
     });
 
     try {

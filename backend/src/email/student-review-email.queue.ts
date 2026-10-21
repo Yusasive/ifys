@@ -5,23 +5,13 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Job, JobsOptions, Queue, Worker } from 'bullmq';
+import { Job, Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
+import { EMAIL_JOB_OPTIONS } from './email-job-options';
 import { EmailService } from './email.service';
 
 const QUEUE_NAME = 'student-review-emails';
-
-// SMTP providers (Zoho in production) reject or throttle sends from time to
-// time. Without retries a single rejected send meant the email was lost for
-// good, so every job now retries with backoff and failed jobs are kept in
-// Redis so they can be inspected.
-const DEFAULT_JOB_OPTIONS: JobsOptions = {
-  attempts: 6,
-  backoff: { type: 'exponential', delay: 60_000 },
-  removeOnComplete: { count: 1000 },
-  removeOnFail: { count: 5000 },
-};
 
 type StudentReviewJobData =
   | {
@@ -55,7 +45,7 @@ export class StudentReviewEmailQueue implements OnModuleInit, OnModuleDestroy {
     });
     this.queue = new Queue(QUEUE_NAME, {
       connection: this.connection,
-      defaultJobOptions: DEFAULT_JOB_OPTIONS,
+      defaultJobOptions: EMAIL_JOB_OPTIONS,
     });
     this.worker = new Worker<StudentReviewJobData>(
       QUEUE_NAME,

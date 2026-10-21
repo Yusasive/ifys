@@ -9,7 +9,9 @@ import { CATEGORY_LABELS, formatKobo } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
 import { PauseToggle } from "../pause-toggle";
+import { hasPermission } from "@/lib/permissions";
 import { DateUpdateResendPanel } from "./date-update-resend-panel";
+import { EmailDeliveryPanel } from "./email-delivery-panel";
 import { StudentReviewNotifyPanel } from "./student-review-notify-panel";
 import { TicketCapacityCard } from "./ticket-capacity-card";
 
@@ -244,6 +246,14 @@ export default function AdminTicketsPage() {
       <TicketCapacityCard eventSlug={EVENT_SLUG} />
 
       {session.user.role === "super_admin" && <DateUpdateResendPanel eventSlug={EVENT_SLUG} />}
+
+      {hasPermission(session.user.permissions, "registrations.view") && (
+        <EmailDeliveryPanel
+          eventSlug={EVENT_SLUG}
+          canResend={hasPermission(session.user.permissions, "registrations.resendTicket")}
+          isSuperAdmin={session.user.role === "super_admin"}
+        />
+      )}
 
       {session.user.role === "super_admin" && <StudentReviewNotifyPanel />}
 

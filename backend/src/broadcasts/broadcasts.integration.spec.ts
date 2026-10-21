@@ -5,6 +5,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from '../app.module';
+import { BroadcastEmailQueue } from '../email/broadcast-email.queue';
 import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { extractSessionToken } from '../testing/fixtures';
@@ -279,6 +280,114 @@ describe('Email broadcasts (integration)', () => {
     expect(latest.id).toBe(sent.id);
     expect(latest.recipientCount).toBe(2);
     expect(latest.createdByName).toBeTruthy();
+  }, 60000);
+
+  it('lists failed recipients and resends to just them', async () => {
+    const res = await post('', {
+      eventSlug,
+      ...content,
+      audience: { registrationIds: [registrationIds.proPaid] },
+    });
+    const { id } = res.body as { id: string };
+    let current = await prisma.emailBroadcast.findUniqueOrThrow({
+      where: { id },
+    });
+    for (let i = 0; i < 120 && current.sentCount < 1; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      current = await prisma.emailBroadcast.findUniqueOrThrow({
+        where: { id },
+      });
+    }
+
+    // Simulate that send having run out of retries.
+    const email = `chidi-${suffix}@example.com`;
+    await prisma.emailBroadcast.update({
+      where: { id },
+      data: { sentCount: 0, failedCount: 1 },
+    });
+    await prisma.emailBroadcastFailure.create({
+      data: {
+        broadcastId: id,
+        email,
+        fullName: 'proPaid Person',
+        error: '550 Mailbox unavailable',
+      },
+    });
+
+    const failures = await request(httpServer)
+      .get(`/admin/broadcasts/${id}/failures`)
+      .set('Authorization', `Bearer ${organizerToken}`);
+    expect(failures.status).toBe(200);
+    expect(failures.body).toEqual([
+      expect.objectContaining({ email, error: '550 Mailbox unavailable' }),
+    ]);
+
+    const callsBefore = sendSpy.mock.calls.filter(
+      ([to]) => to === email,
+    ).length;
+    const resend = await post(`/${id}/resend-failed`, {});
+    expect(resend.status).toBe(201);
+    expect((resend.body as { recipientCount: number }).recipientCount).toBe(1);
+
+    current = await prisma.emailBroadcast.findUniqueOrThrow({
+      where: { id },
+    });
+    for (let i = 0; i < 120 && current.sentCount < 1; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      current = await prisma.emailBroadcast.findUniqueOrThrow({
+        where: { id },
+      });
+    }
+    expect(current.sentCount).toBe(1);
+    expect(current.failedCount).toBe(0);
+    expect(sendSpy.mock.calls.filter(([to]) => to === email).length).toBe(
+      callsBefore + 1,
+    );
+    expect(
+      await prisma.emailBroadcastFailure.count({ where: { broadcastId: id } }),
+    ).toBe(0);
+
+    const again = await post(`/${id}/resend-failed`, {});
+    expect(again.status).toBe(400);
+  }, 60000);
+
+  it('records a recipient whose send runs out of retries', async () => {
+    const broadcast = await prisma.emailBroadcast.create({
+      data: {
+        eventId,
+        subject: 'Failure test',
+        bodyHtml: '<p>Hi</p>',
+        audienceJson: {},
+        recipientCount: 1,
+        createdById: randomUUID(),
+      },
+    });
+    const email = `bayo-${suffix}@example.com`;
+    sendSpy.mockRejectedValueOnce(new Error('554 Rejected by Zoho'));
+
+    // A single attempt, so the failure is final without waiting on backoff.
+    // Bracket access reaches the private queue (TS allows it for tests).
+    const queue = app.get(BroadcastEmailQueue)['queue'];
+    await queue.add(
+      'send',
+      { broadcastId: broadcast.id, email, fullName: 'Bayo' },
+      { attempts: 1 },
+    );
+
+    let failures: { email: string; error: string }[] = [];
+    for (let i = 0; i < 120 && failures.length === 0; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      failures = await prisma.emailBroadcastFailure.findMany({
+        where: { broadcastId: broadcast.id },
+      });
+    }
+    expect(failures).toEqual([
+      expect.objectContaining({ email, error: '554 Rejected by Zoho' }),
+    ]);
+    const stored = await prisma.emailBroadcast.findUniqueOrThrow({
+      where: { id: broadcast.id },
+    });
+    expect(stored.failedCount).toBe(1);
   }, 60000);
 
   it('refuses to send when nobody matches', async () => {
