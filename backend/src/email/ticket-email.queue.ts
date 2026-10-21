@@ -88,6 +88,9 @@ export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
         update,
       });
     } catch (e) {
+      // P2003: the ticket was deleted while its email was in flight, so
+      // there is nothing left to record against.
+      if ((e as { code?: string }).code === 'P2003') return;
       this.logger.error(
         `Could not record ${kind} email status for ticket ${data.ticketId}: ${String(e)}`,
       );
