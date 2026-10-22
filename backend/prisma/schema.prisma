@@ -139,6 +139,8 @@ model Event {
   coupons               Coupon[]
   volunteerApplications VolunteerApplication[]
   emailBroadcasts       EmailBroadcast[]
+  committeePositions    CommitteePosition[]
+  committeeMembers      CommitteeMember[]
 
   // Independent admin-toggleable pause switches — when true, the public
   // form/checkout for that flow shows a "not currently accepting" state
@@ -264,6 +266,39 @@ model Sponsor {
   applications SponsorApplication[]
 
   @@map("sponsors")
+}
+
+// Organising-committee teams (e.g. "Media Team") shown as the role line on
+// committee name tags. Committee members aren't registrants, so unlike the
+// other tag sections they're entered by hand on the admin Tags page.
+model CommitteePosition {
+  id           String   @id @default(uuid())
+  eventId      String   @map("event_id")
+  name         String
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  event   Event             @relation(fields: [eventId], references: [id])
+  members CommitteeMember[]
+
+  @@unique([eventId, name])
+  @@map("committee_positions")
+}
+
+model CommitteeMember {
+  id         String   @id @default(uuid())
+  eventId    String   @map("event_id")
+  fullName   String   @map("full_name")
+  // Restrict — a position can only be deleted once no member holds it, so
+  // a delete never silently strips people of their tag role.
+  positionId String   @map("position_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  event    Event             @relation(fields: [eventId], references: [id])
+  position CommitteePosition @relation(fields: [positionId], references: [id])
+
+  @@index([eventId])
+  @@map("committee_members")
 }
 
 // Public applications from prospective sponsors/partners, reviewed by an

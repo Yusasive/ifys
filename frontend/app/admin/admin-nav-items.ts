@@ -42,6 +42,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     permission: "sponsors.manage",
   },
   {
+    href: "/admin/tags",
+    label: "Name tags",
+    organizerOnly: true,
+    permission: "tags.manage",
+  },
+  {
     href: "/admin/tickets",
     label: "Tickets",
     organizerOnly: true,

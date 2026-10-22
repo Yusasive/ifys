@@ -14,6 +14,7 @@ import { NewsletterModule } from './newsletter/newsletter.module';
 import { PaymentsModule } from './payments/payments.module';
 import { SpeakersModule } from './speakers/speakers.module';
 import { SponsorsModule } from './sponsors/sponsors.module';
+import { TagsModule } from './tags/tags.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { VolunteersModule } from './volunteers/volunteers.module';
 import { CheckInsModule } from './check-ins/check-ins.module';
@@ -49,6 +50,7 @@ import { configValidationSchema } from './config-validation';
     CheckInsModule,
     AdminModule,
     BroadcastsModule,
+    TagsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

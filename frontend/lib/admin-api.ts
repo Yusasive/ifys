@@ -960,3 +960,95 @@ export function fetchMyActivity(params: AuditLogListParams) {
     entries: AuditLogEntry[];
   }>(`/admin/audit-log/me?${query.toString()}`);
 }
+
+// One printable name tag — see backend TagsService.listTags.
+export interface NameTag {
+  id: string;
+  name: string;
+  label: string;
+  title: string | null;
+  organization: string | null;
+}
+
+export type TagSection = "committee" | "registrants" | "speakers" | "sponsors";
+
+export function fetchNameTags(eventSlug: string) {
+  return adminRequest<Record<TagSection, NameTag[]>>(
+    `/admin/tags?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
+export interface CommitteePosition {
+  id: string;
+  name: string;
+  displayOrder: number;
+  memberCount: number;
+}
+
+export interface CommitteeMember {
+  id: string;
+  fullName: string;
+  positionId: string;
+  position: { id: string; name: string };
+}
+
+export function fetchCommittee(eventSlug: string) {
+  return adminRequest<{
+    positions: CommitteePosition[];
+    members: CommitteeMember[];
+  }>(`/admin/tags/committee?event=${encodeURIComponent(eventSlug)}`);
+}
+
+export function createCommitteePosition(input: {
+  eventSlug: string;
+  name: string;
+  displayOrder?: number;
+}) {
+  return adminRequest<CommitteePosition>("/admin/tags/positions", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateCommitteePosition(
+  id: string,
+  input: { name?: string; displayOrder?: number },
+) {
+  return adminRequest<CommitteePosition>(`/admin/tags/positions/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteCommitteePosition(id: string) {
+  return adminRequest<{ deleted: true }>(`/admin/tags/positions/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function createCommitteeMember(input: {
+  eventSlug: string;
+  fullName: string;
+  positionId: string;
+}) {
+  return adminRequest<CommitteeMember>("/admin/tags/committee", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateCommitteeMember(
+  id: string,
+  input: { fullName?: string; positionId?: string },
+) {
+  return adminRequest<CommitteeMember>(`/admin/tags/committee/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteCommitteeMember(id: string) {
+  return adminRequest<{ deleted: true }>(`/admin/tags/committee/${id}`, {
+    method: "DELETE",
+  });
+}
