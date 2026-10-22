@@ -35,8 +35,8 @@ const SECTIONS: { key: TagSection; label: string; hint: string }[] = [
   },
   {
     key: "sponsors",
-    label: "Sponsors & Partners",
-    hint: "Active sponsors and partners from the Partners & Sponsors directory.",
+    label: "Sponsors, Partners & Exhibitors",
+    hint: "Active sponsors, partners and exhibitors from the Partners & Sponsors directory.",
   },
 ];
 

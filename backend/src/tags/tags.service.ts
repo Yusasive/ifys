@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { Category } from '../generated/prisma/enums';
+import { Category, SponsorType } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCommitteeMemberDto } from './dto/create-committee-member.dto';
 import { CreateCommitteePositionDto } from './dto/create-committee-position.dto';
@@ -30,6 +30,12 @@ const REGISTRANT_TAG_LABELS: Record<Category, string> = {
   regular: 'Attendee',
   founder: 'Professional',
   professional: 'Professional',
+};
+
+const SPONSOR_TAG_LABELS: Record<SponsorType, string> = {
+  sponsor: 'Sponsor',
+  partner: 'Partner',
+  exhibitor: 'Exhibitor',
 };
 
 function formString(data: unknown, key: string): string | null {
@@ -91,7 +97,6 @@ export class TagsService {
         where: {
           eventId: event.id,
           isActive: true,
-          type: { in: ['sponsor', 'partner'] },
         },
         orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
       }),
@@ -139,7 +144,7 @@ export class TagsService {
       sponsors: sponsors.map((sponsor): NameTag => ({
         id: sponsor.id,
         name: sponsor.name,
-        label: sponsor.type === 'partner' ? 'Partner' : 'Sponsor',
+        label: SPONSOR_TAG_LABELS[sponsor.type],
         title: null,
         organization: null,
       })),

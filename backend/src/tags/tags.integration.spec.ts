@@ -160,7 +160,8 @@ describe('Name tags (integration)', () => {
       data: [
         { eventId, type: 'sponsor', name: 'Jaiz Bank' },
         { eventId, type: 'partner', name: 'Injaz Advisory' },
-        { eventId, type: 'exhibitor', name: 'Some Exhibitor' },
+        { eventId, type: 'exhibitor', name: 'Halal Expo Ltd' },
+        { eventId, type: 'sponsor', name: 'Hidden Sponsor', isActive: false },
       ],
     });
   }, 30000);
@@ -203,7 +204,7 @@ describe('Name tags (integration)', () => {
     expect(res.status).toBe(403);
   });
 
-  it('includes only confirmed registrants, active speakers and sponsors/partners', async () => {
+  it('includes only confirmed registrants, active speakers and active sponsors/partners/exhibitors', async () => {
     const tags = await getTags();
 
     expect(tags.registrants).toEqual([
@@ -223,6 +224,7 @@ describe('Name tags (integration)', () => {
       ['Prof. Alaro', 'Keynote Speaker'],
     ]);
     expect(tags.sponsors.map((t) => [t.name, t.label])).toEqual([
+      ['Halal Expo Ltd', 'Exhibitor'],
       ['Injaz Advisory', 'Partner'],
       ['Jaiz Bank', 'Sponsor'],
     ]);
