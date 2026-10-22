@@ -192,9 +192,17 @@ export interface DateUpdateResendStatus {
   lastSentAt: string | null;
 }
 
-export type TicketEmailKind = "ticket" | "date_update";
+export type TicketEmailKind = "ticket" | "date_update" | "whatsapp_invite";
 
-export type TicketEmailDeliveryStatus = "sent" | "failed" | "queued" | "untracked" | "not_sent";
+// "broadcast" (WhatsApp invite only): got the link in an earlier hand-sent
+// WhatsApp broadcast from the Messages page.
+export type TicketEmailDeliveryStatus =
+  | "sent"
+  | "failed"
+  | "queued"
+  | "untracked"
+  | "not_sent"
+  | "broadcast";
 
 export interface TicketEmailDeliveryRow {
   ticketId: string;
@@ -220,7 +228,8 @@ export function getTicketEmailDeliveries(eventSlug: string, kind: TicketEmailKin
   );
 }
 
-// Without ticketIds, resends to everyone whose email of this kind failed.
+// Without ticketIds, resends to everyone whose email of this kind failed
+// (for the WhatsApp invite: everyone who hasn't got it yet).
 export function resendTicketEmails(eventSlug: string, kind: TicketEmailKind, ticketIds?: string[]) {
   return adminRequest<{ queued: number }>(
     `/admin/tickets/email-deliveries/resend?event=${encodeURIComponent(eventSlug)}`,
@@ -337,6 +346,28 @@ export interface EmailBroadcast {
   failedCount: number;
   createdAt: string;
   createdByName: string | null;
+}
+
+// The automatic "join the WhatsApp group" email sent with every new
+// ticket while whatsappGroupUrl is set.
+export interface WhatsAppInviteSettings {
+  whatsappGroupUrl: string | null;
+  subject: string;
+  bodyHtml: string;
+  ctaLabel: string;
+}
+
+export function getWhatsAppInvite(eventSlug: string) {
+  return adminRequest<WhatsAppInviteSettings>(
+    `/admin/broadcasts/whatsapp-invite?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
+export function updateWhatsAppInvite(eventSlug: string, whatsappGroupUrl: string | null) {
+  return adminRequest<WhatsAppInviteSettings>("/admin/broadcasts/whatsapp-invite", {
+    method: "PUT",
+    body: JSON.stringify({ eventSlug, whatsappGroupUrl }),
+  });
 }
 
 export function listBroadcasts(eventSlug: string) {

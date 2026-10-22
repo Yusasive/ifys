@@ -13,6 +13,7 @@ import {
   resendFailedBroadcast,
   sendBroadcast,
   sendTestBroadcast,
+  WhatsAppInviteSettings,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
@@ -29,18 +30,9 @@ import {
 } from "./audience-panel";
 import { PRESELECTED_STORAGE_KEY } from "./preselected";
 import { RichTextEditor } from "./rich-text-editor";
+import { WhatsAppInviteCard } from "./whatsapp-invite-card";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
-
-const WHATSAPP_TEMPLATE = {
-  subject: "Join the IFY Summit WhatsApp group",
-  bodyHtml:
-    "<p>Assalamu alaikum {{name}},</p>" +
-    "<p>Thank you for registering for the <strong>Islamic Finance Youth Summit</strong>! We've created a WhatsApp group for participants, where we'll share important updates, the schedule, and reminders ahead of the event.</p>" +
-    "<p>Tap the button below to join.</p>" +
-    "<p>See you there!<br>The IFY Summit Team</p>",
-  ctaLabel: "Join the WhatsApp group",
-};
 
 function describeAudience(a: BroadcastAudience): string {
   if (a.registrationIds?.length) {
@@ -79,6 +71,8 @@ export default function AdminMessagesPage() {
   // Bumped to remount the editor when its content is replaced from outside
   // (template / reset) — Tiptap only reads `content` on creation.
   const [editorKey, setEditorKey] = useState(0);
+  // Same wording as the automatic WhatsApp invite, loaded from the server.
+  const [whatsAppInvite, setWhatsAppInvite] = useState<WhatsAppInviteSettings | null>(null);
 
   // A selection handed over from the Registrations page, if any.
   const [preselected] = useState(readPreselected);
@@ -269,9 +263,11 @@ export default function AdminMessagesPage() {
   }
 
   function applyWhatsAppTemplate() {
-    setSubject(WHATSAPP_TEMPLATE.subject);
-    setBodyHtml(WHATSAPP_TEMPLATE.bodyHtml);
-    setCtaLabel(WHATSAPP_TEMPLATE.ctaLabel);
+    if (!whatsAppInvite) return;
+    setSubject(whatsAppInvite.subject);
+    setBodyHtml(whatsAppInvite.bodyHtml);
+    setCtaLabel(whatsAppInvite.ctaLabel);
+    if (whatsAppInvite.whatsappGroupUrl) setCtaUrl(whatsAppInvite.whatsappGroupUrl);
     setEditorKey((k) => k + 1);
   }
 
@@ -299,6 +295,8 @@ export default function AdminMessagesPage() {
         Send a message, such as the WhatsApp group link, to registered participants.
       </p>
 
+      <WhatsAppInviteCard eventSlug={EVENT_SLUG} onLoaded={setWhatsAppInvite} />
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] items-start">
         {/* Compose */}
         <section className="border border-emerald/20 rounded-2xl bg-white shadow-sm p-5 flex flex-col gap-4">
@@ -307,7 +305,8 @@ export default function AdminMessagesPage() {
             <button
               type="button"
               onClick={applyWhatsAppTemplate}
-              className="text-sm text-emerald underline hover:text-forest"
+              disabled={!whatsAppInvite}
+              className="text-sm text-emerald underline hover:text-forest disabled:opacity-50"
             >
               Use WhatsApp group template
             </button>

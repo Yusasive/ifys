@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import { BroadcastsService } from './broadcasts.service';
 import { PreviewAudienceDto } from './dto/preview-audience.dto';
 import { SendBroadcastDto } from './dto/send-broadcast.dto';
 import { TestBroadcastDto } from './dto/test-broadcast.dto';
+import { UpdateWhatsAppInviteDto } from './dto/update-whatsapp-invite.dto';
 
 @Controller('admin/broadcasts')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard, CsrfGuard)
@@ -46,6 +48,23 @@ export class BroadcastsController {
   @Post('test')
   sendTest(@Body() dto: TestBroadcastDto, @CurrentUser() user: JwtPayload) {
     return this.broadcasts.sendTest(dto.eventSlug, dto, user.sub);
+  }
+
+  @Get('whatsapp-invite')
+  getWhatsAppInvite(@Query('event') eventSlug: string) {
+    return this.broadcasts.getWhatsAppInvite(eventSlug);
+  }
+
+  @Put('whatsapp-invite')
+  updateWhatsAppInvite(
+    @Body() dto: UpdateWhatsAppInviteDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.broadcasts.updateWhatsAppInvite(
+      dto.eventSlug,
+      dto.whatsappGroupUrl,
+      user.sub,
+    );
   }
 
   @Get(':id/failures')

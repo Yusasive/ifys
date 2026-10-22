@@ -151,6 +151,11 @@ model Event {
   // Per-category ticket limits (see CategoryCapacity).
   categoryCapacities CategoryCapacity[]
 
+  // Invite link for the participants' WhatsApp group. While set, every
+  // newly issued ticket also gets the "join the WhatsApp group" email
+  // (WhatsAppInviteEmailQueue); null turns that automatic email off.
+  whatsappGroupUrl String? @map("whatsapp_group_url")
+
   @@map("events")
 }
 
@@ -410,10 +415,12 @@ model Ticket {
 }
 
 // Which ticket email a delivery row tracks: the ticket itself (first send,
-// resends and reissues) or the one-time "event date changed" resend.
+// resends and reissues), the one-time "event date changed" resend, or the
+// "join the WhatsApp group" invite sent once a ticket is issued.
 enum TicketEmailKind {
   ticket
   date_update
+  whatsapp_invite
 }
 
 enum TicketEmailStatus {

@@ -9,6 +9,7 @@ import { StudentReviewEmailQueue } from './student-review-email.queue';
 import { TicketEmailQueue } from './ticket-email.queue';
 import { TicketLifecycleEmailQueue } from './ticket-lifecycle-email.queue';
 import { VolunteerApplicationEmailQueue } from './volunteer-application-email.queue';
+import { WhatsAppInviteEmailQueue } from './whatsapp-invite-email.queue';
 
 @Module({
   providers: [
@@ -22,6 +23,7 @@ import { VolunteerApplicationEmailQueue } from './volunteer-application-email.qu
     RegistrationReminderEmailQueue,
     StudentReviewEmailQueue,
     BroadcastEmailQueue,
+    WhatsAppInviteEmailQueue,
   ],
   exports: [
     EmailService,
@@ -34,6 +36,7 @@ import { VolunteerApplicationEmailQueue } from './volunteer-application-email.qu
     RegistrationReminderEmailQueue,
     StudentReviewEmailQueue,
     BroadcastEmailQueue,
+    WhatsAppInviteEmailQueue,
   ],
 })
 export class EmailModule {}

@@ -41,27 +41,44 @@ const STATUS_META: Record<
     className: "text-sage bg-sage/10",
     hint: "Sent before delivery tracking existed; the outcome wasn't recorded.",
   },
+  broadcast: {
+    label: "Sent (broadcast)",
+    className: "text-emerald bg-emerald/10",
+    hint: "Got the link in an earlier WhatsApp message sent from the Messages page.",
+  },
 };
 
 const STATUS_ORDER: TicketEmailDeliveryStatus[] = [
   "failed",
   "queued",
   "sent",
+  "broadcast",
   "not_sent",
   "untracked",
 ];
 
-const KIND_TABS: { kind: TicketEmailKind; label: string }[] = [
+const KIND_TABS: { kind: TicketEmailKind; label: string; superAdminOnly?: boolean }[] = [
   { kind: "ticket", label: "Ticket emails" },
-  { kind: "date_update", label: "New-date emails" },
+  { kind: "whatsapp_invite", label: "WhatsApp invite" },
+  { kind: "date_update", label: "New-date emails", superAdminOnly: true },
 ];
+
+const KIND_DESCRIPTIONS: Record<TicketEmailKind, string> = {
+  ticket:
+    "Whether each ticket holder's ticket email went out. Resending sends the same ticket (same QR code and ticket code).",
+  date_update:
+    "Whether each ticket holder got the email with the new event date. Resending sends the same ticket with the date-change note.",
+  whatsapp_invite:
+    "Whether each ticket holder has been emailed the WhatsApp group link. New ticket holders get it automatically while the link is set on the Messages page.",
+};
 
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof ApiError ? err.body.message : fallback;
 }
 
-// Who got their ticket email and who didn't, per kind of email, with
-// resend for the failures (all at once or one person at a time). "Sent"
+// Who got their ticket email (or WhatsApp invite) and who didn't, per kind
+// of email, with resend for the failures (all at once or one person at a
+// time). "Sent"
 // means the mail server accepted it — a later bounce from a mistyped
 // address doesn't show up here.
 export function EmailDeliveryPanel({
@@ -79,11 +96,12 @@ export function EmailDeliveryPanel({
   const [filter, setFilter] = useState<TicketEmailDeliveryStatus | "all">(
     "failed",
   );
+  const tabs = KIND_TABS.filter((t) => !t.superAdminOnly || isSuperAdmin);
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
   // The new-date email is a super-admin action, so only they can resend it.
-  const resendAllowed = canResend && (kind === "ticket" || isSuperAdmin);
+  const resendAllowed = canResend && (kind !== "date_update" || isSuperAdmin);
 
   const load = useCallback(async () => {
     try {
@@ -125,7 +143,7 @@ export function EmailDeliveryPanel({
     try {
       const { queued } = await resendTicketEmails(eventSlug, kind, ticketIds);
       toast.success(
-        `Resending to ${queued} ${queued === 1 ? "person" : "people"}.`,
+        `Sending to ${queued} ${queued === 1 ? "person" : "people"}.`,
       );
       await load();
     } catch (err) {
@@ -136,6 +154,11 @@ export function EmailDeliveryPanel({
   }
 
   const failedCount = data?.summary.failed ?? 0;
+  // The WhatsApp invite's bulk send also covers people never sent it.
+  const bulkCount =
+    kind === "whatsapp_invite"
+      ? failedCount + (data?.summary.not_sent ?? 0)
+      : failedCount;
 
   return (
     <div className="border border-emerald/20 rounded-2xl bg-white px-6 py-4 shadow-sm mb-6">
@@ -143,14 +166,15 @@ export function EmailDeliveryPanel({
         <p className="font-bricolage font-semibold text-forest">
           Ticket email delivery
         </p>
-        {isSuperAdmin && (
+        {tabs.length > 1 && (
           <div className="flex rounded-full border border-emerald/20 p-0.5 text-xs">
-            {KIND_TABS.map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab.kind}
                 type="button"
                 onClick={() => {
                   setKind(tab.kind);
+                  setFilter(tab.kind === "whatsapp_invite" ? "not_sent" : "failed");
                   setData(null);
                 }}
                 className={`px-3 py-1 rounded-full transition-colors ${
@@ -165,11 +189,7 @@ export function EmailDeliveryPanel({
           </div>
         )}
       </div>
-      <p className="text-sm text-sage mb-4">
-        {kind === "ticket"
-          ? "Whether each ticket holder's ticket email went out. Resending sends the same ticket (same QR code and ticket code)."
-          : "Whether each ticket holder got the email with the new event date. Resending sends the same ticket with the date-change note."}
-      </p>
+      <p className="text-sm text-sage mb-4">{KIND_DESCRIPTIONS[kind]}</p>
 
       {!data && <p className="text-sm text-sage">Loading…</p>}
 
@@ -188,7 +208,9 @@ export function EmailDeliveryPanel({
               All · {data.total}
             </button>
             {STATUS_ORDER.filter(
-              (s) => data.summary[s] > 0 || s === "failed",
+              (s) =>
+                data.summary[s] > 0 ||
+                s === (kind === "whatsapp_invite" ? "not_sent" : "failed"),
             ).map((s) => (
               <button
                 key={s}
@@ -212,7 +234,7 @@ export function EmailDeliveryPanel({
               placeholder="Search name, email or ticket code"
               className="flex-1 min-w-48 border border-emerald/20 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-gold"
             />
-            {resendAllowed && failedCount > 0 && (
+            {resendAllowed && bulkCount > 0 && (
               <button
                 type="button"
                 disabled={busy !== null}
@@ -220,8 +242,10 @@ export function EmailDeliveryPanel({
                 className="bg-coral text-white font-semibold px-5 py-2 rounded-full text-sm hover:bg-coral-deep transition-colors disabled:opacity-50"
               >
                 {busy === "all"
-                  ? "Resending…"
-                  : `Resend to ${failedCount} failed`}
+                  ? "Sending…"
+                  : kind === "whatsapp_invite"
+                    ? `Send to ${bulkCount} not yet sent`
+                    : `Resend to ${failedCount} failed`}
               </button>
             )}
           </div>
@@ -297,7 +321,9 @@ export function EmailDeliveryPanel({
                     >
                       {filter === "failed" && !search
                         ? "No failed emails."
-                        : "Nobody matches."}
+                        : filter === "not_sent" && !search
+                          ? "Everyone has been sent this email."
+                          : "Nobody matches."}
                     </td>
                   </tr>
                 )}

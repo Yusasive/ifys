@@ -11,6 +11,7 @@ import { CouponsService } from '../coupons/coupons.service';
 import { Coupon } from '../generated/prisma/client';
 import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
+import { WhatsAppInviteEmailQueue } from '../email/whatsapp-invite-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { matchesLookupToken } from '../registrations/registrations.service';
 import { TicketsService } from '../tickets/tickets.service';
@@ -36,6 +37,7 @@ export class PaymentsService {
     private readonly emailQueue: TicketEmailQueue,
     private readonly coupons: CouponsService,
     private readonly studentReviewEmailQueue: StudentReviewEmailQueue,
+    private readonly whatsAppInviteQueue: WhatsAppInviteEmailQueue,
   ) {}
 
   async createCheckout(registrationId: string, token?: string) {
@@ -307,5 +309,6 @@ export class PaymentsService {
       registration.id,
     );
     await this.emailQueue.enqueue(ticket.id);
+    await this.whatsAppInviteQueue.enqueueForNewTicket(ticket.id);
   }
 }

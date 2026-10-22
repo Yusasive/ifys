@@ -14,8 +14,9 @@ import {
 } from '../email/broadcast-html';
 import { renderEmailShell } from '../email/email-shell';
 import { EmailService } from '../email/email.service';
-import { Prisma } from '../generated/prisma/client';
+import { WHATSAPP_INVITE_EMAIL } from '../email/whatsapp-invite-email-template';
 import { PrismaService } from '../prisma/prisma.service';
+import { broadcastAudienceWhere } from './broadcast-audience-where';
 import { BroadcastAudienceDto } from './dto/broadcast-audience.dto';
 import { BroadcastContentDto } from './dto/broadcast-content.dto';
 import { SendBroadcastDto } from './dto/send-broadcast.dto';
@@ -71,23 +72,7 @@ export class BroadcastsService {
     eventId: string,
     audience: BroadcastAudienceDto,
   ): Promise<Recipient[]> {
-    const where: Prisma.RegistrationWhereInput = audience.registrationIds
-      ?.length
-      ? { eventId, id: { in: audience.registrationIds } }
-      : {
-          eventId,
-          ...(audience.statuses?.length && {
-            status: { in: audience.statuses },
-          }),
-          ...((audience.categories?.length || audience.tiers?.length) && {
-            ticketProduct: {
-              ...(audience.categories?.length && {
-                category: { in: audience.categories },
-              }),
-              ...(audience.tiers?.length && { tier: { in: audience.tiers } }),
-            },
-          }),
-        };
+    const where = broadcastAudienceWhere(eventId, audience);
 
     const registrations = await this.prisma.registration.findMany({
       where,
@@ -248,6 +233,40 @@ export class BroadcastsService {
     });
 
     return { recipientCount: recipients.length };
+  }
+
+  // The automatic "join the WhatsApp group" email sent with every newly
+  // issued ticket (WhatsAppInviteEmailQueue), and its fixed wording.
+  async getWhatsAppInvite(eventSlug: string) {
+    const event = await this.findEvent(eventSlug);
+    return {
+      whatsappGroupUrl: event.whatsappGroupUrl,
+      ...WHATSAPP_INVITE_EMAIL,
+    };
+  }
+
+  // Setting the link turns the automatic invite on for tickets issued from
+  // now on; people who already have a ticket are caught up from the
+  // Tickets page's delivery panel. null turns it off.
+  async updateWhatsAppInvite(
+    eventSlug: string,
+    whatsappGroupUrl: string | null,
+    actorId: string,
+  ) {
+    const event = await this.findEvent(eventSlug);
+    const url = whatsappGroupUrl?.trim() || null;
+    await this.prisma.event.update({
+      where: { id: event.id },
+      data: { whatsappGroupUrl: url },
+    });
+    await this.auditLog.record({
+      actorId,
+      action: 'update_whatsapp_group_url',
+      targetType: 'event',
+      targetId: event.id,
+      metadata: { from: event.whatsappGroupUrl, to: url },
+    });
+    return this.getWhatsAppInvite(eventSlug);
   }
 
   async list(eventSlug: string) {

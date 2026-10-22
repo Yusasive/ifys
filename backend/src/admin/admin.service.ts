@@ -15,8 +15,9 @@ import { AdminAccountEmailQueue } from '../email/admin-account-email.queue';
 import { RegistrationReminderEmailQueue } from '../email/registration-reminder-email.queue';
 import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
-import { TicketEmailKind } from '../generated/prisma/enums';
+import { TicketEmailKind, TicketEmailStatus } from '../generated/prisma/enums';
 import { TicketLifecycleEmailQueue } from '../email/ticket-lifecycle-email.queue';
+import { WhatsAppInviteEmailQueue } from '../email/whatsapp-invite-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { TicketsService } from '../tickets/tickets.service';
@@ -26,7 +27,12 @@ import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { getCategoryAvailability } from '../registrations/category-availability';
+import { broadcastAudienceWhere } from '../broadcasts/broadcast-audience-where';
+import { BroadcastAudienceDto } from '../broadcasts/dto/broadcast-audience.dto';
 import { ExportQueue } from './export.queue';
+
+type TicketEmailDeliveryStatus =
+  TicketEmailStatus | 'untracked' | 'not_sent' | 'broadcast';
 
 @Injectable()
 export class AdminService {
@@ -44,6 +50,7 @@ export class AdminService {
     private readonly reminderQueue: RegistrationReminderEmailQueue,
     private readonly studentReviewEmailQueue: StudentReviewEmailQueue,
     private readonly ticketLifecycleEmailQueue: TicketLifecycleEmailQueue,
+    private readonly whatsAppInviteQueue: WhatsAppInviteEmailQueue,
   ) {}
 
   async listRegistrations(query: ListRegistrationsQueryDto) {
@@ -195,6 +202,7 @@ export class AdminService {
       registration.id,
     );
     await this.emailQueue.enqueue(ticket.id);
+    await this.whatsAppInviteQueue.enqueueForNewTicket(ticket.id);
 
     await this.auditLog.record({
       actorId,
@@ -222,6 +230,7 @@ export class AdminService {
       registration.id,
     );
     await this.emailQueue.enqueue(ticket.id);
+    await this.whatsAppInviteQueue.enqueueForNewTicket(ticket.id);
 
     await this.auditLog.record({
       actorId,
@@ -379,8 +388,10 @@ export class AdminService {
 
   // Delivery status of one kind of ticket email for every valid ticket of
   // the event. "untracked" means it went out before tracking existed and
-  // Redis no longer knows the outcome; "not_sent" (new-date email only)
-  // means it was never queued for that ticket.
+  // Redis no longer knows the outcome; "not_sent" (new-date and WhatsApp
+  // emails) means it was never queued for that ticket; "broadcast"
+  // (WhatsApp only) means they got the link in an earlier hand-sent
+  // WhatsApp broadcast from the Messages page.
   async getTicketEmailDeliveries(eventSlug: string, kind: TicketEmailKind) {
     const event = await this.findEventBySlug(eventSlug);
     const tickets = await this.prisma.ticket.findMany({
@@ -410,12 +421,22 @@ export class AdminService {
       });
       everQueued = new Set(logs.map((l) => l.targetId));
     }
+    const viaBroadcast =
+      kind === 'whatsapp_invite'
+        ? await this.whatsAppBroadcastTicketIds(event.id)
+        : null;
 
     const rows = tickets.map((t) => {
-      const delivery = t.emailDeliveries[0];
-      const status =
+      const delivery = t.emailDeliveries.at(0);
+      const status: TicketEmailDeliveryStatus =
         delivery?.status ??
-        (everQueued && !everQueued.has(t.id) ? 'not_sent' : 'untracked');
+        (viaBroadcast
+          ? viaBroadcast.has(t.id)
+            ? 'broadcast'
+            : 'not_sent'
+          : everQueued && !everQueued.has(t.id)
+            ? 'not_sent'
+            : 'untracked');
       return {
         ticketId: t.id,
         registrationId: t.registration.id,
@@ -429,15 +450,63 @@ export class AdminService {
       };
     });
 
-    const summary = {
+    const summary: Record<TicketEmailDeliveryStatus, number> = {
       sent: 0,
       failed: 0,
       queued: 0,
       untracked: 0,
       not_sent: 0,
+      broadcast: 0,
     };
     for (const row of rows) summary[row.status]++;
     return { total: rows.length, summary, rows };
+  }
+
+  // Tickets whose holder got the WhatsApp link in an earlier broadcast
+  // (one whose button or body links to chat.whatsapp.com). Broadcasts don't
+  // keep a per-recipient sent list, so their audience is re-resolved,
+  // limited to tickets issued before the broadcast went out, minus the
+  // recipients it still failed for.
+  private async whatsAppBroadcastTicketIds(eventId: string) {
+    const broadcasts = await this.prisma.emailBroadcast.findMany({
+      where: {
+        eventId,
+        OR: [
+          { ctaUrl: { contains: 'chat.whatsapp.com' } },
+          { bodyHtml: { contains: 'chat.whatsapp.com' } },
+        ],
+      },
+      select: {
+        audienceJson: true,
+        createdAt: true,
+        failures: { select: { email: true } },
+      },
+    });
+
+    const ids = new Set<string>();
+    for (const b of broadcasts) {
+      const failed = new Set(
+        b.failures.map((f) => f.email.trim().toLowerCase()),
+      );
+      const tickets = await this.prisma.ticket.findMany({
+        where: {
+          issuedAt: { lte: b.createdAt },
+          registration: broadcastAudienceWhere(
+            eventId,
+            b.audienceJson as BroadcastAudienceDto,
+          ),
+        },
+        select: {
+          id: true,
+          registration: { select: { attendee: { select: { email: true } } } },
+        },
+      });
+      for (const t of tickets) {
+        const email = t.registration.attendee.email.trim().toLowerCase();
+        if (!failed.has(email)) ids.add(t.id);
+      }
+    }
+    return ids;
   }
 
   // Re-queues a ticket email: to the given tickets, or to everyone whose
@@ -448,6 +517,9 @@ export class AdminService {
     actorId: string,
     ticketIds?: string[],
   ) {
+    if (kind === 'whatsapp_invite') {
+      return this.sendWhatsAppInvites(eventSlug, actorId, ticketIds);
+    }
     const event = await this.findEventBySlug(eventSlug);
     const targets = await this.prisma.ticket.findMany({
       where: {
@@ -482,6 +554,63 @@ export class AdminService {
         kind === 'date_update' ? 'date_updated' : 'resent',
       );
     }
+
+    return { queued: targets.length };
+  }
+
+  // Sends the WhatsApp invite to the given tickets, or to every valid
+  // ticket holder who hasn't got it yet (never sent, or failed) — the way
+  // to catch up people who registered before the link was set.
+  private async sendWhatsAppInvites(
+    eventSlug: string,
+    actorId: string,
+    ticketIds?: string[],
+  ) {
+    const event = await this.findEventBySlug(eventSlug);
+    if (!event.whatsappGroupUrl) {
+      throw new BadRequestException(
+        'Set the WhatsApp group link on the Messages page first.',
+      );
+    }
+
+    let targets: string[];
+    if (ticketIds) {
+      const tickets = await this.prisma.ticket.findMany({
+        where: {
+          id: { in: ticketIds },
+          status: { not: 'void' },
+          registration: { eventId: event.id },
+        },
+        select: { id: true },
+      });
+      targets = tickets.map((t) => t.id);
+    } else {
+      const { rows } = await this.getTicketEmailDeliveries(
+        eventSlug,
+        'whatsapp_invite',
+      );
+      targets = rows
+        .filter((r) => r.status === 'not_sent' || r.status === 'failed')
+        .map((r) => r.ticketId);
+    }
+    if (targets.length === 0) {
+      throw new BadRequestException(
+        ticketIds
+          ? 'None of these tickets can be sent the WhatsApp invite.'
+          : 'Everyone has already been sent the WhatsApp invite.',
+      );
+    }
+
+    for (const ticketId of targets) {
+      await this.whatsAppInviteQueue.enqueue(ticketId);
+    }
+    await this.auditLog.record({
+      actorId,
+      action: 'send_whatsapp_invite',
+      targetType: 'event',
+      targetId: event.id,
+      metadata: { recipientCount: targets.length },
+    });
 
     return { queued: targets.length };
   }

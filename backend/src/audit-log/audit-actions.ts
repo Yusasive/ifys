@@ -12,6 +12,8 @@ export const AUDIT_ACTIONS = [
   'send_pending_payment_reminder',
   'send_email_broadcast',
   'resend_email_broadcast_failures',
+  'send_whatsapp_invite',
+  'update_whatsapp_group_url',
   'create_admin_user',
   'update_admin_user',
   'promote_admin_to_super_admin',

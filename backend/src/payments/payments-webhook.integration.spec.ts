@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { CouponsService } from '../coupons/coupons.service';
 import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
+import { WhatsAppInviteEmailQueue } from '../email/whatsapp-invite-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPaidCheckoutFixture } from '../testing/fixtures';
@@ -37,6 +38,9 @@ const studentReviewEmailQueue = {
   enqueue: jest.fn().mockResolvedValue(undefined),
   enqueueAdminNotify: jest.fn().mockResolvedValue(undefined),
 } as unknown as StudentReviewEmailQueue;
+const whatsAppInviteQueue = {
+  enqueueForNewTicket: jest.fn().mockResolvedValue(undefined),
+} as unknown as WhatsAppInviteEmailQueue;
 
 function stubVerifyFetch(response: {
   status: string;
@@ -85,6 +89,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         emailQueue,
         coupons,
         studentReviewEmailQueue,
+        whatsAppInviteQueue,
       );
 
       const body = chargeSuccessBody(
@@ -127,6 +132,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         emailQueue,
         coupons,
         studentReviewEmailQueue,
+        whatsAppInviteQueue,
       );
 
       const body = chargeSuccessBody(
@@ -171,6 +177,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         emailQueue,
         coupons,
         studentReviewEmailQueue,
+        whatsAppInviteQueue,
       );
 
       const body = chargeSuccessBody(
@@ -207,6 +214,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         emailQueue,
         coupons,
         studentReviewEmailQueue,
+        whatsAppInviteQueue,
       );
 
       const body = JSON.stringify({
@@ -248,6 +256,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         emailQueue,
         coupons,
         studentReviewEmailQueue,
+        whatsAppInviteQueue,
       );
 
       const body = chargeSuccessBody(
@@ -286,6 +295,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         emailQueue,
         coupons,
         studentReviewEmailQueue,
+        whatsAppInviteQueue,
       );
 
       const body = chargeSuccessBody(
@@ -331,6 +341,7 @@ describe('PaymentsService.handlePaystackWebhook (integration)', () => {
         emailQueue,
         coupons,
         studentReviewEmailQueue,
+        whatsAppInviteQueue,
       );
 
       const body = chargeSuccessBody(

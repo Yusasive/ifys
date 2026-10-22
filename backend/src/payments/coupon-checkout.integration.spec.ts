@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { CouponsService } from '../coupons/coupons.service';
 import { StudentReviewEmailQueue } from '../email/student-review-email.queue';
+import { WhatsAppInviteEmailQueue } from '../email/whatsapp-invite-email.queue';
 import { TicketEmailQueue } from '../email/ticket-email.queue';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -16,6 +17,9 @@ const studentReviewEmailQueue = {
   enqueue: jest.fn().mockResolvedValue(undefined),
   enqueueAdminNotify: jest.fn().mockResolvedValue(undefined),
 } as unknown as StudentReviewEmailQueue;
+const whatsAppInviteQueue = {
+  enqueueForNewTicket: jest.fn().mockResolvedValue(undefined),
+} as unknown as WhatsAppInviteEmailQueue;
 
 describe('Coupon checkout (integration)', () => {
   const prisma = new PrismaService();
@@ -75,6 +79,7 @@ describe('Coupon checkout (integration)', () => {
           { enqueue: enqueueMock } as unknown as TicketEmailQueue,
           coupons,
           studentReviewEmailQueue,
+          whatsAppInviteQueue,
         );
 
         const result = await payments.createCheckout(
