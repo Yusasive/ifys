@@ -19,17 +19,26 @@ export function WhatsAppInviteCard({
   const [settings, setSettings] = useState<WhatsAppInviteSettings | null>(null);
   const [url, setUrl] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     getWhatsAppInvite(eventSlug)
       .then((s) => {
+        setLoadError(null);
         setSettings(s);
         setUrl(s.whatsappGroupUrl ?? "");
         onLoaded?.(s);
       })
-      .catch(() => toast.error("Failed to load the WhatsApp invite settings."));
+      .catch((err: unknown) =>
+        setLoadError(
+          err instanceof ApiError
+            ? `${err.body.message} (HTTP ${err.status})`
+            : "Could not reach the server.",
+        ),
+      );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventSlug]);
+  }, [eventSlug, attempt]);
 
   async function save(next: string | null) {
     setSaving(true);
@@ -46,7 +55,29 @@ export function WhatsAppInviteCard({
     }
   }
 
-  if (!settings) return null;
+  // Shown rather than hidden, so a failed load (e.g. the API not yet
+  // updated) is visible instead of the card silently missing.
+  if (!settings) {
+    return (
+      <section className="border border-emerald/20 rounded-2xl bg-white shadow-sm p-5 mb-6">
+        <h2 className="font-bricolage font-bold text-lg text-forest mb-1">Automatic WhatsApp invite</h2>
+        {loadError ? (
+          <p className="text-sm text-coral-deep">
+            Couldn&rsquo;t load the WhatsApp invite settings: {loadError}{" "}
+            <button
+              type="button"
+              onClick={() => setAttempt((a) => a + 1)}
+              className="text-emerald underline hover:text-forest"
+            >
+              Try again
+            </button>
+          </p>
+        ) : (
+          <p className="text-sm text-sage">Loading…</p>
+        )}
+      </section>
+    );
+  }
 
   const enabled = !!settings.whatsappGroupUrl;
   const trimmed = url.trim();
