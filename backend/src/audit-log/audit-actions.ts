@@ -1,5 +1,6 @@
 export const AUDIT_ACTIONS = [
   'mark_paid',
+  'change_attendee_email',
   'resend_ticket',
   'resend_ticket_date_update',
   'void_ticket',

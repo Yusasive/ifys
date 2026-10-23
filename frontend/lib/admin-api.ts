@@ -178,6 +178,13 @@ export function markPaid(registrationId: string, reason: string) {
   });
 }
 
+export function changeAttendeeEmail(registrationId: string, email: string, reason: string) {
+  return adminRequest<{ email: string }>(`/admin/registrations/${registrationId}/email`, {
+    method: "PATCH",
+    body: JSON.stringify({ email, reason }),
+  });
+}
+
 export function resendTicket(registrationId: string) {
   return adminRequest(`/admin/registrations/${registrationId}/resend-ticket`, {
     method: "POST",

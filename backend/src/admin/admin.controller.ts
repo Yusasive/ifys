@@ -38,6 +38,7 @@ import { SponsorApplicationsService } from '../sponsors/sponsor-applications.ser
 import { SponsorsService } from '../sponsors/sponsors.service';
 import { VolunteerApplicationsService } from '../volunteers/volunteer-applications.service';
 import { AdminService } from './admin.service';
+import { ChangeAttendeeEmailDto } from './dto/change-attendee-email.dto';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ListAdminUsersQueryDto } from './dto/list-admin-users.query';
 import { ListRegistrationsQueryDto } from './dto/list-registrations.query';
@@ -102,6 +103,17 @@ export class AdminController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.admin.markPaid(id, user.sub, dto.reason);
+  }
+
+  // Super admins only: it redirects where someone's ticket goes.
+  @Roles('super_admin')
+  @Patch('registrations/:id/email')
+  changeAttendeeEmail(
+    @Param('id') id: string,
+    @Body() dto: ChangeAttendeeEmailDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.changeAttendeeEmail(id, user.sub, dto.email, dto.reason);
   }
 
   @RequirePermissions('registrations.resendTicket')

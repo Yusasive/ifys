@@ -285,6 +285,46 @@ export class AdminService {
     return updated;
   }
 
+  // For a buyer who typed an address that doesn't work. Every registration
+  // has its own attendee row, so this only changes this one registration;
+  // ticket, reminder and broadcast emails all read the address at send
+  // time, so a "Resend ticket" afterwards goes to the new one.
+  async changeAttendeeEmail(
+    registrationId: string,
+    actorId: string,
+    email: string,
+    reason: string,
+  ) {
+    const registration = await this.prisma.registration.findUnique({
+      where: { id: registrationId },
+      include: { attendee: true },
+    });
+    if (!registration) {
+      throw new NotFoundException('Registration not found');
+    }
+
+    const from = registration.attendee.email;
+    const to = email.trim();
+    if (from.trim().toLowerCase() === to.toLowerCase()) {
+      throw new BadRequestException('That is already the attendee’s email.');
+    }
+
+    await this.prisma.attendee.update({
+      where: { id: registration.attendeeId },
+      data: { email: to },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'change_attendee_email',
+      targetType: 'registration',
+      targetId: registrationId,
+      metadata: { from, to, reason },
+    });
+
+    return { email: to };
+  }
+
   async resendTicket(registrationId: string, actorId: string) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { registrationId },

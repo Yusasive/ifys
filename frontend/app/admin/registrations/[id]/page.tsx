@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   approveStudentRegistration,
   cancelRegistration,
+  changeAttendeeEmail,
   fetchRegistrationDetail,
   markPaid,
   reissueTicket,
@@ -24,6 +25,7 @@ import { DetailCardSkeleton } from "../../skeleton";
 import { StatusBadge } from "../../status-badge";
 import { useToast } from "@/lib/toast-context";
 import { ReasonModal } from "../../reason-modal";
+import { ChangeEmailModal } from "./change-email-modal";
 
 const TICKET_ACTION_LABELS: Record<string, string> = {
   reissued: "Reissued",
@@ -45,6 +47,7 @@ export default function RegistrationDetailPage() {
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showRejectStudentConfirm, setShowRejectStudentConfirm] = useState(false);
+  const [showChangeEmail, setShowChangeEmail] = useState(false);
   const toast = useToast();
   const permissions = session?.user.permissions;
 
@@ -115,6 +118,19 @@ export default function RegistrationDetailPage() {
               <h1 className="font-bricolage font-bold text-2xl text-forest">{registration.attendee.fullName}</h1>
               <p className="text-sm text-sage">
                 {registration.attendee.email} · {registration.attendee.phone}
+                {session.user.role === "super_admin" && (
+                  <>
+                    {" · "}
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setShowChangeEmail(true)}
+                      className="underline text-emerald hover:text-forest disabled:opacity-50"
+                    >
+                      Change email
+                    </button>
+                  </>
+                )}
               </p>
             </div>
             <StatusBadge status={registration.status} />
@@ -351,6 +367,24 @@ export default function RegistrationDetailPage() {
             Reminder last sent: {formatDateTime(registration.pendingPaymentReminderSentAt)}
           </p>
         )}
+
+        <ChangeEmailModal
+          open={showChangeEmail}
+          currentEmail={registration.attendee.email}
+          busy={busy}
+          onCancel={() => setShowChangeEmail(false)}
+          onConfirm={(email, reason) =>
+            runAction(
+              async () => {
+                await changeAttendeeEmail(registration.id, email, reason);
+                setShowChangeEmail(false);
+              },
+              registration.ticket
+                ? "Email updated — click Resend ticket to send it there."
+                : "Email updated.",
+            )
+          }
+        />
 
         <ReasonModal
           open={showMarkPaidConfirm}
