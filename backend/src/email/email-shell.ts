@@ -16,6 +16,8 @@ export function renderEmailShell(opts: {
   eventName: string;
   bodyHtml: string;
   supportEmail: string;
+  // Broadcasts only — transactional emails (tickets etc.) have no opt-out.
+  unsubscribeUrl?: string;
 }): string {
   return `<!doctype html>
 <html>
@@ -36,7 +38,11 @@ export function renderEmailShell(opts: {
     </tr>
     <tr>
       <td style="padding-top:16px;font-family:Arial,sans-serif;font-size:12px;color:#ffffff;text-align:center;">
-        Questions? Contact ${opts.supportEmail}
+        Questions? Contact ${opts.supportEmail}${
+          opts.unsubscribeUrl
+            ? `<br /><a href="${escapeHtml(opts.unsubscribeUrl)}" style="color:#ffffff;">Unsubscribe from these updates</a>`
+            : ''
+        }
       </td>
     </tr>
   </table>

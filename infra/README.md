@@ -54,7 +54,7 @@ ready to point a real domain at it.
        "JWT_SECRET": "'"$(openssl rand -hex 32)"'",
        "PAYSTACK_SECRET_KEY": "sk_live_...",
        "SMTP_USER": "contact@ifysummit.com",
-       "SMTP_PASSWORD": "your_zoho_app_password"
+       "SMTP_PASSWORD": "your_gmail_app_password"
      }'
    ```
 
@@ -151,6 +151,20 @@ Once you have a domain:
    or Route 53 alias record.
 4. Update `NEXT_PUBLIC_API_URL` on Netlify and `FRONTEND_ORIGIN`/
    `CORS_ORIGIN` env vars to match.
+
+## Switching email to Amazon SES
+
+The API sends through Gmail (`SMTP_USER`/`SMTP_PASSWORD` in the app secret)
+until `use_ses` is turned on. `ses.tf` holds the full rollout; in short:
+
+1. `terraform apply` — creates the SES identity for `ses_domain`, an SMTP
+   IAM user, and the `ify-summit/production/ses-smtp` secret.
+2. Add the CNAMEs from `terraform output ses_dkim_records` at the domain's
+   DNS host. MX records stay as they are.
+3. Once DKIM shows `SUCCESS`, request SES production access (command in
+   `ses.tf`) — until then SES only delivers to verified addresses.
+4. `terraform apply -var="use_ses=true"` — the API now sends as
+   `contact@<ses_domain>` through `email-smtp.<region>.amazonaws.com`.
 
 ## What's NOT covered here
 

@@ -53,3 +53,14 @@ output "deploy_user_secret_access_key" {
   value       = aws_iam_access_key.deploy.secret
   sensitive   = true
 }
+
+output "ses_dkim_records" {
+  description = "Add these CNAME records at the DNS host of ses_domain to verify it in SES"
+  value = [
+    for token in aws_sesv2_email_identity.domain.dkim_signing_attributes[0].tokens : {
+      type  = "CNAME"
+      name  = "${token}._domainkey.${var.ses_domain}"
+      value = "${token}.dkim.amazonses.com"
+    }
+  ]
+}

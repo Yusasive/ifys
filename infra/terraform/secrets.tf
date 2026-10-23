@@ -34,7 +34,7 @@ resource "aws_secretsmanager_secret_version" "infra" {
 #     --secret-string '{
 #       "JWT_SECRET":           "$(openssl rand -hex 32)",
 #       "PAYSTACK_SECRET_KEY":  "sk_live_...",
-#       "SMTP_PASSWORD":        "your_zoho_app_password"
+#       "SMTP_PASSWORD":        "your_gmail_app_password"
 #     }'
 
 resource "aws_secretsmanager_secret" "app" {

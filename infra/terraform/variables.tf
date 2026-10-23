@@ -92,3 +92,15 @@ variable "frontend_origin" {
   type        = string
   default     = "https://ifysummit.com"
 }
+
+variable "ses_domain" {
+  description = "Domain verified in SES for outgoing email (only DKIM CNAMEs are added at its DNS host — MX stays with the mailbox provider)"
+  type        = string
+  default     = "ifysummit.com"
+}
+
+variable "use_ses" {
+  description = "Send email through SES instead of Gmail. Turn on only once the SES domain's DKIM status is SUCCESS and production access is granted (see ses.tf)."
+  type        = bool
+  default     = false
+}

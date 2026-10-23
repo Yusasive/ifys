@@ -48,7 +48,7 @@ export class WhatsAppInviteEmailQueue implements OnModuleInit, OnModuleDestroy {
       {
         connection: this.connection,
         // A "send to everyone not yet sent" can be hundreds of emails —
-        // drip-fed like broadcasts so Zoho doesn't throttle them.
+        // drip-fed like broadcasts so Gmail doesn't throttle them.
         limiter: { max: 2, duration: 1000 },
       },
     );

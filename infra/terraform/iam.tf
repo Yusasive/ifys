@@ -32,6 +32,7 @@ resource "aws_iam_role_policy" "ecs_secrets" {
       Resource = [
         aws_secretsmanager_secret.infra.arn,
         aws_secretsmanager_secret.app.arn,
+        aws_secretsmanager_secret.ses_smtp.arn,
       ]
     }]
   })

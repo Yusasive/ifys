@@ -10,6 +10,7 @@ import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { EMAIL_JOB_OPTIONS } from './email-job-options';
 import { EmailService } from './email.service';
+import { unsubscribeLinks } from './unsubscribe-links';
 
 const QUEUE_NAME = 'broadcast-emails';
 
@@ -44,7 +45,7 @@ export class BroadcastEmailQueue implements OnModuleInit, OnModuleDestroy {
       (job) => this.process(job),
       {
         connection: this.connection,
-        // Hosted SMTP (Zoho) throttles bursts — a broadcast to every
+        // Hosted SMTP (Gmail) throttles bursts — a broadcast to every
         // registrant is drip-fed rather than fired all at once.
         limiter: { max: 2, duration: 1000 },
       },
@@ -154,6 +155,11 @@ export class BroadcastEmailQueue implements OnModuleInit, OnModuleDestroy {
       recipientName: job.data.fullName,
       eventName: broadcast.event.name,
       supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
+      unsubscribe: unsubscribeLinks(
+        job.data.email,
+        this.config.getOrThrow<string>('FRONTEND_ORIGIN'),
+        this.config.getOrThrow<string>('JWT_SECRET'),
+      ),
     });
 
     await this.prisma.emailBroadcast.update({

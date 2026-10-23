@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -14,6 +15,11 @@ import {
 } from '../email/broadcast-html';
 import { renderEmailShell } from '../email/email-shell';
 import { EmailService } from '../email/email.service';
+import {
+  isValidUnsubscribe,
+  normalizeEmail,
+  unsubscribeLinks,
+} from '../email/unsubscribe-links';
 import { WHATSAPP_INVITE_EMAIL } from '../email/whatsapp-invite-email-template';
 import { PrismaService } from '../prisma/prisma.service';
 import { broadcastAudienceWhere } from './broadcast-audience-where';
@@ -67,7 +73,8 @@ export class BroadcastsService {
 
   // Resolves an audience to unique recipients. Attendee emails aren't
   // unique (one person can register more than once), so recipients are
-  // de-duplicated case-insensitively — nobody gets the same email twice.
+  // de-duplicated case-insensitively — nobody gets the same email twice —
+  // and anyone who unsubscribed from broadcasts is left out.
   private async resolveRecipients(
     eventId: string,
     audience: BroadcastAudienceDto,
@@ -80,10 +87,16 @@ export class BroadcastsService {
       orderBy: { createdAt: 'asc' },
     });
 
+    const unsubscribed = new Set(
+      (
+        await this.prisma.emailUnsubscribe.findMany({ select: { email: true } })
+      ).map((u) => u.email),
+    );
+
     const byEmail = new Map<string, Recipient>();
     for (const { attendee } of registrations) {
-      const key = attendee.email.trim().toLowerCase();
-      if (!byEmail.has(key)) {
+      const key = normalizeEmail(attendee.email);
+      if (!byEmail.has(key) && !unsubscribed.has(key)) {
         byEmail.set(key, {
           email: attendee.email.trim(),
           fullName: attendee.fullName,
@@ -136,8 +149,33 @@ export class BroadcastsService {
       recipientName: admin.name,
       eventName: event.name,
       supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
+      unsubscribe: unsubscribeLinks(
+        admin.email,
+        this.config.getOrThrow<string>('FRONTEND_ORIGIN'),
+        this.config.getOrThrow<string>('JWT_SECRET'),
+      ),
     });
     return { sentTo: admin.email };
+  }
+
+  // Idempotent: unsubscribing twice is still a success.
+  async unsubscribe(email: string, token: string) {
+    if (
+      !isValidUnsubscribe(
+        email,
+        token,
+        this.config.getOrThrow<string>('JWT_SECRET'),
+      )
+    ) {
+      throw new UnauthorizedException('This unsubscribe link is not valid.');
+    }
+    const key = normalizeEmail(email);
+    await this.prisma.emailUnsubscribe.upsert({
+      where: { email: key },
+      create: { email: key },
+      update: {},
+    });
+    return { unsubscribed: true };
   }
 
   async send(dto: SendBroadcastDto, actorId: string) {

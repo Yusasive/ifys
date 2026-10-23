@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { AppModule } from '../app.module';
 import { BroadcastEmailQueue } from '../email/broadcast-email.queue';
 import { EmailService } from '../email/email.service';
+import { unsubscribeLinks } from '../email/unsubscribe-links';
 import { PrismaService } from '../prisma/prisma.service';
 import { extractSessionToken } from '../testing/fixtures';
 
@@ -389,6 +390,42 @@ describe('Email broadcasts (integration)', () => {
     });
     expect(stored.failedCount).toBe(1);
   }, 60000);
+
+  it('leaves out recipients who unsubscribed with a valid link', async () => {
+    const email = `chidi-${suffix}@example.com`;
+    const { searchParams } = new URL(
+      unsubscribeLinks(
+        email,
+        'https://ifysummit.com',
+        process.env.JWT_SECRET as string,
+      ).oneClickUrl,
+    );
+
+    const forged = await request(httpServer)
+      .post('/email/unsubscribe')
+      .send({ email, token: 'not-the-real-signature' });
+    expect(forged.status).toBe(401);
+
+    // Case differs from the stored attendee email; the token still matches.
+    const ok = await request(httpServer)
+      .post('/email/unsubscribe')
+      .send({ email: email.toUpperCase(), token: searchParams.get('t') });
+    expect(ok.status).toBe(200);
+
+    try {
+      const res = await post('/audience-preview', {
+        eventSlug,
+        audience: { statuses: ['paid'] },
+      });
+      const body = res.body as AudiencePreviewBody;
+      expect(body.count).toBe(1);
+      expect(body.sample.map((r) => r.email.toLowerCase())).toEqual([
+        `amina-${suffix}@example.com`,
+      ]);
+    } finally {
+      await prisma.emailUnsubscribe.delete({ where: { email } });
+    }
+  });
 
   it('refuses to send when nobody matches', async () => {
     const res = await post('', {

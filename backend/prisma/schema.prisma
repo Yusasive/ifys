@@ -611,3 +611,13 @@ model EmailBroadcastFailure {
   @@unique([broadcastId, email])
   @@map("email_broadcast_failures")
 }
+
+// Someone who clicked "unsubscribe" on a broadcast. Keyed by lowercased
+// email (attendee emails aren't unique), and checked when a broadcast's
+// recipients are resolved. Transactional email (tickets etc.) still goes out.
+model EmailUnsubscribe {
+  email     String   @id
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("email_unsubscribes")
+}

@@ -42,9 +42,9 @@ resource "aws_ecs_task_definition" "api" {
       { name = "S3_REGION", value = var.aws_region },
       { name = "S3_ENDPOINT", value = "https://s3.${var.aws_region}.amazonaws.com" },
       { name = "S3_FORCE_PATH_STYLE", value = "false" },
-      { name = "SMTP_HOST", value = "smtp.zoho.com" },
+      { name = "SMTP_HOST", value = var.use_ses ? "email-smtp.${var.aws_region}.amazonaws.com" : "smtp.gmail.com" },
       { name = "SMTP_PORT", value = "465" },
-      { name = "SMTP_FROM", value = "contact@ifysummit.com" },
+      { name = "SMTP_FROM", value = var.use_ses ? "contact@${var.ses_domain}" : "ifysummit.ng@gmail.com" },
       { name = "SUPPORT_EMAIL", value = "contact@ifysummit.com" },
     ]
 
@@ -56,8 +56,9 @@ resource "aws_ecs_task_definition" "api" {
       # Application (user-managed — fill via AWS Console or CLI after first apply)
       { name = "JWT_SECRET", valueFrom = "${aws_secretsmanager_secret.app.arn}:JWT_SECRET::" },
       { name = "PAYSTACK_SECRET_KEY", valueFrom = "${aws_secretsmanager_secret.app.arn}:PAYSTACK_SECRET_KEY::" },
-      { name = "SMTP_USER", valueFrom = "${aws_secretsmanager_secret.app.arn}:SMTP_USER::" },
-      { name = "SMTP_PASSWORD", valueFrom = "${aws_secretsmanager_secret.app.arn}:SMTP_PASSWORD::" },
+      # SMTP login: Terraform-managed SES credentials, or the hand-filled Gmail app password
+      { name = "SMTP_USER", valueFrom = "${var.use_ses ? aws_secretsmanager_secret.ses_smtp.arn : aws_secretsmanager_secret.app.arn}:SMTP_USER::" },
+      { name = "SMTP_PASSWORD", valueFrom = "${var.use_ses ? aws_secretsmanager_secret.ses_smtp.arn : aws_secretsmanager_secret.app.arn}:SMTP_PASSWORD::" },
     ]
 
     logConfiguration = {

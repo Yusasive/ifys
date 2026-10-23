@@ -280,6 +280,13 @@ export function subscribeToNewsletter(email: string) {
   });
 }
 
+export function unsubscribeFromBroadcasts(email: string, token: string) {
+  return request<{ unsubscribed: true }>("/email/unsubscribe", {
+    method: "POST",
+    body: JSON.stringify({ email, token }),
+  });
+}
+
 export const VOLUNTEER_TEAMS = [
   { value: "programs", label: "Program Team" },
   { value: "partnerships_sponsorships", label: "Partnership and Sponsorship Team" },

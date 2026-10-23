@@ -22,6 +22,7 @@ import {
   SponsorApplicationEmailData,
 } from './sponsor-application-email-template';
 import { generateTicketPdf } from './ticket-pdf';
+import type { UnsubscribeLinks } from './unsubscribe-links';
 import {
   renderTicketEmailHtml,
   TicketEmailData,
@@ -71,8 +72,9 @@ export class EmailService {
       auth: user && password ? { user, pass: password } : undefined,
       // One shared, rate-limited connection pool for every queue. Without
       // it each email opened (and authenticated) its own SMTP connection,
-      // so a broadcast plus ticket emails at the same moment hit Zoho as an
-      // unthrottled burst of logins and sends, and Zoho rejected some.
+      // so a broadcast plus ticket emails at the same moment hit the SMTP
+      // server as an unthrottled burst of logins and sends, and the provider
+      // rejected some.
       pool: true,
       maxConnections: 2,
       rateDelta: 1000,
@@ -327,6 +329,8 @@ export class EmailService {
       subject: string;
       eventName: string;
       supportEmail: string;
+      // Admin broadcasts only; the automatic WhatsApp invite has none.
+      unsubscribe?: UnsubscribeLinks;
     },
   ) {
     await this.transporter.sendMail({
@@ -337,8 +341,16 @@ export class EmailService {
         eventName: data.eventName,
         bodyHtml: renderBroadcastBodyHtml(data),
         supportEmail: data.supportEmail,
+        unsubscribeUrl: data.unsubscribe?.pageUrl,
       }),
       attachments: this.brandLogoAttachment(),
+      // Lets Gmail/Yahoo show their own "Unsubscribe" button, which POSTs
+      // straight to the URL (RFC 8058) — people use that instead of
+      // "Report spam", which is what hurts deliverability.
+      headers: data.unsubscribe && {
+        'List-Unsubscribe': `<${data.unsubscribe.oneClickUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     });
     this.logger.log(`Broadcast email sent to ${to}`);
   }
