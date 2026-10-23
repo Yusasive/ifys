@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -51,7 +51,7 @@ import {
 } from './ticket-lifecycle-email-template';
 
 @Injectable()
-export class EmailService {
+export class EmailService implements OnApplicationShutdown {
   private readonly logger = new Logger(EmailService.name);
   private readonly transporter: Transporter;
   private readonly from: string;
@@ -89,6 +89,15 @@ export class EmailService {
       this.logger.warn(`Could not load brand logo asset: ${String(err)}`);
       this.logoBuffer = null;
     }
+  }
+
+  // The pooled connections stay open while idle, which kept the process
+  // alive after shutdown — Jest never exited, so `git push` hung. Closed at
+  // application shutdown, which runs after every queue worker's
+  // onModuleDestroy has finished its last job — closing any earlier let a
+  // worker's final send reopen a connection.
+  onApplicationShutdown() {
+    this.transporter.close();
   }
 
   private brandLogoAttachment(): Attachment[] {

@@ -108,7 +108,7 @@ export class TagsService {
       label: member.position.name,
       // The sticker has no band, so the position also goes on the role line.
       title: member.position.name,
-      organization: 'Organising Committee',
+      organization: 'Organising Team',
     }));
 
     const registrants: NameTag[] = registrations.map((registration) => {

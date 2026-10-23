@@ -20,7 +20,7 @@ const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 const SECTIONS: { key: TagSection; label: string; hint: string }[] = [
   {
     key: "committee",
-    label: "Organising Committee",
+    label: "Organising Team",
     hint: "Entered by hand below — one tag per member, printed with their position.",
   },
   {
