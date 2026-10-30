@@ -176,7 +176,7 @@ export class PaymentsService {
 
     const claim = await this.prisma.order.updateMany({
       where: { providerReference: reference, status: 'pending' },
-      data: { status: 'paid', paidAt: new Date() },
+      data: { status: 'paid', paidAt: new Date(), paymentChannel: 'free' },
     });
     if (claim.count === 1) {
       await this.prisma.registration.update({
@@ -267,6 +267,7 @@ export class PaymentsService {
         status: 'paid',
         paidAt: new Date(),
         amountMinor: verified.amountMinor,
+        paymentChannel: verified.channel,
       },
     });
 

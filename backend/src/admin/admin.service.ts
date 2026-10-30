@@ -87,7 +87,13 @@ export class AdminService {
       this.prisma.registration.count({ where }),
       this.prisma.registration.findMany({
         where,
-        include: { attendee: true, ticketProduct: true, ticket: true },
+        include: {
+          attendee: true,
+          ticketProduct: true,
+          ticket: true,
+          order: true,
+          coupon: { select: { code: true } },
+        },
         orderBy,
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
@@ -110,6 +116,7 @@ export class AdminService {
         ticketProduct: true,
         ticket: { include: { checkIns: true } },
         order: true,
+        coupon: { select: { code: true } },
       },
     });
     if (!registration) {
@@ -182,7 +189,7 @@ export class AdminService {
     if (registration.order) {
       await this.prisma.order.update({
         where: { id: registration.order.id },
-        data: { status: 'paid', paidAt: new Date() },
+        data: { status: 'paid', paidAt: new Date(), paymentChannel: 'manual' },
       });
     } else {
       await this.prisma.order.create({
@@ -194,6 +201,7 @@ export class AdminService {
           providerReference: `manual-${registration.id}`,
           status: 'paid',
           paidAt: new Date(),
+          paymentChannel: 'manual',
         },
       });
     }

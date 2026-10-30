@@ -15,6 +15,8 @@ export interface VerifyTransactionResult {
   reference: string;
   amountMinor: number;
   currency: string;
+  // Paystack's payment channel (card, bank_transfer, ussd, ...), when given.
+  channel: string | null;
 }
 
 export interface PaymentProvider {

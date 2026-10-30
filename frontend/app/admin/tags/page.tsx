@@ -6,6 +6,7 @@ import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { CommitteePanel } from "./committee-panel";
+import { VipPanel } from "./vip-panel";
 import {
   AGENDA_URL,
   NameTagPreview,
@@ -22,6 +23,11 @@ const SECTIONS: { key: TagSection; label: string; hint: string }[] = [
     key: "committee",
     label: "Organising Team",
     hint: "Entered by hand below — one tag per member, printed with their position.",
+  },
+  {
+    key: "vips",
+    label: "VIPs",
+    hint: "Entered by hand below — one tag per guest, printed with their title and organisation, and marked VIP.",
   },
   {
     key: "registrants",
@@ -42,6 +48,7 @@ const SECTIONS: { key: TagSection; label: string; hint: string }[] = [
 
 const EMPTY_TAGS: Record<TagSection, NameTag[]> = {
   committee: [],
+  vips: [],
   registrants: [],
   speakers: [],
   sponsors: [],
@@ -186,6 +193,8 @@ export default function AdminNameTagsPage() {
       {section === "committee" && (
         <CommitteePanel eventSlug={EVENT_SLUG} onChange={() => setReloadKey((k) => k + 1)} />
       )}
+
+      {section === "vips" && <VipPanel eventSlug={EVENT_SLUG} onChange={() => setReloadKey((k) => k + 1)} />}
 
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <input

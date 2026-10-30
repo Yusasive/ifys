@@ -78,7 +78,9 @@ variable "vpc_cidr" {
 variable "acm_certificate_arn" {
   description = "ARN of an ACM certificate for the HTTPS listener. Leave blank to run HTTP-only (fine for an AWS-generated ALB URL with no custom domain yet)."
   type        = string
-  default     = ""
+  # api.ifysummit.com. Kept here, not only passed with -var: an apply without
+  # it deletes the live HTTPS listener and drops the HTTP -> HTTPS redirect.
+  default = "arn:aws:acm:us-east-1:350225416804:certificate/e39b814a-da71-4b49-bc55-5569e0dfd97e"
 }
 
 variable "cors_allowed_origins" {

@@ -160,11 +160,16 @@ until `use_ses` is turned on. `ses.tf` holds the full rollout; in short:
 1. `terraform apply` — creates the SES identity for `ses_domain`, an SMTP
    IAM user, and the `ify-summit/production/ses-smtp` secret.
 2. Add the CNAMEs from `terraform output ses_dkim_records` at the domain's
-   DNS host. MX records stay as they are.
+   DNS host (Cloudflare: proxy status **DNS only**, and enter just the
+   `<token>._domainkey` part as the name). MX records stay as they are.
 3. Once DKIM shows `SUCCESS`, request SES production access (command in
    `ses.tf`) — until then SES only delivers to verified addresses.
-4. `terraform apply -var="use_ses=true"` — the API now sends as
-   `contact@<ses_domain>` through `email-smtp.<region>.amazonaws.com`.
+4. `terraform apply -var="use_ses=true"` — registers a task definition
+   revision that sends as `contact@<ses_domain>` through
+   `email-smtp.<region>.amazonaws.com`. This alone changes nothing live:
+   the ECS service ignores Terraform's task definition (GitHub Actions owns
+   it). Re-run the "Deploy backend to ECS" workflow — it starts from the
+   newest revision, so it puts the SES settings live with the current image.
 
 ## What's NOT covered here
 

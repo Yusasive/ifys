@@ -117,7 +117,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   "ticketSettings.manage": "Manage ticket products & pricing",
   "sponsors.manage": "Manage sponsors & applications",
   "speakers.manage": "Manage speakers",
-  "tags.manage": "Print name tags & manage organising committee",
+  "tags.manage": "Print name tags & manage organising team & VIPs",
   "volunteers.manage": "Manage volunteer applications",
   "newsletter.manage": "Manage newsletter subscribers",
   "coupons.manage": "Manage coupons",

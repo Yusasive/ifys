@@ -27,6 +27,7 @@ interface PaystackVerifyResponse {
     reference: string;
     amount: number;
     currency: string;
+    channel?: string;
   };
 }
 
@@ -102,6 +103,7 @@ export class PaystackProvider implements PaymentProvider {
       reference: body.data.reference,
       amountMinor: body.data.amount,
       currency: body.data.currency,
+      channel: body.data.channel ?? null,
     };
   }
 }

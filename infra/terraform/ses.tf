@@ -15,7 +15,10 @@
 #          --mail-type TRANSACTIONAL --website-url https://ifysummit.com \
 #          --use-case-description "Event tickets and attendee notifications" \
 #          --contact-language EN
-#   4. terraform apply -var="use_ses=true" — the API switches to SES.
+#   4. terraform apply -var="use_ses=true", then re-run the "Deploy backend
+#      to ECS" workflow. The service ignores Terraform's task definition, so
+#      the apply alone doesn't switch anything; the deploy starts from the
+#      newest revision (this one) and puts it live with the current image.
 
 resource "aws_sesv2_email_identity" "domain" {
   email_identity = var.ses_domain

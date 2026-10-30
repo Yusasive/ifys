@@ -21,10 +21,11 @@ import { PRESELECTED_STORAGE_KEY } from "../messages/preselected";
 import { PaginationFooter } from "../pagination-footer";
 import { ReasonModal } from "../reason-modal";
 import { TableRowsSkeleton } from "../skeleton";
+import { paymentChannelLabel } from "../payment-channel";
 import { StatusBadge } from "../status-badge";
 
 const PAGE_SIZE = 20;
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 9;
 
 type SortField = "createdAt" | "fullName" | "status";
 
@@ -356,6 +357,7 @@ export default function AdminRegistrationsPage() {
               <th className="px-4 py-2">Email</th>
               <th className="px-4 py-2">Category / Tier</th>
               <th className="px-4 py-2">Price</th>
+              <th className="px-4 py-2">Payment</th>
               <SortHeader label="Status" field="status" activeField={sortBy} order={order} onSort={handleSort} />
               <SortHeader label="Registered" field="createdAt" activeField={sortBy} order={order} onSort={handleSort} />
               <th className="px-4 py-2">Ticket</th>
@@ -385,6 +387,10 @@ export default function AdminRegistrationsPage() {
                 </td>
                 <td className="px-4 py-2 font-mono">
                   {formatKobo(r.ticketProduct.priceKobo, r.ticketProduct.currency)}
+                </td>
+                <td className="px-4 py-2 text-sage">
+                  {paymentChannelLabel(r.order?.paymentChannel)}
+                  {r.coupon && <span className="block font-mono text-xs">{r.coupon.code}</span>}
                 </td>
                 <td className="px-4 py-2">
                   <StatusBadge status={r.status} />

@@ -22,6 +22,8 @@ import { CreateCommitteeMemberDto } from './dto/create-committee-member.dto';
 import { CreateCommitteePositionDto } from './dto/create-committee-position.dto';
 import { UpdateCommitteeMemberDto } from './dto/update-committee-member.dto';
 import { UpdateCommitteePositionDto } from './dto/update-committee-position.dto';
+import { CreateVipGuestDto } from './dto/create-vip-guest.dto';
+import { UpdateVipGuestDto } from './dto/update-vip-guest.dto';
 import { TagsService } from './tags.service';
 
 @Controller('admin/tags')
@@ -89,5 +91,32 @@ export class TagsController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.tags.removeMember(id, user.sub);
+  }
+
+  @Get('vips')
+  listVips(@Query('event') eventSlug: string) {
+    return this.tags.listVips(eventSlug);
+  }
+
+  @Post('vips')
+  createVip(@Body() dto: CreateVipGuestDto, @CurrentUser() user: JwtPayload) {
+    return this.tags.createVip(dto, user.sub);
+  }
+
+  @Patch('vips/:id')
+  updateVip(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateVipGuestDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.tags.updateVip(id, dto, user.sub);
+  }
+
+  @Delete('vips/:id')
+  deleteVip(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.tags.removeVip(id, user.sub);
   }
 }

@@ -11,6 +11,8 @@ import { CreateCommitteeMemberDto } from './dto/create-committee-member.dto';
 import { CreateCommitteePositionDto } from './dto/create-committee-position.dto';
 import { UpdateCommitteeMemberDto } from './dto/update-committee-member.dto';
 import { UpdateCommitteePositionDto } from './dto/update-committee-position.dto';
+import { CreateVipGuestDto } from './dto/create-vip-guest.dto';
+import { UpdateVipGuestDto } from './dto/update-vip-guest.dto';
 
 // One printed name sticker. `label` is the role group used for filtering
 // on the admin page ("Speaker", "Media Team", ...); `title`/`organization`
@@ -44,6 +46,12 @@ function formString(data: unknown, key: string): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+// Optional VIP lines: undefined leaves the field alone, blank clears it.
+function optionalLine(value: string | undefined): string | null | undefined {
+  if (value === undefined) return undefined;
+  return value.trim() || null;
+}
+
 @Injectable()
 export class TagsService {
   constructor(
@@ -67,40 +75,45 @@ export class TagsService {
   async listTags(eventSlug: string) {
     const event = await this.findEvent(eventSlug);
 
-    const [members, registrations, speakers, sponsors] = await Promise.all([
-      this.prisma.committeeMember.findMany({
-        where: { eventId: event.id },
-        include: { position: true },
-        orderBy: [
-          { position: { displayOrder: 'asc' } },
-          { position: { name: 'asc' } },
-          { fullName: 'asc' },
-        ],
-      }),
-      // "Confirmed" = paid with a live ticket. Students still awaiting ID
-      // review (pending_review) have no ticket yet and are left out until
-      // approved; voided tickets are left out too.
-      this.prisma.registration.findMany({
-        where: {
-          eventId: event.id,
-          status: 'paid',
-          ticket: { status: { not: 'void' } },
-        },
-        include: { attendee: true, ticketProduct: true },
-        orderBy: { attendee: { fullName: 'asc' } },
-      }),
-      this.prisma.speaker.findMany({
-        where: { eventId: event.id, isActive: true },
-        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-      }),
-      this.prisma.sponsor.findMany({
-        where: {
-          eventId: event.id,
-          isActive: true,
-        },
-        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-      }),
-    ]);
+    const [members, vipGuests, registrations, speakers, sponsors] =
+      await Promise.all([
+        this.prisma.committeeMember.findMany({
+          where: { eventId: event.id },
+          include: { position: true },
+          orderBy: [
+            { position: { displayOrder: 'asc' } },
+            { position: { name: 'asc' } },
+            { fullName: 'asc' },
+          ],
+        }),
+        this.prisma.vipGuest.findMany({
+          where: { eventId: event.id },
+          orderBy: [{ displayOrder: 'asc' }, { fullName: 'asc' }],
+        }),
+        // "Confirmed" = paid with a live ticket. Students still awaiting ID
+        // review (pending_review) have no ticket yet and are left out until
+        // approved; voided tickets are left out too.
+        this.prisma.registration.findMany({
+          where: {
+            eventId: event.id,
+            status: 'paid',
+            ticket: { status: { not: 'void' } },
+          },
+          include: { attendee: true, ticketProduct: true },
+          orderBy: { attendee: { fullName: 'asc' } },
+        }),
+        this.prisma.speaker.findMany({
+          where: { eventId: event.id, isActive: true },
+          orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+        }),
+        this.prisma.sponsor.findMany({
+          where: {
+            eventId: event.id,
+            isActive: true,
+          },
+          orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+        }),
+      ]);
 
     const committee: NameTag[] = members.map((member) => ({
       id: member.id,
@@ -133,6 +146,16 @@ export class TagsService {
 
     return {
       committee,
+      vips: vipGuests.map((guest): NameTag => ({
+        id: guest.id,
+        name: guest.fullName,
+        label: 'VIP',
+        // Mirrors the committee sticker: "VIP" goes where "Organising Team"
+        // does, so title and organisation share the role line.
+        title:
+          [guest.title, guest.organization].filter(Boolean).join(', ') || null,
+        organization: 'VIP',
+      })),
       registrants,
       speakers: speakers.map((speaker): NameTag => ({
         id: speaker.id,
@@ -349,6 +372,81 @@ export class TagsService {
       actorId,
       action: 'delete_committee_member',
       targetType: 'committee_member',
+      targetId: id,
+    });
+
+    return { deleted: true };
+  }
+
+  async listVips(eventSlug: string) {
+    const event = await this.findEvent(eventSlug);
+    return this.prisma.vipGuest.findMany({
+      where: { eventId: event.id },
+      orderBy: [{ displayOrder: 'asc' }, { fullName: 'asc' }],
+    });
+  }
+
+  async createVip(dto: CreateVipGuestDto, actorId: string) {
+    const event = await this.findEvent(dto.eventSlug);
+
+    const guest = await this.prisma.vipGuest.create({
+      data: {
+        eventId: event.id,
+        fullName: dto.fullName.trim(),
+        title: optionalLine(dto.title),
+        organization: optionalLine(dto.organization),
+        displayOrder: dto.displayOrder ?? 0,
+      },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'create_vip_guest',
+      targetType: 'vip_guest',
+      targetId: guest.id,
+    });
+
+    return guest;
+  }
+
+  async updateVip(id: string, dto: UpdateVipGuestDto, actorId: string) {
+    const existing = await this.prisma.vipGuest.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('VIP guest not found');
+    }
+
+    const guest = await this.prisma.vipGuest.update({
+      where: { id },
+      data: {
+        fullName: dto.fullName?.trim(),
+        title: optionalLine(dto.title),
+        organization: optionalLine(dto.organization),
+        displayOrder: dto.displayOrder,
+      },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'update_vip_guest',
+      targetType: 'vip_guest',
+      targetId: id,
+    });
+
+    return guest;
+  }
+
+  async removeVip(id: string, actorId: string) {
+    const existing = await this.prisma.vipGuest.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('VIP guest not found');
+    }
+
+    await this.prisma.vipGuest.delete({ where: { id } });
+
+    await this.auditLog.record({
+      actorId,
+      action: 'delete_vip_guest',
+      targetType: 'vip_guest',
       targetId: id,
     });
 

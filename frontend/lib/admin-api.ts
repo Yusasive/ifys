@@ -100,6 +100,9 @@ export interface RegistrationListItem {
   attendee: { fullName: string; email: string; phone: string };
   ticketProduct: { category: Category; tier: Tier; priceKobo: number; currency: string };
   ticket: { ticketCode: string; status: string } | null;
+  order: { status: string; paymentChannel: string | null } | null;
+  coupon: { code: string } | null;
+  discountAppliedKobo: number;
 }
 
 export interface RegistrationsListParams {
@@ -133,11 +136,11 @@ export interface CheckInRecord {
   method: string;
 }
 
-export interface RegistrationDetail extends RegistrationListItem {
+export interface RegistrationDetail extends Omit<RegistrationListItem, "order"> {
   formDataJson: Record<string, unknown>;
   studentIdFileUrl: string | null;
   studentIdSignedUrl: string | null;
-  order: { status: string; amountKobo: number; paidAt: string | null } | null;
+  order: { status: string; amountKobo: number; paidAt: string | null; paymentChannel: string | null } | null;
   cancellationReason: string | null;
   pendingPaymentReminderSentAt: string | null;
   ticket:
@@ -977,7 +980,7 @@ export interface NameTag {
   organization: string | null;
 }
 
-export type TagSection = "committee" | "registrants" | "speakers" | "sponsors";
+export type TagSection = "committee" | "vips" | "registrants" | "speakers" | "sponsors";
 
 export function fetchNameTags(eventSlug: string) {
   return adminRequest<Record<TagSection, NameTag[]>>(
@@ -1056,6 +1059,46 @@ export function updateCommitteeMember(
 
 export function deleteCommitteeMember(id: string) {
   return adminRequest<{ deleted: true }>(`/admin/tags/committee/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export interface VipGuest {
+  id: string;
+  fullName: string;
+  title: string | null;
+  organization: string | null;
+  displayOrder: number;
+}
+
+export interface VipGuestInput {
+  fullName: string;
+  title: string;
+  organization: string;
+  displayOrder: number;
+}
+
+export function fetchVipGuests(eventSlug: string) {
+  return adminRequest<VipGuest[]>(`/admin/tags/vips?event=${encodeURIComponent(eventSlug)}`);
+}
+
+export function createVipGuest(input: VipGuestInput & { eventSlug: string }) {
+  return adminRequest<VipGuest>("/admin/tags/vips", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Blank title/organization clears that line from the tag.
+export function updateVipGuest(id: string, input: Partial<VipGuestInput>) {
+  return adminRequest<VipGuest>(`/admin/tags/vips/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteVipGuest(id: string) {
+  return adminRequest<{ deleted: true }>(`/admin/tags/vips/${id}`, {
     method: "DELETE",
   });
 }

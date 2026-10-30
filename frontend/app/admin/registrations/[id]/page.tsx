@@ -23,6 +23,7 @@ import { formatDateTime, formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/
 import { hasPermission } from "@/lib/permissions";
 import { DetailCardSkeleton } from "../../skeleton";
 import { StatusBadge } from "../../status-badge";
+import { paymentChannelLabel } from "../../payment-channel";
 import { useToast } from "@/lib/toast-context";
 import { ReasonModal } from "../../reason-modal";
 import { ChangeEmailModal } from "./change-email-modal";
@@ -155,12 +156,24 @@ export default function RegistrationDetailPage() {
                 <dd className="text-right">
                   <StatusBadge status={registration.order.status} />
                 </dd>
+                <dt className="text-sage">Paid via</dt>
+                <dd className="text-right">{paymentChannelLabel(registration.order.paymentChannel)}</dd>
                 {registration.order.paidAt && (
                   <>
                     <dt className="text-sage">Paid at</dt>
                     <dd className="text-right">{formatDateTime(registration.order.paidAt)}</dd>
                   </>
                 )}
+              </>
+            )}
+            {registration.coupon && (
+              <>
+                <dt className="text-sage">Coupon used</dt>
+                <dd className="text-right font-mono">{registration.coupon.code}</dd>
+                <dt className="text-sage">Discount applied</dt>
+                <dd className="text-right">
+                  {formatKobo(registration.discountAppliedKobo, registration.ticketProduct.currency)}
+                </dd>
               </>
             )}
             {registration.cancellationReason && (

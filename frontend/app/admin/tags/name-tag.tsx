@@ -16,6 +16,7 @@ export const SECTION_COLORS: Record<TagSection, string> = {
   speakers: "#e8734a", // coral
   sponsors: "#b98a46", // gold
   committee: "#53776d", // sage
+  vips: "#a95641", // rust
 };
 
 // One label from a label-printer roll, stuck onto the pre-printed badge

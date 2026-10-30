@@ -11,6 +11,7 @@ import type { NameTag } from './tags.service';
 
 interface TagsBody {
   committee: NameTag[];
+  vips: NameTag[];
   registrants: NameTag[];
   speakers: NameTag[];
   sponsors: NameTag[];
@@ -172,6 +173,7 @@ describe('Name tags (integration)', () => {
     });
     await prisma.committeeMember.deleteMany({ where: { eventId } });
     await prisma.committeePosition.deleteMany({ where: { eventId } });
+    await prisma.vipGuest.deleteMany({ where: { eventId } });
     await prisma.ticket.deleteMany({ where: { registration: { eventId } } });
     await prisma.registration.deleteMany({ where: { eventId } });
     await prisma.attendee.deleteMany({ where: { id: { in: attendeeIds } } });
@@ -298,5 +300,48 @@ describe('Name tags (integration)', () => {
     expect((await api('delete', `/committee/${memberId}`)).status).toBe(200);
     tags = await getTags();
     expect(tags.committee).toEqual([]);
+  });
+
+  it('manages VIP guests', async () => {
+    const created = await api('post', '/vips').send({
+      eventSlug,
+      fullName: ' Dr. Aisha Bello ',
+      title: 'Director General',
+      organization: 'SEC Nigeria',
+    });
+    expect(created.status).toBe(201);
+    const vipId = (created.body as { id: string }).id;
+    committeeIds.push(vipId);
+
+    let tags = await getTags();
+    expect(tags.vips).toEqual([
+      {
+        id: vipId,
+        name: 'Dr. Aisha Bello',
+        label: 'VIP',
+        title: 'Director General, SEC Nigeria',
+        organization: 'VIP',
+      },
+    ]);
+
+    // A blank line is cleared from the tag; untouched fields are kept.
+    const updated = await api('patch', `/vips/${vipId}`).send({
+      organization: '  ',
+    });
+    expect(updated.status).toBe(200);
+    tags = await getTags();
+    expect(tags.vips[0]).toMatchObject({
+      title: 'Director General',
+      organization: 'VIP',
+    });
+
+    expect(
+      (await api('get', `/vips?event=${eventSlug}`, doorStaffToken)).status,
+    ).toBe(403);
+
+    expect((await api('delete', `/vips/${vipId}`)).status).toBe(200);
+    expect((await api('delete', `/vips/${vipId}`)).status).toBe(404);
+    tags = await getTags();
+    expect(tags.vips).toEqual([]);
   });
 });
