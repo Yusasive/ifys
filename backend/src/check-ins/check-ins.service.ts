@@ -188,15 +188,21 @@ export class CheckInsService {
     ticketId: string,
     checkIn: Prisma.CheckInUncheckedCreateWithoutTicketInput,
   ): Promise<boolean> {
-    return this.prisma.$transaction(async (tx) => {
-      const claim = await tx.ticket.updateMany({
-        where: { id: ticketId, status: 'unused' },
-        data: { status: 'used' },
+    return this.prisma
+      .$transaction(async (tx) => {
+        const claim = await tx.ticket.updateMany({
+          where: { id: ticketId, status: 'unused' },
+          data: { status: 'used' },
+        });
+        if (claim.count === 0) return false;
+        await tx.checkIn.create({ data: { ticketId, ...checkIn } });
+        return true;
+      })
+      .then((claimed) => {
+        // Counts changed; don't serve a stale status for the next few seconds.
+        if (claimed) this.statusCache = null;
+        return claimed;
       });
-      if (claim.count === 0) return false;
-      await tx.checkIn.create({ data: { ticketId, ...checkIn } });
-      return true;
-    });
   }
 
   private async firstCheckIn(ticket: TicketWithAttendee) {
