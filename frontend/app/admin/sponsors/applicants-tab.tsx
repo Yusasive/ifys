@@ -8,7 +8,7 @@ import {
   SponsorApplication,
   SponsorApplicationStatus,
 } from "@/lib/admin-api";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
@@ -61,7 +61,7 @@ export function ApplicantsTab() {
       } catch (err) {
         if (!cancelled) {
           toast.error(
-            err instanceof ApiError ? err.body.message : "Failed to load applicants.",
+            describeError(err, "Failed to load applicants."),
           );
         }
       }
@@ -81,7 +81,7 @@ export function ApplicantsTab() {
       setReloadKey((k) => k + 1);
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.body.message : "Failed to approve applicant.",
+        describeError(err, "Failed to approve applicant."),
       );
     } finally {
       setBusyId(null);
@@ -96,7 +96,7 @@ export function ApplicantsTab() {
       setReloadKey((k) => k + 1);
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.body.message : "Failed to reject applicant.",
+        describeError(err, "Failed to reject applicant."),
       );
     } finally {
       setBusyId(null);

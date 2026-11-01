@@ -5,6 +5,8 @@ export const configValidationSchema = Joi.object({
     .valid('development', 'test', 'production')
     .default('development'),
   PORT: Joi.number().default(3000),
+  // Optional: error reporting is disabled when unset.
+  SENTRY_DSN: Joi.string().uri().optional(),
 
   DATABASE_URL: Joi.string().uri().required(),
   REDIS_URL: Joi.string().uri().required(),

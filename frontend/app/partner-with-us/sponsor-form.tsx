@@ -3,7 +3,7 @@
 import { FormEvent, ReactElement, useState } from "react";
 import Link from "next/link";
 import {
-  ApiError,
+  describeError,
   createSponsorApplication,
   requestSponsorApplicationUploadUrl,
   SponsorType,
@@ -277,9 +277,7 @@ export function SponsorForm() {
       setSubmitted(true);
     } catch (err) {
       setSubmitError(
-        err instanceof ApiError
-          ? err.body.message
-          : "Something went wrong. Please try again.",
+        describeError(err, "Something went wrong. Please try again."),
       );
     } finally {
       setSubmitting(false);

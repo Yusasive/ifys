@@ -12,7 +12,7 @@ import {
   VolunteerApplicationStatus,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError, VOLUNTEER_TEAMS } from "@/lib/api";
+import { describeError, VOLUNTEER_TEAMS } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { DetailsGrid, DetailsModal } from "../details-modal";
 import { PaginationFooter } from "../pagination-footer";
@@ -85,7 +85,7 @@ export default function AdminVolunteersPage() {
       } catch (err) {
         if (!cancelled) {
           toast.error(
-            err instanceof ApiError ? err.body.message : "Failed to load applicants.",
+            describeError(err, "Failed to load applicants."),
           );
         }
       }
@@ -158,9 +158,7 @@ export default function AdminVolunteersPage() {
       setModalTarget(null);
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.body.message
-          : `Failed to ${modalTarget.mode} applicant${modalTarget.scope === "bulk" ? "s" : ""}.`,
+        describeError(err, `Failed to ${modalTarget.mode} applicant${modalTarget.scope === "bulk" ? "s" : ""}.`),
       );
     } finally {
       setModalBusy(false);

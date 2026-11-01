@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
-  ApiError,
   CouponValidation,
+  ApiError,
   createCheckout,
   createRegistration,
+  describeError,
   TicketProduct,
   validateCoupon,
 } from "@/lib/api";
 import { formatKobo, CATEGORY_LABELS } from "@/lib/format";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { setStep } from "@/lib/registration-slice";
+import { setServerErrors, setStep } from "@/lib/registration-slice";
 import { tierPerks } from "@/lib/tier-perks";
 import { BackButton } from "./back-button";
 
@@ -46,6 +47,7 @@ export function ReviewStep({
 }) {
   const dispatch = useAppDispatch();
   const registration = useAppSelector((s) => s.registration);
+  const createdRef = useRef<{ id: string; lookupToken: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,7 +80,7 @@ export function ReviewStep({
       setAppliedCoupon(result);
     } catch (err) {
       setAppliedCoupon(null);
-      setCouponError(err instanceof ApiError ? err.body.message : "Couldn't validate that code.");
+      setCouponError(describeError(err, "Couldn't validate that code."));
     } finally {
       setCouponChecking(false);
     }
@@ -99,7 +101,9 @@ export function ReviewStep({
       if (registration.category === "student" && registration.studentIdFileKey) {
         formData.studentIdFileKey = registration.studentIdFileKey;
       }
-      const created = await createRegistration({
+      // A retry after a failed checkout reuses the registration already
+      // created, instead of creating a duplicate attendee and registration.
+      const created = createdRef.current ?? (await createRegistration({
         eventSlug,
         category: registration.category,
         tier: registration.tier,
@@ -108,7 +112,8 @@ export function ReviewStep({
         phone: registration.phone,
         formData,
         ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
-      });
+      }));
+      createdRef.current = created;
       // Server owns payment initialization end-to-end: it derives the
       // amount from the ticket product and builds the callback URL, so
       // the client only ever redirects — it never assembles anything
@@ -120,11 +125,13 @@ export function ReviewStep({
       );
       window.location.href = authorizationUrl;
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.body.message);
-      } else {
-        setError("Something went wrong. Please try again.");
+      if (err instanceof ApiError && err.code === "FORM_INVALID" && err.fieldErrors) {
+        // Send the user back to the fields the server rejected.
+        dispatch(setServerErrors(err.fieldErrors));
+        dispatch(setStep("details"));
+        return;
       }
+      setError(describeError(err));
       setSubmitting(false);
     }
   }

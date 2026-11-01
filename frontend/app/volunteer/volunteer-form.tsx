@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import {
-  ApiError,
+  describeError,
   createVolunteerApplication,
   VOLUNTEER_AREAS,
   VOLUNTEER_SKILLS,
@@ -286,7 +286,7 @@ export function VolunteerForm() {
       setSubmitted(true);
     } catch (err) {
       setSubmitError(
-        err instanceof ApiError ? err.body.message : "Something went wrong. Please try again.",
+        describeError(err, "Something went wrong. Please try again."),
       );
     } finally {
       setSubmitting(false);

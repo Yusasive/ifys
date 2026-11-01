@@ -6,7 +6,7 @@ import {
   getDateUpdateResendStatus,
   sendDateUpdateResend,
 } from "@/lib/admin-api";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
 
@@ -40,7 +40,7 @@ export function DateUpdateResendPanel({ eventSlug }: { eventSlug: string }) {
       })
       .catch((err) => {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load resend status.");
+          toast.error(describeError(err, "Failed to load resend status."));
         }
       });
     return () => {
@@ -63,7 +63,7 @@ export function DateUpdateResendPanel({ eventSlug }: { eventSlug: string }) {
       setPassword("");
       setReloadKey((k) => k + 1);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to send.");
+      toast.error(describeError(err, "Failed to send."));
     } finally {
       setSending(false);
     }

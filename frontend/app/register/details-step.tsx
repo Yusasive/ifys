@@ -103,6 +103,9 @@ function TicketIcon() {
   );
 }
 
+// Mirrors the backend check so a bad LinkedIn URL is caught before submit.
+const LINKEDIN_URL_PATTERN = /^https?:\/\/(www\.)?linkedin\.com\/.+/i;
+
 function PillField({
   icon,
   value,
@@ -110,6 +113,7 @@ function PillField({
   type = "text",
   required = true,
   showError,
+  error,
   placeholder,
 }: {
   icon: ReactElement;
@@ -118,9 +122,12 @@ function PillField({
   type?: string;
   required?: boolean;
   showError?: boolean;
+  // Problem reported by the client check or the server for this field.
+  error?: string;
   placeholder: string;
 }) {
-  const invalid = showError && required && !value.trim();
+  const missing = showError && required && !value.trim();
+  const invalid = missing || !!error;
   return (
     <label className="flex flex-col gap-1">
       <div
@@ -138,7 +145,7 @@ function PillField({
           className="flex-1 min-w-0 bg-transparent text-sm sm:text-lg text-emerald placeholder:text-emerald/70 focus:outline-none"
         />
       </div>
-      {invalid && <span className="text-sm text-red-600 pl-5">Required</span>}
+      {invalid && <span className="text-sm text-red-600 pl-5">{error ?? "Required"}</span>}
     </label>
   );
 }
@@ -165,7 +172,13 @@ export function DetailsStep() {
     }
   }
 
-  const canContinue =
+  const linkedinError = LINKEDIN_URL_PATTERN.test(formData.linkedin ?? "") || !formData.linkedin
+    ? undefined
+    : "Enter a full linkedin.com profile URL (https://linkedin.com/in/...)";
+  const fieldError = (field: string) =>
+    registration.serverErrors[field] ?? (field === "linkedin" && attemptedSubmit ? linkedinError : undefined);
+
+  const canContinue = !linkedinError &&
     fullName.trim() && email.trim() && phone.trim() &&
     (category === "student"
       ? formData.institution && registration.studentIdFileKey
@@ -193,6 +206,7 @@ export function DetailsStep() {
         value={fullName}
         onChange={(v) => dispatch(setContactField({ field: "fullName", value: v }))}
         showError={attemptedSubmit}
+        error={fieldError("fullName")}
         placeholder="Full Name (As it should appear on the event badge)"
       />
       <PillField
@@ -201,6 +215,7 @@ export function DetailsStep() {
         value={email}
         onChange={(v) => dispatch(setContactField({ field: "email", value: v }))}
         showError={attemptedSubmit}
+        error={fieldError("email")}
         placeholder="Email Address"
       />
       <PillField
@@ -209,6 +224,7 @@ export function DetailsStep() {
         value={phone}
         onChange={(v) => dispatch(setContactField({ field: "phone", value: v }))}
         showError={attemptedSubmit}
+        error={fieldError("phone")}
         placeholder="Phone Number"
       />
 
@@ -219,6 +235,7 @@ export function DetailsStep() {
             value={formData.institution ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "institution", value: v }))}
             showError={attemptedSubmit}
+            error={fieldError("institution")}
             placeholder="Institution Name"
           />
 
@@ -245,6 +262,9 @@ export function DetailsStep() {
             {uploading && <span className="text-sm text-muted pl-5">Uploading…</span>}
             {uploadError && <span className="text-sm text-red-600 pl-5">{uploadError}</span>}
             {showStudentIdError && <span className="text-sm text-red-600 pl-5">Required</span>}
+            {registration.serverErrors.studentIdFileKey && (
+              <span className="text-sm text-red-600 pl-5">Upload your student ID again.</span>
+            )}
           </label>
         </>
       )}
@@ -257,6 +277,7 @@ export function DetailsStep() {
             value={formData.organization ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "organization", value: v }))}
             showError={attemptedSubmit}
+            error={fieldError("organization")}
             placeholder="Organization/Startup Name (Optional)"
           />
           <PillField
@@ -264,6 +285,7 @@ export function DetailsStep() {
             value={formData.role ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "role", value: v }))}
             showError={attemptedSubmit}
+            error={fieldError("role")}
             placeholder="Job Title/Position"
           />
           <PillField
@@ -271,6 +293,7 @@ export function DetailsStep() {
             value={formData.industry ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "industry", value: v }))}
             showError={attemptedSubmit}
+            error={fieldError("industry")}
             placeholder="Industry/Sector"
           />
           <PillField
@@ -279,6 +302,7 @@ export function DetailsStep() {
             required={false}
             value={formData.linkedin ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "linkedin", value: v }))}
+            error={fieldError("linkedin")}
             placeholder="LinkedIn Profile (Optional)"
           />
         </>

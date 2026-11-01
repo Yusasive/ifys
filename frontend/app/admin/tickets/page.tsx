@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { listAdminTicketProducts, updateTicketProduct } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError, TicketProduct } from "@/lib/api";
+import { describeError, TicketProduct } from "@/lib/api";
 import { CATEGORY_LABELS, formatKobo } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
@@ -73,7 +73,7 @@ function TicketProductCard({
       toast.success(`${CATEGORY_LABELS[product.category]} ticket updated.`);
       setEditOpen(false);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to save.");
+      toast.error(describeError(err, "Failed to save."));
     } finally {
       setSaving(false);
     }
@@ -214,7 +214,7 @@ export default function AdminTicketsPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load tickets.");
+          toast.error(describeError(err, "Failed to load tickets."));
         }
       }
     }

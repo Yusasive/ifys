@@ -8,7 +8,7 @@ import {
   updateVipGuest,
   VipGuest,
 } from "@/lib/admin-api";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
 
@@ -52,7 +52,7 @@ export function VipPanel({
       })
       .catch((err) => {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load VIP guests.");
+          toast.error(describeError(err, "Failed to load VIP guests."));
         }
       });
     return () => {
@@ -87,7 +87,7 @@ export function VipPanel({
       setForm(null);
       changed();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to save VIP guest.");
+      toast.error(describeError(err, "Failed to save VIP guest."));
     } finally {
       setSubmitting(false);
     }
@@ -101,7 +101,7 @@ export function VipPanel({
       setDeleteConfirm(null);
       changed();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to delete VIP guest.");
+      toast.error(describeError(err, "Failed to delete VIP guest."));
     } finally {
       setDeleting(false);
     }

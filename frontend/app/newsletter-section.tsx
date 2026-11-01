@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ApiError, subscribeToNewsletter } from "@/lib/api";
+import { describeError, subscribeToNewsletter } from "@/lib/api";
 
 function EnvelopeIcon() {
   return (
@@ -40,7 +40,7 @@ export function NewsletterSection() {
       setEmail("");
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.body.message : "Something went wrong. Please try again.",
+        describeError(err, "Something went wrong. Please try again."),
       );
     } finally {
       setSubmitting(false);

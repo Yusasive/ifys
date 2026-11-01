@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AdminUser, login } from "@/lib/admin-api";
 import { useAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError } from "@/lib/api";
+import { ApiError, describeError } from "@/lib/api";
 
 function postLoginPath(user: AdminUser): string {
   if (user.mustChangePassword) return "/admin/change-password";
@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
       if (err instanceof ApiError && err.status === 429) {
         setError("Too many login attempts. Please wait a minute and try again.");
       } else {
-        setError(err instanceof ApiError ? err.body.message : "Login failed");
+        setError(describeError(err, "Login failed"));
       }
     } finally {
       setSubmitting(false);

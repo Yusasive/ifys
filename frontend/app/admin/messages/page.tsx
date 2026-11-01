@@ -16,7 +16,7 @@ import {
   WhatsAppInviteSettings,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError } from "@/lib/api";
+import { ApiError, describeError } from "@/lib/api";
 import { CATEGORY_LABELS, formatDateTime, TIER_LABELS } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
@@ -57,7 +57,7 @@ function readPreselected(): Map<string, PickedPerson> {
 }
 
 function errorMessage(err: unknown, fallback: string): string {
-  return err instanceof ApiError ? err.message : fallback;
+  return describeError(err, fallback);
 }
 
 export default function AdminMessagesPage() {
