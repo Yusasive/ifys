@@ -1,3 +1,4 @@
+import { ErrorCode } from '../common/error-codes';
 import {
   BadRequestException,
   Injectable,
@@ -92,6 +93,7 @@ export class RegistrationsService {
     } catch (err) {
       if (err instanceof FormValidationError) {
         throw new BadRequestException({
+          code: ErrorCode.FormInvalid,
           message: 'Registration form data is invalid',
           fieldErrors: err.fieldErrors,
         });
@@ -106,7 +108,10 @@ export class RegistrationsService {
       throw new NotFoundException(`No event found for slug "${dto.eventSlug}"`);
     }
     if (event.ticketPurchasingPaused) {
-      throw new BadRequestException('Ticket purchasing is not currently open');
+      throw new BadRequestException({
+        code: ErrorCode.PurchasingPaused,
+        message: 'Ticket purchasing is not currently open',
+      });
     }
     const categoryCapacity = await this.prisma.categoryCapacity.findUnique({
       where: {
@@ -119,9 +124,10 @@ export class RegistrationsService {
       dto.category,
     );
     if (!categoryCapacity || ticketsSoldCount >= categoryCapacity.capacity) {
-      throw new BadRequestException(
-        `All ${CATEGORY_LABELS[dto.category]} tickets have been sold`,
-      );
+      throw new BadRequestException({
+        code: ErrorCode.SoldOut,
+        message: `All ${CATEGORY_LABELS[dto.category]} tickets have been sold`,
+      });
     }
 
     const ticketProduct = await this.prisma.ticketProduct.findUnique({

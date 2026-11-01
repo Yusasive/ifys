@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchNameTags, NameTag, TagSection } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { CommitteePanel } from "./committee-panel";
 import { VipPanel } from "./vip-panel";
@@ -79,7 +79,7 @@ export default function AdminNameTagsPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load name tags.");
+          toast.error(describeError(err, "Failed to load name tags."));
         }
       });
     return () => {

@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { getEventSettings, updateEventSettings } from "@/lib/admin-api";
-import { ApiError, type Category, type CategoryAvailability } from "@/lib/api";
+import { describeError, type Category, type CategoryAvailability } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 
@@ -35,7 +35,7 @@ export function TicketCapacityCard({ eventSlug }: { eventSlug: string }) {
       })
       .catch((err) => {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load ticket capacity.");
+          toast.error(describeError(err, "Failed to load ticket capacity."));
         }
       });
     return () => {
@@ -61,7 +61,7 @@ export function TicketCapacityCard({ eventSlug }: { eventSlug: string }) {
       load(settings.categoryCapacities);
       toast.success("Ticket capacities updated.");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to save.");
+      toast.error(describeError(err, "Failed to save."));
     } finally {
       setSaving(false);
     }

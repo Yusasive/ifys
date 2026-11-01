@@ -1,3 +1,4 @@
+import { throwApiError } from "./http";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
 export type Category = "student" | "regular" | "founder" | "professional";
@@ -40,29 +41,15 @@ export interface EventSummary {
   categoryAvailability: CategoryAvailability[];
 }
 
-export interface ApiFieldError {
-  message: string;
-  fieldErrors?: Record<string, string>;
-}
-
-export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly body: ApiFieldError,
-  ) {
-    super(body.message);
-  }
-}
+export { ApiError, describeError } from "./http";
+export type { ApiFieldError } from "./http";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiFieldError;
-    throw new ApiError(res.status, body);
-  }
+  if (!res.ok) return throwApiError(res);
   return res.json() as Promise<T>;
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getWhatsAppInvite, updateWhatsAppInvite, WhatsAppInviteSettings } from "@/lib/admin-api";
-import { ApiError } from "@/lib/api";
+import { ApiError, describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 
 // Turns the automatic "join the WhatsApp group" email on (by saving the
@@ -49,7 +49,7 @@ export function WhatsAppInviteCard({
       onLoaded?.(s);
       toast.success(next ? "Automatic WhatsApp invite is on." : "Automatic WhatsApp invite is off.");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Could not save the link.");
+      toast.error(describeError(err, "Could not save the link."));
     } finally {
       setSaving(false);
     }

@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { changePassword } from "@/lib/admin-api";
 import { useAdminAuth, useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 
 export default function ChangePasswordPage() {
   const { session, loading } = useRequireAdminAuth();
@@ -31,7 +31,7 @@ export default function ChangePasswordPage() {
       setSession({ user });
       router.replace(user.role === "door_staff" ? "/checkin" : "/admin");
     } catch (err) {
-      setError(err instanceof ApiError ? err.body.message : "Failed to change password");
+      setError(describeError(err, "Failed to change password"));
     } finally {
       setSubmitting(false);
     }

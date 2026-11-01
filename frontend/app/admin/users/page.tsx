@@ -12,7 +12,7 @@ import {
   updateAdminUser,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import {
   PERMISSION_GROUPS,
   PERMISSION_LABELS,
@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load users.");
+          toast.error(describeError(err, "Failed to load users."));
         }
       }
     }
@@ -179,9 +179,7 @@ export default function AdminUsersPage() {
       setReloadKey((k) => k + 1);
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.body.message
-          : `Failed to ${editingId ? "update" : "create"} account.`,
+        describeError(err, `Failed to ${editingId ? "update" : "create"} account.`),
       );
     } finally {
       setSubmitting(false);
@@ -198,7 +196,7 @@ export default function AdminUsersPage() {
       if (editingId === user.id) resetForm();
       setReloadKey((k) => k + 1);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to delete account.");
+      toast.error(describeError(err, "Failed to delete account."));
     } finally {
       setDeleting(false);
     }

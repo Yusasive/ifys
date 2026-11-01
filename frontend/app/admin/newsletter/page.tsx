@@ -10,7 +10,7 @@ import {
   requestNewsletterExport,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { PaginationFooter } from "../pagination-footer";
 import { TableRowsSkeleton } from "../skeleton";
@@ -49,7 +49,7 @@ export default function AdminNewsletterPage() {
       } catch (err) {
         if (!cancelled) {
           toast.error(
-            err instanceof ApiError ? err.body.message : "Failed to load subscribers.",
+            describeError(err, "Failed to load subscribers."),
           );
         }
       }
@@ -71,7 +71,7 @@ export default function AdminNewsletterPage() {
       setReloadKey((k) => k + 1);
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.body.message : "Failed to remove subscriber.",
+        describeError(err, "Failed to remove subscriber."),
       );
     } finally {
       setDeleting(false);

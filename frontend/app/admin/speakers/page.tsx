@@ -10,7 +10,7 @@ import {
   updateSpeaker,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError, Speaker } from "@/lib/api";
+import { describeError, Speaker } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
 import { PaginationFooter } from "../pagination-footer";
@@ -65,7 +65,7 @@ export default function AdminSpeakersPage() {
       } catch (err) {
         if (!cancelled) {
           toast.error(
-            err instanceof ApiError ? err.body.message : "Failed to load speakers.",
+            describeError(err, "Failed to load speakers."),
           );
         }
       }
@@ -152,9 +152,7 @@ export default function AdminSpeakersPage() {
       setReloadKey((k) => k + 1);
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.body.message
-          : `Failed to ${editingId ? "update" : "create"} speaker.`,
+        describeError(err, `Failed to ${editingId ? "update" : "create"} speaker.`),
       );
     } finally {
       setSubmitting(false);
@@ -172,7 +170,7 @@ export default function AdminSpeakersPage() {
       setReloadKey((k) => k + 1);
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.body.message : "Failed to delete speaker.",
+        describeError(err, "Failed to delete speaker."),
       );
     } finally {
       setDeleting(false);

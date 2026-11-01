@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AdminUserListItem, listAdminUsers, updateAdminUser } from "@/lib/admin-api";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 
 // Notification recipients are organizer/door_staff accounts only —
@@ -26,7 +26,7 @@ export function StudentReviewNotifyPanel() {
       })
       .catch((err) => {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load admins.");
+          toast.error(describeError(err, "Failed to load admins."));
         }
       });
     return () => {
@@ -43,7 +43,7 @@ export function StudentReviewNotifyPanel() {
       });
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to update.");
+      toast.error(describeError(err, "Failed to update."));
     } finally {
       setSavingId(null);
     }

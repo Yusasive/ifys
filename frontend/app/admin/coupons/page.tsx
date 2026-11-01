@@ -10,7 +10,7 @@ import {
   updateCoupon,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError, Category, CouponDiscountType } from "@/lib/api";
+import { describeError, Category, CouponDiscountType } from "@/lib/api";
 import { CATEGORY_LABELS, formatDateTime } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
@@ -83,7 +83,7 @@ export default function AdminCouponsPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load coupons.");
+          toast.error(describeError(err, "Failed to load coupons."));
         }
       }
     }
@@ -149,7 +149,7 @@ export default function AdminCouponsPage() {
       setReloadKey((k) => k + 1);
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.body.message : `Failed to ${editingId ? "update" : "create"} coupon.`,
+        describeError(err, `Failed to ${editingId ? "update" : "create"} coupon.`),
       );
     } finally {
       setSubmitting(false);
@@ -166,7 +166,7 @@ export default function AdminCouponsPage() {
       if (editingId === coupon.id) resetForm();
       setReloadKey((k) => k + 1);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to delete coupon.");
+      toast.error(describeError(err, "Failed to delete coupon."));
     } finally {
       setDeleting(false);
     }

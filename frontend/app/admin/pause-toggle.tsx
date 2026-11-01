@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getEventSettings, updateEventSettings } from "@/lib/admin-api";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 
 type PauseField =
@@ -31,7 +31,7 @@ export function PauseToggle({
       })
       .catch((err) => {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load pause status.");
+          toast.error(describeError(err, "Failed to load pause status."));
         }
       });
     return () => {
@@ -47,7 +47,7 @@ export function PauseToggle({
       setPaused(settings[field]);
       toast.success(nextOpen ? `${label} reopened.` : `${label} paused.`);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to update.");
+      toast.error(describeError(err, "Failed to update."));
     } finally {
       setSaving(false);
     }

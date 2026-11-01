@@ -12,7 +12,7 @@ import {
   updateCommitteeMember,
   updateCommitteePosition,
 } from "@/lib/admin-api";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
 
@@ -54,7 +54,7 @@ export function CommitteePanel({
       })
       .catch((err) => {
         if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.body.message : "Failed to load the committee.");
+          toast.error(describeError(err, "Failed to load the committee."));
         }
       });
     return () => {
@@ -84,7 +84,7 @@ export function CommitteePanel({
       setPositionForm(null);
       changed();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to save position.");
+      toast.error(describeError(err, "Failed to save position."));
     } finally {
       setSubmitting(false);
     }
@@ -106,7 +106,7 @@ export function CommitteePanel({
       setMemberForm(null);
       changed();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Failed to save member.");
+      toast.error(describeError(err, "Failed to save member."));
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +121,7 @@ export function CommitteePanel({
       setDeleteConfirm(null);
       changed();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : `Failed to delete ${kind}.`);
+      toast.error(describeError(err, `Failed to delete ${kind}.`));
     } finally {
       setDeleting(false);
     }

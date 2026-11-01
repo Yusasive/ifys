@@ -13,6 +13,8 @@ interface RegistrationState {
   formData: Record<string, string>;
   studentIdFileKey: string | null;
   studentIdFileName: string | null;
+  // Field-level problems the server reported on submit, keyed by field name.
+  serverErrors: Record<string, string>;
 }
 
 const initialState: RegistrationState = {
@@ -25,6 +27,7 @@ const initialState: RegistrationState = {
   formData: {},
   studentIdFileKey: null,
   studentIdFileName: null,
+  serverErrors: {},
 };
 
 const registrationSlice = createSlice({
@@ -49,9 +52,14 @@ const registrationSlice = createSlice({
       action: PayloadAction<{ field: "fullName" | "email" | "phone"; value: string }>,
     ) {
       state[action.payload.field] = action.payload.value;
+      delete state.serverErrors[action.payload.field];
     },
     setFormField(state, action: PayloadAction<{ field: string; value: string }>) {
       state.formData[action.payload.field] = action.payload.value;
+      delete state.serverErrors[action.payload.field];
+    },
+    setServerErrors(state, action: PayloadAction<Record<string, string>>) {
+      state.serverErrors = action.payload;
     },
     setStudentIdFile(
       state,
@@ -59,6 +67,7 @@ const registrationSlice = createSlice({
     ) {
       state.studentIdFileKey = action.payload.key;
       state.studentIdFileName = action.payload.fileName;
+      delete state.serverErrors.studentIdFileKey;
     },
     reset() {
       return initialState;
@@ -72,6 +81,7 @@ export const {
   setTier,
   setContactField,
   setFormField,
+  setServerErrors,
   setStudentIdFile,
   reset,
 } = registrationSlice.actions;

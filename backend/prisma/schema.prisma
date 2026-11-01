@@ -457,6 +457,9 @@ model Ticket {
   qrSecret       String       @unique @map("qr_secret")
   status         TicketStatus @default(unused)
   issuedAt       DateTime     @default(now()) @map("issued_at")
+  // Bumped on every change (check-in, void, reissue, ...) so door devices
+  // can download only the tickets changed since their last offline-list sync.
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
   // Set by AdminService.reissueTicket/voidTicket/restoreTicket/withdrawTicket
   // on every lifecycle action, for a cheap "last action" line in the admin
   // UI — the full history lives in AuditLog. lastActionByAdminId is a plain
@@ -470,6 +473,7 @@ model Ticket {
   checkIns        CheckIn[]
   emailDeliveries TicketEmailDelivery[]
 
+  @@index([updatedAt])
   @@map("tickets")
 }
 

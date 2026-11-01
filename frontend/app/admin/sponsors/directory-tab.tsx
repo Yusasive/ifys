@@ -8,7 +8,7 @@ import {
   requestSponsorLogoUploadUrl,
   updateSponsor,
 } from "@/lib/admin-api";
-import { ApiError, Sponsor, SponsorType } from "@/lib/api";
+import { describeError, Sponsor, SponsorType } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 import { FormModal } from "../form-modal";
 import { PaginationFooter } from "../pagination-footer";
@@ -59,7 +59,7 @@ export function DirectoryTab() {
       } catch (err) {
         if (!cancelled) {
           toast.error(
-            err instanceof ApiError ? err.body.message : "Failed to load directory.",
+            describeError(err, "Failed to load directory."),
           );
         }
       }
@@ -142,9 +142,7 @@ export function DirectoryTab() {
       setReloadKey((k) => k + 1);
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.body.message
-          : `Failed to ${editingId ? "update" : "create"} entry.`,
+        describeError(err, `Failed to ${editingId ? "update" : "create"} entry.`),
       );
     } finally {
       setSubmitting(false);
@@ -161,7 +159,7 @@ export function DirectoryTab() {
       setReloadKey((k) => k + 1);
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.body.message : "Failed to delete entry.",
+        describeError(err, "Failed to delete entry."),
       );
     } finally {
       setDeleting(false);

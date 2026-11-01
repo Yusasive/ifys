@@ -8,7 +8,7 @@ import {
   TicketEmailDeliveryStatus,
   TicketEmailKind,
 } from "@/lib/admin-api";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useToast } from "@/lib/toast-context";
 
@@ -73,7 +73,7 @@ const KIND_DESCRIPTIONS: Record<TicketEmailKind, string> = {
 };
 
 function errorMessage(err: unknown, fallback: string) {
-  return err instanceof ApiError ? err.body.message : fallback;
+  return describeError(err, fallback);
 }
 
 // Who got their ticket email (or WhatsApp invite) and who didn't, per kind

@@ -5,8 +5,10 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { bootstrapSuperAdminIfNeeded } from './bootstrap-admin';
+import { initMonitoring } from './common/monitoring';
 
 async function bootstrap() {
+  initMonitoring();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });

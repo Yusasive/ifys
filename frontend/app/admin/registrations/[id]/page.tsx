@@ -18,7 +18,7 @@ import {
   withdrawTicket,
 } from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
-import { ApiError } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { formatDateTime, formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
 import { hasPermission } from "@/lib/permissions";
 import { DetailCardSkeleton } from "../../skeleton";
@@ -80,7 +80,7 @@ export default function RegistrationDetailPage() {
       toast.success(successMessage);
       await load();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.body.message : "Action failed");
+      toast.error(describeError(err, "Action failed"));
     } finally {
       setBusy(false);
     }

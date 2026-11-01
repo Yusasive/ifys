@@ -13,6 +13,7 @@ import { UpdateCommitteeMemberDto } from './dto/update-committee-member.dto';
 import { UpdateCommitteePositionDto } from './dto/update-committee-position.dto';
 import { CreateVipGuestDto } from './dto/create-vip-guest.dto';
 import { UpdateVipGuestDto } from './dto/update-vip-guest.dto';
+import { registrantTagLines } from './tag-details';
 
 // One printed name sticker. `label` is the role group used for filtering
 // on the admin page ("Speaker", "Media Team", ...); `title`/`organization`
@@ -39,12 +40,6 @@ const SPONSOR_TAG_LABELS: Record<SponsorType, string> = {
   partner: 'Partner',
   exhibitor: 'Exhibitor',
 };
-
-function formString(data: unknown, key: string): string | null {
-  if (!data || typeof data !== 'object') return null;
-  const value = (data as Record<string, unknown>)[key];
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
 
 // Optional VIP lines: undefined leaves the field alone, blank clears it.
 function optionalLine(value: string | undefined): string | null | undefined {
@@ -126,21 +121,11 @@ export class TagsService {
 
     const registrants: NameTag[] = registrations.map((registration) => {
       const { category } = registration.ticketProduct;
-      const form = registration.formDataJson;
       return {
         id: registration.id,
         name: registration.attendee.fullName,
         label: REGISTRANT_TAG_LABELS[category],
-        title:
-          category === 'student'
-            ? formString(form, 'institution')
-            : formString(form, 'role'),
-        organization:
-          category === 'student'
-            ? null
-            : category === 'founder'
-              ? formString(form, 'startupName')
-              : formString(form, 'organization'),
+        ...registrantTagLines(category, registration.formDataJson),
       };
     });
 
