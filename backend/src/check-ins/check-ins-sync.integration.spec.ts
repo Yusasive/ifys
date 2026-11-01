@@ -29,13 +29,41 @@ describe('CheckInsService offline sync (integration)', () => {
     const fixture = await makeIssuedTicketFixture();
     try {
       const index = await checkIns.getOfflineIndex();
-      const entry = index.find(
+      expect(index.full).toBe(true);
+      const entry = index.entries.find(
         (e) => e.codeHash === sha256Hex(fixture.ticket.ticketCode),
       );
       expect(entry).toBeDefined();
       expect(entry?.qrHash).toBe(sha256Hex(fixture.ticket.qrSecret));
       expect(entry?.status).toBe('unused');
       expect(entry?.attendee.fullName).toBe('Test Attendee');
+    } finally {
+      await fixture.teardown();
+    }
+  });
+
+  it('offline index delta returns only tickets changed since the cursor', async () => {
+    const fixture = await makeIssuedTicketFixture();
+    try {
+      const first = await checkIns.getOfflineIndex();
+      const cursor = new Date(first.syncedAt);
+      await new Promise((r) => setTimeout(r, 20));
+
+      const unchanged = await checkIns.getOfflineIndex(
+        new Date(cursor.getTime() + 60_000),
+      );
+      expect(unchanged.full).toBe(false);
+      expect(unchanged.entries).toHaveLength(0);
+
+      await checkIns.scan(
+        { qrToken: fixture.ticket.qrSecret, stationId: 's1' },
+        'door-staff-id',
+      );
+      const delta = await checkIns.getOfflineIndex(new Date(Date.now() - 1000));
+      const entry = delta.entries.find(
+        (e) => e.codeHash === sha256Hex(fixture.ticket.ticketCode),
+      );
+      expect(entry?.status).toBe('used');
     } finally {
       await fixture.teardown();
     }

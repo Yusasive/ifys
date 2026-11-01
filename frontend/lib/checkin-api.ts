@@ -11,17 +11,37 @@ export type ScanResult =
       firstUsedAt: string;
       firstUsedStation: string;
     }
-  | { result: "valid_first_use"; attendee: AttendeeSummary };
+  | { result: "valid_first_use"; ticketId: string; attendee: AttendeeSummary };
 
 export interface AttendeeSummary {
   fullName: string;
   category: string;
   tier: string;
+  // The role/institution and organisation lines printed on their name tag.
+  // Missing in offline lists downloaded before these were added.
+  title?: string | null;
+  organization?: string | null;
+}
+
+export interface CheckInStatusGroup {
+  category: string;
+  tier: string;
+  checkedIn: number;
+  total: number;
 }
 
 export interface CheckInStatus {
+  // Void tickets are excluded from both numbers.
   checkedIn: number;
   totalTickets: number;
+  groups: CheckInStatusGroup[];
+}
+
+export interface TicketSearchHit {
+  ticketId: string;
+  status: string;
+  maskedEmail: string;
+  attendee: AttendeeSummary;
 }
 
 async function checkinRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -42,6 +62,8 @@ async function checkinRequest<T>(path: string, init?: RequestInit): Promise<T> {
 export function scan(params: {
   qrToken?: string;
   shortCode?: string;
+  // Check-in from a name/email search result.
+  ticketId?: string;
   stationId: string;
 }) {
   return checkinRequest<ScanResult>("/checkin/scan", {
@@ -50,19 +72,41 @@ export function scan(params: {
   });
 }
 
+export function searchTickets(q: string) {
+  return checkinRequest<TicketSearchHit[]>(`/checkin/search?q=${encodeURIComponent(q)}`);
+}
+
+export function undoCheckIn(ticketId: string) {
+  return checkinRequest<{ ok: true }>("/checkin/undo", {
+    method: "POST",
+    body: JSON.stringify({ ticketId }),
+  });
+}
+
 export function fetchCheckInStatus() {
   return checkinRequest<CheckInStatus>("/checkin/status");
 }
 
 export interface OfflineIndexEntry {
+  ticketId: string;
   codeHash: string;
   qrHash: string;
   status: string;
   attendee: AttendeeSummary;
 }
 
-export function fetchOfflineIndex() {
-  return checkinRequest<OfflineIndexEntry[]>("/checkin/offline-index");
+export interface OfflineIndexResponse {
+  entries: OfflineIndexEntry[];
+  syncedAt: string;
+  // True when `entries` is the whole list rather than a delta.
+  full: boolean;
+}
+
+// Without `updatedSince` the whole list comes back; with it, only tickets
+// changed since then.
+export function fetchOfflineIndex(updatedSince?: string) {
+  const query = updatedSince ? `?updatedSince=${encodeURIComponent(updatedSince)}` : "";
+  return checkinRequest<OfflineIndexResponse>(`/checkin/offline-index${query}`);
 }
 
 export interface QueuedScanPayload {
@@ -75,6 +119,9 @@ export interface QueuedScanPayload {
 
 export type SyncScanResult =
   | { clientScanId: string; result: "already_synced" }
+  // The server could not process this item and never will (e.g. a malformed
+  // payload), so it is dropped from the queue rather than retried forever.
+  | { clientScanId: string; result: "invalid"; reason: string }
   | { clientScanId: string; result: "not_found" }
   | { clientScanId: string; result: "void"; attendee: AttendeeSummary }
   | {

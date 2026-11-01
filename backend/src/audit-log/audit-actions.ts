@@ -45,6 +45,7 @@ export const AUDIT_ACTIONS = [
   'reject_volunteer_application',
   'delete_newsletter_subscriber',
   'offline_sync_conflict',
+  'undo_check_in',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -9,6 +9,11 @@ export class ScanDto {
   @IsString()
   shortCode?: string;
 
+  // Check-in from the name/email search results.
+  @IsOptional()
+  @IsString()
+  ticketId?: string;
+
   @IsString()
   @MinLength(1)
   stationId!: string;
