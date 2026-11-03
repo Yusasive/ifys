@@ -37,4 +37,7 @@ export const configValidationSchema = Joi.object({
   JWT_EXPIRES_IN: Joi.number().required(),
 
   EVENT_SLUG: Joi.string().optional(),
+  // When certificates are emailed (ISO timestamp with offset). Defaults to
+  // 00:01 on 6 Nov 2026, Nigeria time.
+  CERTIFICATE_SEND_AT: Joi.string().isoDate().optional(),
 }).unknown(true);

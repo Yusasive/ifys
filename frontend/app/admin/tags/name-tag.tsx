@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { flushSync } from "react-dom";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import QRCode from "qrcode";
-import { toBlob } from "html-to-image";
+import { toCanvas } from "html-to-image";
+import { jsPDF } from "jspdf";
 import JSZip from "jszip";
 import type { NameTag, TagSection } from "@/lib/admin-api";
 
@@ -249,9 +250,54 @@ export async function printNameTags() {
   window.print();
 }
 
-// 300 DPI at 90 x 40 mm is 1063 x 472 px; 96 CSS px per inch makes the
-// ratio 300 / 96.
-const PNG_PIXEL_RATIO = 300 / 96;
+export type DownloadFormat = "png" | "jpeg" | "pdf";
+
+export const DOWNLOAD_FORMATS: { key: DownloadFormat; label: string }[] = [
+  { key: "png", label: "PNG" },
+  { key: "jpeg", label: "JPEG" },
+  { key: "pdf", label: "PDF" },
+];
+
+// 96 CSS px per inch. Single stickers render at 300 DPI; a full A3 page at
+// 300 DPI would exceed Safari's canvas size limit, so sheets use 250 DPI.
+const TAG_PIXEL_RATIO = 300 / 96;
+const SHEET_PIXEL_RATIO = 250 / 96;
+const JPEG_QUALITY = 0.95;
+
+type Unit = { node: ReactElement; widthMm: number; heightMm: number; pixelRatio: number };
+
+// One A4/A3 page of stickers, laid out like the print sheet.
+function SheetPage({
+  sheet,
+  tags,
+  qrSrc,
+}: {
+  sheet: (typeof SHEETS)[Exclude<PrintLayout, "label">];
+  tags: NameTag[];
+  qrSrc: string | null;
+}) {
+  return (
+    <div
+      style={{
+        width: `${sheet.pageWidthMm}mm`,
+        height: `${sheet.pageHeightMm}mm`,
+        background: "#ffffff",
+        display: "grid",
+        gridTemplateColumns: `repeat(${sheet.columns}, ${STICKER_WIDTH_MM}mm)`,
+        gridAutoRows: `${STICKER_HEIGHT_MM}mm`,
+        justifyContent: "center",
+        alignContent: "center",
+        overflow: "hidden",
+      }}
+    >
+      {tags.map((tag) => (
+        <div key={tag.id} style={{ outline: "0.1mm solid #9ca3af", outlineOffset: "-0.05mm" }}>
+          <NameTagCard tag={tag} qrSrc={qrSrc} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function fileSafe(name: string): string {
   return name.trim().replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase() || "tag";
@@ -268,44 +314,107 @@ function saveBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// Renders a sticker offscreen at its real size and returns it as a 300 DPI PNG.
-async function renderTagPng(tag: NameTag, qrSrc: string | null): Promise<Blob> {
+// Renders a node offscreen at its real size and returns it as a canvas.
+async function renderToCanvas(unit: Unit): Promise<HTMLCanvasElement> {
   const host = document.createElement("div");
   host.style.cssText = "position:fixed;left:-10000px;top:0;pointer-events:none;";
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
-    flushSync(() => root.render(<NameTagCard tag={tag} qrSrc={qrSrc} />));
-    const card = host.firstElementChild as HTMLElement;
+    flushSync(() => root.render(unit.node));
+    const el = host.firstElementChild as HTMLElement;
     await document.fonts.ready;
     await Promise.all(
-      Array.from(card.querySelectorAll("img")).map((img) =>
+      Array.from(el.querySelectorAll("img")).map((img) =>
         img.complete ? Promise.resolve() : img.decode().catch(() => undefined),
       ),
     );
-    const blob = await toBlob(card, { pixelRatio: PNG_PIXEL_RATIO, backgroundColor: "#ffffff" });
-    if (!blob) throw new Error("Could not render the name tag image.");
-    return blob;
+    return await toCanvas(el, { pixelRatio: unit.pixelRatio, backgroundColor: "#ffffff" });
   } finally {
     root.unmount();
     host.remove();
   }
 }
 
-// One tag downloads as a PNG; several download together as a zip of PNGs.
-export async function downloadNameTagPngs(tags: NameTag[], qrSrc: string | null) {
+function canvasToBlob(canvas: HTMLCanvasElement, type: "image/png" | "image/jpeg"): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Could not create the image."))),
+      type,
+      JPEG_QUALITY,
+    );
+  });
+}
+
+// Label layout: one image per tag. A4/A3: one image per full page.
+// A single file downloads directly; several come as a zip, except PDF,
+// which is always one multi-page document.
+export async function downloadNameTags(
+  tags: NameTag[],
+  qrSrc: string | null,
+  layout: PrintLayout,
+  format: DownloadFormat,
+) {
   if (tags.length === 0) return;
-  if (tags.length === 1) {
-    saveBlob(await renderTagPng(tags[0], qrSrc), `${fileSafe(tags[0].name)}.png`);
+
+  const units: (Unit & { name: string })[] = [];
+  if (layout === "label") {
+    for (const tag of tags) {
+      units.push({
+        node: <NameTagCard tag={tag} qrSrc={qrSrc} />,
+        widthMm: STICKER_WIDTH_MM,
+        heightMm: STICKER_HEIGHT_MM,
+        pixelRatio: TAG_PIXEL_RATIO,
+        name: fileSafe(tag.name),
+      });
+    }
+  } else {
+    const sheet = SHEETS[layout];
+    const perPage = sheet.columns * sheet.rows;
+    for (let i = 0; i < tags.length; i += perPage) {
+      units.push({
+        node: <SheetPage sheet={sheet} tags={tags.slice(i, i + perPage)} qrSrc={qrSrc} />,
+        widthMm: sheet.pageWidthMm,
+        heightMm: sheet.pageHeightMm,
+        pixelRatio: SHEET_PIXEL_RATIO,
+        name: `${sheet.name.toLowerCase()}-sheet-${units.length + 1}`,
+      });
+    }
+  }
+
+  const baseName =
+    layout === "label" ? (tags.length === 1 ? units[0].name : "name-tags") : `name-tags-${layout}`;
+
+  if (format === "pdf") {
+    let pdf: jsPDF | null = null;
+    for (const unit of units) {
+      const canvas = await renderToCanvas(unit);
+      const orientation = unit.widthMm >= unit.heightMm ? "landscape" : "portrait";
+      const size: [number, number] = [unit.widthMm, unit.heightMm];
+      if (!pdf) {
+        pdf = new jsPDF({ orientation, unit: "mm", format: size, compress: true });
+      } else {
+        pdf.addPage(size, orientation);
+      }
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, unit.widthMm, unit.heightMm);
+    }
+    if (pdf) saveBlob(pdf.output("blob"), `${baseName}.pdf`);
+    return;
+  }
+
+  const type = format === "png" ? "image/png" : "image/jpeg";
+  const ext = format === "png" ? "png" : "jpg";
+  if (units.length === 1) {
+    saveBlob(await canvasToBlob(await renderToCanvas(units[0]), type), `${baseName}.${ext}`);
     return;
   }
   const zip = new JSZip();
   const used = new Set<string>();
-  for (const tag of tags) {
-    let base = fileSafe(tag.name);
-    for (let n = 2; used.has(base); n++) base = `${fileSafe(tag.name)}-${n}`;
-    used.add(base);
-    zip.file(`${base}.png`, await renderTagPng(tag, qrSrc));
+  for (const unit of units) {
+    let name = unit.name;
+    for (let n = 2; used.has(name); n++) name = `${unit.name}-${n}`;
+    used.add(name);
+    zip.file(`${name}.${ext}`, await canvasToBlob(await renderToCanvas(unit), type));
   }
-  saveBlob(await zip.generateAsync({ type: "blob" }), "name-tags.zip");
+  saveBlob(await zip.generateAsync({ type: "blob" }), `${baseName}.zip`);
 }

@@ -9,7 +9,9 @@ import { CommitteePanel } from "./committee-panel";
 import { VipPanel } from "./vip-panel";
 import {
   AGENDA_URL,
-  downloadNameTagPngs,
+  DOWNLOAD_FORMATS,
+  downloadNameTags,
+  type DownloadFormat,
   NameTagPreview,
   NameTagPrintSheet,
   PRINT_LAYOUTS,
@@ -71,6 +73,7 @@ export default function AdminNameTagsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState<NameTag[] | null>(null);
   const [layout, setLayout] = useState<PrintLayout>("label");
+  const [format, setFormat] = useState<DownloadFormat>("png");
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
@@ -146,11 +149,11 @@ export default function AdminNameTagsPage() {
     setPrinting(batch);
   }
 
-  async function download(batch: NameTag[]) {
+  async function download(batch: NameTag[], batchLayout: PrintLayout = layout) {
     if (batch.length === 0 || downloading) return;
     setDownloading(true);
     try {
-      await downloadNameTagPngs(batch, qrSrc);
+      await downloadNameTags(batch, qrSrc, batchLayout, format);
     } catch (err) {
       toast.error(describeError(err, "Failed to create the name tag image."));
     } finally {
@@ -264,7 +267,7 @@ export default function AdminNameTagsPage() {
                 onClick={() => void download(selectedVisible)}
                 className="border border-coral text-coral font-semibold px-5 py-2 rounded-full text-sm hover:bg-coral/10 transition-colors disabled:opacity-40"
               >
-                Download selected PNG ({selectedVisible.length})
+                Download selected ({selectedVisible.length})
               </button>
             </>
           ) : (
@@ -277,12 +280,24 @@ export default function AdminNameTagsPage() {
           >
             Print {search || labelFilter ? "shown" : "all"} ({visible.length})
           </button>
+          <select
+            value={format}
+            onChange={(e) => setFormat(e.target.value as DownloadFormat)}
+            aria-label="Download format"
+            className="border border-emerald/20 rounded-full px-4 py-2 text-sm text-ink bg-white"
+          >
+            {DOWNLOAD_FORMATS.map((f) => (
+              <option key={f.key} value={f.key}>
+                {f.label}
+              </option>
+            ))}
+          </select>
           <button
             disabled={visible.length === 0 || downloading}
             onClick={() => void download(visible)}
             className="border border-forest text-forest font-semibold px-5 py-2 rounded-full text-sm hover:bg-forest/10 transition-colors disabled:opacity-40"
           >
-            {downloading ? "Preparing…" : `Download ${search || labelFilter ? "shown" : "all"} PNG`}
+            {downloading ? "Preparing…" : `Download ${search || labelFilter ? "shown" : "all"}`}
           </button>
         </div>
       </div>
@@ -320,10 +335,10 @@ export default function AdminNameTagsPage() {
                 </button>
                 <button
                   disabled={downloading}
-                  onClick={() => void download([tag])}
+                  onClick={() => void download([tag], "label")}
                   className="text-xs text-ink underline disabled:opacity-40"
                 >
-                  Download PNG
+                  Download {format.toUpperCase()}
                 </button>
               </div>
             </div>

@@ -982,6 +982,29 @@ export function fetchNameTags(eventSlug: string) {
   );
 }
 
+// One person who will get a certificate — see backend CertificatesService.
+export interface CertificateRecipient {
+  id: string;
+  name: string;
+  email: string;
+  delivery: "not_sent" | "queued" | "sent" | "failed";
+  deliveryError: string | null;
+  sentAt: string | null;
+}
+
+export function fetchCertificateRecipients(eventSlug: string) {
+  return adminRequest<{ sendAt: string; recipients: CertificateRecipient[] }>(
+    `/admin/certificates?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
+export function sendTestCertificate(eventSlug: string, email: string, name?: string) {
+  return adminRequest<{ sent: true }>(`/admin/certificates/test?event=${encodeURIComponent(eventSlug)}`, {
+    method: "POST",
+    body: JSON.stringify({ email, name: name || undefined }),
+  });
+}
+
 export interface CommitteePosition {
   id: string;
   name: string;
