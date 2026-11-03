@@ -15,6 +15,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { SpeakersModule } from './speakers/speakers.module';
 import { SponsorsModule } from './sponsors/sponsors.module';
 import { TagsModule } from './tags/tags.module';
+import { CertificatesModule } from './certificates/certificates.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { VolunteersModule } from './volunteers/volunteers.module';
 import { CheckInsModule } from './check-ins/check-ins.module';
@@ -52,6 +53,7 @@ import { configValidationSchema } from './config-validation';
     AdminModule,
     BroadcastsModule,
     TagsModule,
+    CertificatesModule,
   ],
   controllers: [AppController],
   providers: [

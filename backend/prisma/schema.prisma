@@ -484,6 +484,7 @@ enum TicketEmailKind {
   ticket
   date_update
   whatsapp_invite
+  certificate
 }
 
 enum TicketEmailStatus {

@@ -9,8 +9,13 @@ import { CommitteePanel } from "./committee-panel";
 import { VipPanel } from "./vip-panel";
 import {
   AGENDA_URL,
+  DOWNLOAD_FORMATS,
+  downloadNameTags,
+  type DownloadFormat,
   NameTagPreview,
   NameTagPrintSheet,
+  PRINT_LAYOUTS,
+  type PrintLayout,
   printNameTags,
   SECTION_COLORS,
   useAgendaQr,
@@ -67,6 +72,9 @@ export default function AdminNameTagsPage() {
   const [labelFilter, setLabelFilter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState<NameTag[] | null>(null);
+  const [layout, setLayout] = useState<PrintLayout>("label");
+  const [format, setFormat] = useState<DownloadFormat>("png");
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!session) return;
@@ -141,6 +149,18 @@ export default function AdminNameTagsPage() {
     setPrinting(batch);
   }
 
+  async function download(batch: NameTag[], batchLayout: PrintLayout = layout) {
+    if (batch.length === 0 || downloading) return;
+    setDownloading(true);
+    try {
+      await downloadNameTags(batch, qrSrc, batchLayout, format);
+    } catch (err) {
+      toast.error(describeError(err, "Failed to create the name tag image."));
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   if (authLoading || !session) return null;
 
   const meta = SECTIONS.find((s) => s.key === section)!;
@@ -155,7 +175,7 @@ export default function AdminNameTagsPage() {
             <a href={AGENDA_URL} className="underline" target="_blank" rel="noreferrer">
               agenda PDF
             </a>
-            . In the print dialog choose the label printer, 90 × 40 mm paper, scale 100% and no margins.
+            . For the label printer, choose 90 × 40 mm paper in the print dialog. For A4/A3 sheets, choose that paper size (A4 landscape, A3 portrait). Either way use scale 100% and no margins.
           </p>
         </div>
         <button
@@ -219,6 +239,18 @@ export default function AdminNameTagsPage() {
           </select>
         )}
         <div className="flex flex-wrap items-center gap-3 ml-auto">
+          <select
+            value={layout}
+            onChange={(e) => setLayout(e.target.value as PrintLayout)}
+            aria-label="Print layout"
+            className="border border-emerald/20 rounded-full px-4 py-2 text-sm text-ink bg-white"
+          >
+            {PRINT_LAYOUTS.map((l) => (
+              <option key={l.key} value={l.key}>
+                {l.label}
+              </option>
+            ))}
+          </select>
           {selectedVisible.length > 0 ? (
             <>
               <button onClick={() => setSelected(new Set())} className="text-sm text-sage underline">
@@ -230,6 +262,13 @@ export default function AdminNameTagsPage() {
               >
                 Print selected ({selectedVisible.length})
               </button>
+              <button
+                disabled={downloading}
+                onClick={() => void download(selectedVisible)}
+                className="border border-coral text-coral font-semibold px-5 py-2 rounded-full text-sm hover:bg-coral/10 transition-colors disabled:opacity-40"
+              >
+                Download selected ({selectedVisible.length})
+              </button>
             </>
           ) : (
             <span className="text-xs text-sage">Click stickers to select some, or print them all.</span>
@@ -240,6 +279,25 @@ export default function AdminNameTagsPage() {
             className="bg-forest text-white font-semibold px-5 py-2 rounded-full text-sm hover:bg-emerald transition-colors disabled:opacity-40"
           >
             Print {search || labelFilter ? "shown" : "all"} ({visible.length})
+          </button>
+          <select
+            value={format}
+            onChange={(e) => setFormat(e.target.value as DownloadFormat)}
+            aria-label="Download format"
+            className="border border-emerald/20 rounded-full px-4 py-2 text-sm text-ink bg-white"
+          >
+            {DOWNLOAD_FORMATS.map((f) => (
+              <option key={f.key} value={f.key}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <button
+            disabled={visible.length === 0 || downloading}
+            onClick={() => void download(visible)}
+            className="border border-forest text-forest font-semibold px-5 py-2 rounded-full text-sm hover:bg-forest/10 transition-colors disabled:opacity-40"
+          >
+            {downloading ? "Preparing…" : `Download ${search || labelFilter ? "shown" : "all"}`}
           </button>
         </div>
       </div>
@@ -271,15 +329,24 @@ export default function AdminNameTagsPage() {
                   </span>
                 )}
               </button>
-              <button onClick={() => print([tag])} className="text-xs text-ink underline">
-                Print this sticker
-              </button>
+              <div className="flex gap-3">
+                <button onClick={() => print([tag])} className="text-xs text-ink underline">
+                  Print this sticker
+                </button>
+                <button
+                  disabled={downloading}
+                  onClick={() => void download([tag], "label")}
+                  className="text-xs text-ink underline disabled:opacity-40"
+                >
+                  Download {format.toUpperCase()}
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
 
-      {printing && <NameTagPrintSheet tags={printing} qrSrc={qrSrc} />}
+      {printing && <NameTagPrintSheet tags={printing} qrSrc={qrSrc} layout={layout} />}
     </main>
   );
 }

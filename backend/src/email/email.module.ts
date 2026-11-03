@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AdminAccountEmailQueue } from './admin-account-email.queue';
 import { BroadcastEmailQueue } from './broadcast-email.queue';
+import { CertificateEmailQueue } from './certificate-email.queue';
 import { EmailService } from './email.service';
 import { NewsletterEmailQueue } from './newsletter-email.queue';
 import { RegistrationReminderEmailQueue } from './registration-reminder-email.queue';
@@ -24,6 +25,7 @@ import { WhatsAppInviteEmailQueue } from './whatsapp-invite-email.queue';
     StudentReviewEmailQueue,
     BroadcastEmailQueue,
     WhatsAppInviteEmailQueue,
+    CertificateEmailQueue,
   ],
   exports: [
     EmailService,
@@ -37,6 +39,7 @@ import { WhatsAppInviteEmailQueue } from './whatsapp-invite-email.queue';
     StudentReviewEmailQueue,
     BroadcastEmailQueue,
     WhatsAppInviteEmailQueue,
+    CertificateEmailQueue,
   ],
 })
 export class EmailModule {}

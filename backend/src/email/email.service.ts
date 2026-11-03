@@ -10,7 +10,8 @@ import {
   renderAdminAccountCreatedHtml,
 } from './admin-account-email-template';
 import { BroadcastBodyData, renderBroadcastBodyHtml } from './broadcast-html';
-import { renderEmailShell } from './email-shell';
+import { generateCertificatePdf } from './certificate-pdf';
+import { escapeHtml, renderEmailShell } from './email-shell';
 import {
   NewsletterEmailData,
   renderNewsletterConfirmationHtml,
@@ -362,5 +363,37 @@ export class EmailService implements OnApplicationShutdown {
       },
     });
     this.logger.log(`Broadcast email sent to ${to}`);
+  }
+
+  // The certificate of participation, with the attendee's name on it,
+  // attached as a PDF.
+  async sendCertificateEmail(
+    to: string,
+    data: { recipientName: string; eventName: string; supportEmail: string },
+  ) {
+    const pdf = await generateCertificatePdf(data.recipientName);
+    const eventName = escapeHtml(data.eventName);
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `Your certificate of participation — ${data.eventName}`,
+      html: renderEmailShell({
+        eventName,
+        supportEmail: data.supportEmail,
+        bodyHtml:
+          `<p style="margin:0 0 12px;font-size:16px;">Hi ${escapeHtml(data.recipientName)},</p>` +
+          `<p style="margin:0 0 12px;font-size:16px;line-height:1.5;">Thank you for being part of <strong>${eventName}</strong>. Your certificate of participation is attached to this email as a PDF.</p>` +
+          `<p style="margin:0;font-size:16px;line-height:1.5;">We hope to see you again next year!</p>`,
+      }),
+      attachments: [
+        ...this.brandLogoAttachment(),
+        {
+          filename: 'certificate-of-participation.pdf',
+          content: pdf,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+    this.logger.log(`Certificate email sent to ${to}`);
   }
 }
