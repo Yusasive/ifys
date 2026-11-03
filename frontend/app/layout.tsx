@@ -26,7 +26,9 @@ const spaceMono = Space_Mono({
 const bricolageGrotesque = Bricolage_Grotesque({
   variable: "--font-bricolage-grotesque",
   subsets: ["latin"],
-  weight: ["400", "500", "700", "800"],
+  // Variable font (opsz/wdth/wght axes): naming weights makes Turbopack's
+  // production build request several files per face and fail. Omitted, one
+  // variable file covers every weight.
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
