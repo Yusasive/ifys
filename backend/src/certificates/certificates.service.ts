@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   CertificateEmailQueue,
-  checkedInTicketWhere,
+  registeredTicketWhere,
 } from '../email/certificate-email.queue';
 import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,12 +26,12 @@ export class CertificatesService {
     return event;
   }
 
-  // Everyone who will get a certificate: checked in, paid, any category.
+  // Everyone who will get a certificate: successfully registered (paid, ticket not void), any category.
   // Built live on each request, like the name tags.
   async listRecipients(eventSlug: string) {
     const event = await this.findEvent(eventSlug);
     const tickets = await this.prisma.ticket.findMany({
-      where: checkedInTicketWhere(event.id),
+      where: registeredTicketWhere(event.id),
       include: {
         registration: { include: { attendee: true } },
         emailDeliveries: { where: { kind: 'certificate' } },

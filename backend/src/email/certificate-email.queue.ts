@@ -25,16 +25,18 @@ const MAX_LATE_MS = 24 * 60 * 60 * 1000;
 type CertificateEmailJob =
   { kind: 'dispatch' } | { kind: 'send'; ticketId: string };
 
-// Certificates go only to people who were actually checked in (ticket
-// `used`), in any of the paid registration categories.
-export function checkedInTicketWhere(eventId: string) {
+// Certificates go to everyone successfully registered — a paid registration
+// with a live ticket, in any category — whether or not they were checked in.
+// Same rule as the registrant name tags: students still awaiting ID review
+// have no ticket yet, and voided tickets are left out.
+export function registeredTicketWhere(eventId: string) {
   return {
-    status: 'used' as const,
+    status: { not: 'void' as const },
     registration: { eventId, status: 'paid' as const },
   };
 }
 
-// Emails each checked-in attendee their certificate PDF, automatically at
+// Emails each registered attendee their certificate PDF, automatically at
 // the configured time. Each outcome is recorded as the ticket's `certificate`
 // TicketEmailDelivery row, which also keeps a repeat dispatch from emailing
 // anyone twice.
@@ -154,7 +156,7 @@ export class CertificateEmailQueue implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // Queues every checked-in ticket that hasn't been sent (or isn't already
+  // Queues every registered ticket that hasn't been sent (or isn't already
   // being sent) a certificate. Returns how many were queued.
   async dispatchForEvent(eventSlug: string): Promise<number> {
     const event = await this.prisma.event.findUnique({
@@ -164,7 +166,7 @@ export class CertificateEmailQueue implements OnModuleInit, OnModuleDestroy {
 
     const tickets = await this.prisma.ticket.findMany({
       where: {
-        ...checkedInTicketWhere(event.id),
+        ...registeredTicketWhere(event.id),
         NOT: {
           emailDeliveries: {
             some: { kind: 'certificate', status: { in: ['sent', 'queued'] } },
@@ -207,10 +209,10 @@ export class CertificateEmailQueue implements OnModuleInit, OnModuleDestroy {
       return;
     }
     // Re-checked at send time: a ticket voided since it was queued gets none.
-    if (ticket.status !== 'used') {
+    if (ticket.status === 'void') {
       await this.track(ticketId, {
         status: 'failed',
-        error: `Ticket is ${ticket.status}, not checked in.`,
+        error: 'Ticket was voided.',
       });
       return;
     }

@@ -110,7 +110,7 @@ export default function AdminCertificatesPage() {
         <div>
           <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest">Certificates</h1>
           <p className="text-sm text-sage mt-1 max-w-3xl">
-            Certificates of participation for everyone who was checked in at the summit. Each one carries only the
+            Certificates of participation for everyone who registered successfully, whether or not they checked in. Each one carries only the
             attendee&rsquo;s name. They are emailed automatically as a PDF
             {sendAtLabel ? ` on ${sendAtLabel} (Nigeria time)` : ""}, and you can download them here as JPEG.
           </p>
@@ -162,7 +162,7 @@ export default function AdminCertificatesPage() {
           className="border border-emerald/20 rounded-full px-4 py-2 text-sm text-ink bg-white w-72 max-w-full focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
         />
         <span className="text-xs text-sage">
-          {loaded ? `${recipients.length} checked in · ${sentCount} emailed` : "Loading…"}
+          {loaded ? `${recipients.length} registered · ${sentCount} emailed` : "Loading…"}
         </span>
         <div className="flex flex-wrap items-center gap-3 ml-auto">
           {selectedVisible.length > 0 && (
@@ -191,7 +191,7 @@ export default function AdminCertificatesPage() {
 
       {loaded && visible.length === 0 && (
         <p className="text-sm text-sage border border-dashed border-emerald/20 rounded-2xl p-8 text-center bg-white">
-          {recipients.length === 0 ? "Nobody has been checked in yet." : "No one matches your search."}
+          {recipients.length === 0 ? "No successful registrations yet." : "No one matches your search."}
         </p>
       )}
 
