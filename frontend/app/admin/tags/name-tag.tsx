@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { createPortal } from "react-dom";
+import { createRoot } from "react-dom/client";
 import QRCode from "qrcode";
+import { toBlob } from "html-to-image";
+import JSZip from "jszip";
 import type { NameTag, TagSection } from "@/lib/admin-api";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ifysummit.com";
@@ -146,14 +150,67 @@ export function NameTagPreview({
 
 const PRINT_ROOT_ID = "name-tag-print";
 
-// Full-size stickers, one per label-sized page. Rendered straight under
-// <body> so the print stylesheet can hide everything else (the admin shell
-// included). Only rendered after a Print click, so `document` is always
-// available.
-export function NameTagPrintSheet({ tags, qrSrc }: { tags: NameTag[]; qrSrc: string | null }) {
+export type PrintLayout = "label" | "a4" | "a3";
+
+// Stickers are packed edge to edge, so the grid is centred on the page and
+// the leftover becomes the margin (at least 5mm, which office printers need).
+const SHEETS = {
+  a4: { name: "A4", pageWidthMm: 297, pageHeightMm: 210, columns: 3, rows: 5 },
+  a3: { name: "A3", pageWidthMm: 297, pageHeightMm: 420, columns: 3, rows: 10 },
+} as const;
+
+export const PRINT_LAYOUTS: { key: PrintLayout; label: string }[] = [
+  { key: "label", label: "Label printer (one per label)" },
+  { key: "a4", label: `A4 sheets (${SHEETS.a4.columns * SHEETS.a4.rows} per page)` },
+  { key: "a3", label: `A3 sheets (${SHEETS.a3.columns * SHEETS.a3.rows} per page)` },
+];
+
+// Full-size stickers. Rendered straight under <body> so the print stylesheet
+// can hide everything else (the admin shell included). Only rendered after a
+// Print click, so `document` is always available.
+export function NameTagPrintSheet({
+  tags,
+  qrSrc,
+  layout,
+}: {
+  tags: NameTag[];
+  qrSrc: string | null;
+  layout: PrintLayout;
+}) {
+  const sheet = layout === "label" ? null : SHEETS[layout];
+  const perPage = sheet ? sheet.columns * sheet.rows : 1;
+  const pages: NameTag[][] = [];
+  for (let i = 0; i < tags.length; i += perPage) pages.push(tags.slice(i, i + perPage));
+
   return createPortal(
     <div id={PRINT_ROOT_ID}>
-      <style>{`
+      <style>{
+        sheet
+          ? `
+        @page { size: ${sheet.pageWidthMm}mm ${sheet.pageHeightMm}mm; margin: 0; }
+        #${PRINT_ROOT_ID} { display: none; }
+        @media print {
+          html, body { background: #ffffff !important; margin: 0 !important; }
+          body > *:not(#${PRINT_ROOT_ID}) { display: none !important; }
+          #${PRINT_ROOT_ID} { display: block; }
+          #${PRINT_ROOT_ID} .tag-page {
+            width: ${sheet.pageWidthMm}mm;
+            height: ${sheet.pageHeightMm}mm;
+            display: grid;
+            grid-template-columns: repeat(${sheet.columns}, ${STICKER_WIDTH_MM}mm);
+            grid-auto-rows: ${STICKER_HEIGHT_MM}mm;
+            justify-content: center;
+            align-content: center;
+            overflow: hidden;
+            break-after: page;
+            page-break-after: always;
+          }
+          #${PRINT_ROOT_ID} .tag-page:last-child { break-after: auto; page-break-after: auto; }
+          /* Hairline cut guide around each sticker */
+          #${PRINT_ROOT_ID} .name-tag { outline: 0.1mm solid #9ca3af; outline-offset: -0.05mm; }
+        }
+      `
+          : `
         @page { size: ${STICKER_WIDTH_MM}mm ${STICKER_HEIGHT_MM}mm; margin: 0; }
         #${PRINT_ROOT_ID} { display: none; }
         @media print {
@@ -163,10 +220,17 @@ export function NameTagPrintSheet({ tags, qrSrc }: { tags: NameTag[]; qrSrc: str
           #${PRINT_ROOT_ID} .name-tag { break-after: page; page-break-after: always; }
           #${PRINT_ROOT_ID} .name-tag:last-child { break-after: auto; page-break-after: auto; }
         }
-      `}</style>
-      {tags.map((tag) => (
-        <NameTagCard key={tag.id} tag={tag} qrSrc={qrSrc} />
-      ))}
+      `
+      }</style>
+      {sheet
+        ? pages.map((page, i) => (
+            <div key={i} className="tag-page">
+              {page.map((tag) => (
+                <NameTagCard key={tag.id} tag={tag} qrSrc={qrSrc} />
+              ))}
+            </div>
+          ))
+        : tags.map((tag) => <NameTagCard key={tag.id} tag={tag} qrSrc={qrSrc} />)}
     </div>,
     document.body,
   );
@@ -183,4 +247,65 @@ export async function printNameTags() {
     ),
   );
   window.print();
+}
+
+// 300 DPI at 90 x 40 mm is 1063 x 472 px; 96 CSS px per inch makes the
+// ratio 300 / 96.
+const PNG_PIXEL_RATIO = 300 / 96;
+
+function fileSafe(name: string): string {
+  return name.trim().replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase() || "tag";
+}
+
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Renders a sticker offscreen at its real size and returns it as a 300 DPI PNG.
+async function renderTagPng(tag: NameTag, qrSrc: string | null): Promise<Blob> {
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;left:-10000px;top:0;pointer-events:none;";
+  document.body.appendChild(host);
+  const root = createRoot(host);
+  try {
+    flushSync(() => root.render(<NameTagCard tag={tag} qrSrc={qrSrc} />));
+    const card = host.firstElementChild as HTMLElement;
+    await document.fonts.ready;
+    await Promise.all(
+      Array.from(card.querySelectorAll("img")).map((img) =>
+        img.complete ? Promise.resolve() : img.decode().catch(() => undefined),
+      ),
+    );
+    const blob = await toBlob(card, { pixelRatio: PNG_PIXEL_RATIO, backgroundColor: "#ffffff" });
+    if (!blob) throw new Error("Could not render the name tag image.");
+    return blob;
+  } finally {
+    root.unmount();
+    host.remove();
+  }
+}
+
+// One tag downloads as a PNG; several download together as a zip of PNGs.
+export async function downloadNameTagPngs(tags: NameTag[], qrSrc: string | null) {
+  if (tags.length === 0) return;
+  if (tags.length === 1) {
+    saveBlob(await renderTagPng(tags[0], qrSrc), `${fileSafe(tags[0].name)}.png`);
+    return;
+  }
+  const zip = new JSZip();
+  const used = new Set<string>();
+  for (const tag of tags) {
+    let base = fileSafe(tag.name);
+    for (let n = 2; used.has(base); n++) base = `${fileSafe(tag.name)}-${n}`;
+    used.add(base);
+    zip.file(`${base}.png`, await renderTagPng(tag, qrSrc));
+  }
+  saveBlob(await zip.generateAsync({ type: "blob" }), "name-tags.zip");
 }
