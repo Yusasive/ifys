@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CertificateRecipient, fetchCertificateRecipients, sendTestCertificate } from "@/lib/admin-api";
+import {
+  CertificateRecipient,
+  fetchCertificateRecipients,
+  fetchOrganisingTeam,
+  OrganisingTeamMember,
+  sendTestCertificate,
+} from "@/lib/admin-api";
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
@@ -30,15 +36,18 @@ export default function AdminCertificatesPage() {
   const [testEmail, setTestEmail] = useState("");
   const [testName, setTestName] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
+  const [exportingTeam, setExportingTeam] = useState(false);
+  const [team, setTeam] = useState<OrganisingTeamMember[]>([]);
 
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
-    fetchCertificateRecipients(EVENT_SLUG)
-      .then((data) => {
+    Promise.all([fetchCertificateRecipients(EVENT_SLUG), fetchOrganisingTeam(EVENT_SLUG)])
+      .then(([data, members]) => {
         if (cancelled) return;
         setRecipients(data.recipients);
         setSendAt(data.sendAt);
+        setTeam(members);
         setLoaded(true);
       })
       .catch((err) => {
@@ -67,7 +76,7 @@ export default function AdminCertificatesPage() {
     });
   }
 
-  async function download(batch: CertificateRecipient[]) {
+  async function download(batch: { name: string }[]) {
     if (batch.length === 0 || downloading) return;
     setDownloading(true);
     try {
@@ -90,6 +99,37 @@ export default function AdminCertificatesPage() {
       toast.error(describeError(err, "Failed to send the sample certificate."));
     } finally {
       setSendingTest(false);
+    }
+  }
+
+  // Names and positions as a CSV the Organising Team certificates can be
+  // made from once their template is ready.
+  async function exportTeam() {
+    if (exportingTeam) return;
+    setExportingTeam(true);
+    try {
+      const members = await fetchOrganisingTeam(EVENT_SLUG);
+      setTeam(members);
+      if (members.length === 0) {
+        toast.error("No Organising Team members have been added yet.");
+        return;
+      }
+      const cell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+      const rows = [["Name", "Position"], ...members.map((m) => [m.name, m.position])];
+      // The BOM keeps Excel from garbling non-English characters in names.
+      const csv = `\uFEFF${rows.map((row) => row.map(cell).join(",")).join("\r\n")}\r\n`;
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "organising-team.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      toast.error(describeError(err, "Failed to export the Organising Team."));
+    } finally {
+      setExportingTeam(false);
     }
   }
 
@@ -152,6 +192,30 @@ export default function AdminCertificatesPage() {
           {sendingTest ? "Sending…" : "Email sample certificate"}
         </button>
       </form>
+
+      <div className="flex flex-wrap items-center gap-3 my-6 p-4 border border-emerald/20 rounded-2xl bg-white">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-ink font-semibold">Organising Team</p>
+          <p className="text-xs text-sage">
+            {team.length} member{team.length === 1 ? "" : "s"}. The same participation certificate, to print. They
+            have no email on file, so it is not emailed to them. Their own certificate will come later.
+          </p>
+        </div>
+        <button
+          onClick={() => void download(team)}
+          disabled={team.length === 0 || downloading}
+          className="bg-forest text-white font-semibold px-5 py-2 rounded-full text-sm hover:bg-emerald transition-colors disabled:opacity-40"
+        >
+          {downloading ? "Preparing…" : `Download JPEG (${team.length})`}
+        </button>
+        <button
+          onClick={() => void exportTeam()}
+          disabled={exportingTeam}
+          className="border border-forest text-forest font-semibold px-5 py-2 rounded-full text-sm hover:bg-forest/10 transition-colors disabled:opacity-40"
+        >
+          {exportingTeam ? "Preparing…" : "Export names (CSV)"}
+        </button>
+      </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <input

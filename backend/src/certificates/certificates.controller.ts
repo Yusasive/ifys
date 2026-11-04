@@ -20,6 +20,11 @@ export class CertificatesController {
     return this.certificates.listRecipients(eventSlug);
   }
 
+  @Get('organising-team')
+  listOrganisingTeam(@Query('event') eventSlug: string) {
+    return this.certificates.listOrganisingTeam(eventSlug);
+  }
+
   @Post('test')
   sendTest(
     @Query('event') eventSlug: string,

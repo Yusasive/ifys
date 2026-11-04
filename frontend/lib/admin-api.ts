@@ -998,6 +998,18 @@ export function fetchCertificateRecipients(eventSlug: string) {
   );
 }
 
+export interface OrganisingTeamMember {
+  id: string;
+  name: string;
+  position: string;
+}
+
+export function fetchOrganisingTeam(eventSlug: string) {
+  return adminRequest<OrganisingTeamMember[]>(
+    `/admin/certificates/organising-team?event=${encodeURIComponent(eventSlug)}`,
+  );
+}
+
 export function sendTestCertificate(eventSlug: string, email: string, name?: string) {
   return adminRequest<{ sent: true }>(`/admin/certificates/test?event=${encodeURIComponent(eventSlug)}`, {
     method: "POST",

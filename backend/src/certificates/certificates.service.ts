@@ -54,6 +54,26 @@ export class CertificatesService {
     };
   }
 
+  // The Organising Team, for their own (separate) certificates: names only,
+  // in the same order as their name tags.
+  async listOrganisingTeam(eventSlug: string) {
+    const event = await this.findEvent(eventSlug);
+    const members = await this.prisma.committeeMember.findMany({
+      where: { eventId: event.id },
+      include: { position: true },
+      orderBy: [
+        { position: { displayOrder: 'asc' } },
+        { position: { name: 'asc' } },
+        { fullName: 'asc' },
+      ],
+    });
+    return members.map((member) => ({
+      id: member.id,
+      name: member.fullName,
+      position: member.position.name,
+    }));
+  }
+
   // One sample certificate to an address of the admin's choosing, so the
   // PDF and email can be checked before the real send. Touches no delivery
   // records.
