@@ -11,7 +11,7 @@ import { SendTestCertificateDto } from './dto/send-test-certificate.dto';
 @Controller('admin/certificates')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard, CsrfGuard)
 @Roles('organizer', 'super_admin')
-@RequirePermissions('tags.manage')
+@RequirePermissions('certificates.manage')
 export class CertificatesController {
   constructor(private readonly certificates: CertificatesService) {}
 

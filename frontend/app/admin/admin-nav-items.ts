@@ -51,7 +51,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     href: "/admin/certificates",
     label: "Certificates",
     organizerOnly: true,
-    permission: "tags.manage",
+    permission: "certificates.manage",
   },
   {
     href: "/admin/tickets",
