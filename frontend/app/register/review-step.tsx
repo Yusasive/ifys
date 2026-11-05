@@ -12,7 +12,8 @@ import {
 } from "@/lib/api";
 import { formatKobo, CATEGORY_LABELS } from "@/lib/format";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { setServerErrors, setStep } from "@/lib/registration-slice";
+import { insightsPayload, setServerErrors, setStep } from "@/lib/registration-slice";
+import { readAttribution } from "@/lib/attribution";
 import { tierPerks } from "@/lib/tier-perks";
 import { BackButton } from "./back-button";
 
@@ -112,6 +113,8 @@ export function ReviewStep({
         phone: registration.phone,
         formData,
         ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
+        ...insightsPayload(registration.insights),
+        ...readAttribution(),
       }));
       createdRef.current = created;
       // Server owns payment initialization end-to-end: it derives the

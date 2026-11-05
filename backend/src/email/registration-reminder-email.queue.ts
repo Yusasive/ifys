@@ -57,11 +57,19 @@ export class RegistrationReminderEmailQueue
     this.connection.disconnect();
   }
 
-  async enqueue(registrationId: string, opts?: { delayMs?: number }) {
+  async enqueue(
+    registrationId: string,
+    opts?: { delayMs?: number; jobId?: string },
+  ) {
     await this.queue.add(
       'send',
       { registrationId },
-      opts?.delayMs ? { delay: opts.delayMs } : undefined,
+      opts?.delayMs || opts?.jobId
+        ? {
+            ...(opts.delayMs ? { delay: opts.delayMs } : {}),
+            ...(opts.jobId ? { jobId: opts.jobId } : {}),
+          }
+        : undefined,
     );
   }
 

@@ -196,6 +196,30 @@ export default function RegistrationDetailPage() {
                 </div>
               ))}
             </dl>
+            <h2 className="text-xs uppercase tracking-wide text-sage mt-4 mb-2">About them</h2>
+            <dl className="grid grid-cols-2 gap-y-1 text-sm">
+              {(
+                [
+                  ["Heard about us via", registration.heardFrom],
+                  ["State", registration.state],
+                  ["Industry", registration.industry],
+                  ["Age range", registration.ageRange],
+                  ["Gender", registration.gender],
+                  ["Reason for attending", registration.attendReason],
+                  ["Campaign source", registration.utmSource],
+                  ["Campaign medium", registration.utmMedium],
+                  ["Campaign", registration.utmCampaign],
+                  ["Came from", registration.referrer],
+                ] as [string, string | null][]
+              )
+                .filter(([, value]) => value)
+                .map(([label, value]) => (
+                  <div key={label} className="contents">
+                    <dt className="text-sage">{label}</dt>
+                    <dd className="text-right break-all">{value}</dd>
+                  </div>
+                ))}
+            </dl>
             {registration.studentIdSignedUrl && (
               <a
                 href={registration.studentIdSignedUrl}

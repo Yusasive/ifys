@@ -11,11 +11,36 @@ interface RegistrationState {
   email: string;
   phone: string;
   formData: Record<string, string>;
+  // Optional "about you" answers used for reach and marketing analysis.
+  insights: Insights;
   studentIdFileKey: string | null;
   studentIdFileName: string | null;
   // Field-level problems the server reported on submit, keyed by field name.
   serverErrors: Record<string, string>;
 }
+
+// Only the answers actually given, so blanks aren't sent as empty strings.
+export function insightsPayload(insights: Insights): Partial<Insights> {
+  return Object.fromEntries(
+    Object.entries(insights).filter(([, value]) => value.trim()),
+  ) as Partial<Insights>;
+}
+
+export interface Insights {
+  heardFrom: string;
+  state: string;
+  gender: string;
+  ageRange: string;
+  attendReason: string;
+}
+
+const initialInsights: Insights = {
+  heardFrom: "",
+  state: "",
+  gender: "",
+  ageRange: "",
+  attendReason: "",
+};
 
 const initialState: RegistrationState = {
   step: "category",
@@ -25,6 +50,7 @@ const initialState: RegistrationState = {
   email: "",
   phone: "",
   formData: {},
+  insights: initialInsights,
   studentIdFileKey: null,
   studentIdFileName: null,
   serverErrors: {},
@@ -58,6 +84,9 @@ const registrationSlice = createSlice({
       state.formData[action.payload.field] = action.payload.value;
       delete state.serverErrors[action.payload.field];
     },
+    setInsight(state, action: PayloadAction<{ field: keyof Insights; value: string }>) {
+      state.insights[action.payload.field] = action.payload.value;
+    },
     setServerErrors(state, action: PayloadAction<Record<string, string>>) {
       state.serverErrors = action.payload;
     },
@@ -81,6 +110,7 @@ export const {
   setTier,
   setContactField,
   setFormField,
+  setInsight,
   setServerErrors,
   setStudentIdFile,
   reset,

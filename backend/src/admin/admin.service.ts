@@ -29,6 +29,7 @@ import { UpdateEventSettingsDto } from './dto/update-event-settings.dto';
 import { getCategoryAvailability } from '../registrations/category-availability';
 import { broadcastAudienceWhere } from '../broadcasts/broadcast-audience-where';
 import { BroadcastAudienceDto } from '../broadcasts/dto/broadcast-audience.dto';
+import { computeAnalytics } from './admin-analytics';
 import { ExportQueue } from './export.queue';
 
 type TicketEmailDeliveryStatus =
@@ -62,6 +63,31 @@ export class AdminService {
           ...(query.tier && { tier: query.tier }),
         },
       }),
+      ...((query.from || query.to) && {
+        createdAt: {
+          ...(query.from && { gte: new Date(query.from) }),
+          ...(query.to && { lte: new Date(query.to) }),
+        },
+      }),
+      ...(query.source && {
+        heardFrom:
+          query.source === 'none'
+            ? null
+            : { equals: query.source, mode: 'insensitive' as const },
+      }),
+      ...(query.coupon &&
+        (query.coupon === 'any'
+          ? { couponId: { not: null } }
+          : query.coupon === 'none'
+            ? { couponId: null }
+            : {
+                coupon: {
+                  code: { equals: query.coupon, mode: 'insensitive' as const },
+                },
+              })),
+      ...(query.channel && {
+        order: { paymentChannel: query.channel },
+      }),
       ...(query.search && {
         attendee: {
           OR: [
@@ -81,7 +107,9 @@ export class AdminService {
     const orderBy =
       query.sortBy === 'fullName'
         ? { attendee: { fullName: order } }
-        : { [query.sortBy ?? 'createdAt']: order };
+        : query.sortBy === 'amount'
+          ? { order: { amountMinor: order } }
+          : { [query.sortBy ?? 'createdAt']: order };
 
     const [total, registrations] = await this.prisma.$transaction([
       this.prisma.registration.count({ where }),
@@ -172,6 +200,68 @@ export class AdminService {
       ticketsIssued,
       checkedIn,
     };
+  }
+
+  async getAnalytics() {
+    const rows = await this.prisma.registration.findMany({
+      select: {
+        createdAt: true,
+        status: true,
+        heardFrom: true,
+        state: true,
+        gender: true,
+        ageRange: true,
+        industry: true,
+        utmSource: true,
+        utmCampaign: true,
+        discountAppliedKobo: true,
+        pendingPaymentReminderSentAt: true,
+        attendee: { select: { email: true } },
+        ticketProduct: { select: { category: true, tier: true } },
+        coupon: { select: { code: true } },
+        order: {
+          select: { status: true, amountMinor: true, paymentChannel: true },
+        },
+        ticket: {
+          select: {
+            status: true,
+            checkIns: { select: { checkedInAt: true, stationId: true } },
+          },
+        },
+      },
+    });
+    return computeAnalytics(rows);
+  }
+
+  // Emails a payment reminder to everyone who has been pending for a while
+  // and hasn't been reminded in the last 24 hours (the automatic reminder at
+  // 24h counts). Returns how many were queued.
+  async remindPendingPayments(actorId: string, olderThanHours: number) {
+    const now = Date.now();
+    const pending = await this.prisma.registration.findMany({
+      where: {
+        status: 'pending_payment',
+        createdAt: { lte: new Date(now - olderThanHours * 3_600_000) },
+        OR: [
+          { pendingPaymentReminderSentAt: null },
+          { pendingPaymentReminderSentAt: { lte: new Date(now - 86_400_000) } },
+        ],
+      },
+      select: { id: true },
+    });
+    // Hour-bucketed job ids make a double click queue each person once.
+    const bucket = Math.floor(now / 3_600_000);
+    for (const { id } of pending) {
+      await this.reminderQueue.enqueue(id, { jobId: `bulk-${id}-${bucket}` });
+    }
+    await this.auditLog.record({
+      actorId,
+      action: 'send_pending_payment_reminder',
+      targetType: 'registration',
+      targetId: 'bulk',
+      metadata: { queued: pending.length, olderThanHours },
+    });
+    return { queued: pending.length };
   }
 
   async markPaid(registrationId: string, actorId: string, reason: string) {

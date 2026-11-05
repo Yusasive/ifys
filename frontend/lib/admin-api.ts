@@ -94,9 +94,14 @@ export interface RegistrationListItem {
   attendee: { fullName: string; email: string; phone: string };
   ticketProduct: { category: Category; tier: Tier; priceKobo: number; currency: string };
   ticket: { ticketCode: string; status: string } | null;
-  order: { status: string; paymentChannel: string | null } | null;
+  order: { status: string; paymentChannel: string | null; amountMinor: number } | null;
   coupon: { code: string } | null;
   discountAppliedKobo: number;
+  // Analysis fields collected at registration (null on older registrations).
+  heardFrom: string | null;
+  state: string | null;
+  industry: string | null;
+  utmCampaign: string | null;
 }
 
 export interface RegistrationsListParams {
@@ -106,7 +111,13 @@ export interface RegistrationsListParams {
   category?: string;
   tier?: string;
   search?: string;
-  sortBy?: "createdAt" | "fullName" | "status";
+  // Registered between these moments (ISO timestamps).
+  from?: string;
+  to?: string;
+  source?: string;
+  coupon?: string;
+  channel?: string;
+  sortBy?: "createdAt" | "fullName" | "status" | "amount";
   order?: "asc" | "desc";
 }
 
@@ -132,6 +143,12 @@ export interface CheckInRecord {
 
 export interface RegistrationDetail extends Omit<RegistrationListItem, "order"> {
   formDataJson: Record<string, unknown>;
+  gender: string | null;
+  ageRange: string | null;
+  attendReason: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  referrer: string | null;
   studentIdFileUrl: string | null;
   studentIdSignedUrl: string | null;
   order: { status: string; amountKobo: number; paidAt: string | null; paymentChannel: string | null } | null;
@@ -153,6 +170,74 @@ export interface RegistrationDetail extends Omit<RegistrationListItem, "order"> 
 
 export function fetchRegistrationDetail(id: string) {
   return adminRequest<RegistrationDetail>(`/admin/registrations/${id}`);
+}
+
+export interface BreakdownItem {
+  label: string;
+  count: number;
+  paid: number;
+}
+
+// See backend admin-analytics.ts. Money is in minor units (kobo).
+export interface AdminAnalytics {
+  asOf: string;
+  timeZone: string;
+  funnel: {
+    registered: number;
+    paid: number;
+    pendingPayment: number;
+    pendingReview: number;
+    failedOrCancelled: number;
+    conversionRate: number;
+  };
+  pending: {
+    count: number;
+    under24h: number;
+    between1And3Days: number;
+    over3Days: number;
+    remindable: number;
+  };
+  daily: { date: string; total: number; paid: number; pending: number }[];
+  revenue: {
+    currency: string;
+    totalMinor: number;
+    discountMinor: number;
+    byProduct: { category: string; tier: string; count: number; amountMinor: number }[];
+    byChannel: { channel: string; count: number; amountMinor: number }[];
+  };
+  coupons: { code: string; count: number; discountMinor: number }[];
+  breakdowns: {
+    category: BreakdownItem[];
+    tier: BreakdownItem[];
+    industry: BreakdownItem[];
+    source: BreakdownItem[];
+    campaign: BreakdownItem[];
+    state: BreakdownItem[];
+    gender: BreakdownItem[];
+    ageRange: BreakdownItem[];
+  };
+  eventDay: {
+    tickets: number;
+    checkedIn: number;
+    checkInRate: number;
+    arrivalsByHour: { hour: string; count: number }[];
+    byStation: { station: string; count: number }[];
+    noShowByCategory: { category: string; tickets: number; checkedIn: number; noShow: number }[];
+  };
+  flags: { sharedEmailDomains: { domain: string; count: number }[] };
+}
+
+export function fetchAnalytics() {
+  return adminRequest<AdminAnalytics>("/admin/analytics");
+}
+
+// Emails a reminder to everyone pending for at least `olderThanHours` who
+// hasn't been reminded in the last 24 hours.
+export function remindPendingPayments(olderThanHours = 24) {
+  return adminRequest<{ queued: number }>("/admin/registrations/remind-pending", {
+    method: "POST",
+    body: JSON.stringify({ olderThanHours }),
+  });
 }
 
 export interface AdminStats {

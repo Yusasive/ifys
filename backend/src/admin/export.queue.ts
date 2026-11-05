@@ -24,6 +24,12 @@ function csvEscape(value: string): string {
   return value;
 }
 
+function formField(formData: unknown, key: string): string | null {
+  if (!formData || typeof formData !== 'object') return null;
+  const value = (formData as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
 function toCsv(
   rows: Record<string, string | number | null>[],
   columns: string[],
@@ -96,7 +102,7 @@ export class ExportQueue implements OnModuleInit, OnModuleDestroy {
       include: {
         attendee: true,
         ticketProduct: true,
-        ticket: true,
+        ticket: { include: { checkIns: true } },
         order: true,
         coupon: { select: { code: true } },
       },
@@ -117,25 +123,64 @@ export class ExportQueue implements OnModuleInit, OnModuleDestroy {
       'discountAppliedKobo',
       'ticketCode',
       'ticketStatus',
+      'checkedInAt',
+      'checkInStation',
       'createdAt',
+      'paidAt',
+      'heardFrom',
+      'state',
+      'gender',
+      'ageRange',
+      'attendReason',
+      'industry',
+      'institution',
+      'organization',
+      'startupName',
+      'role',
+      'utmSource',
+      'utmMedium',
+      'utmCampaign',
+      'referrer',
     ];
 
-    const rows = registrations.map((r) => ({
-      registrationId: r.id,
-      fullName: r.attendee.fullName,
-      email: r.attendee.email,
-      phone: r.attendee.phone,
-      category: r.ticketProduct.category,
-      tier: r.ticketProduct.tier,
-      status: r.status,
-      amountMinor: r.order?.amountMinor ?? null,
-      paymentChannel: r.order?.paymentChannel ?? null,
-      couponCode: r.coupon?.code ?? null,
-      discountAppliedKobo: r.discountAppliedKobo,
-      ticketCode: r.ticket?.ticketCode ?? null,
-      ticketStatus: r.ticket?.status ?? null,
-      createdAt: r.createdAt.toISOString(),
-    }));
+    const rows = registrations.map((r) => {
+      const firstCheckIn = [...(r.ticket?.checkIns ?? [])].sort(
+        (a, b) => a.checkedInAt.getTime() - b.checkedInAt.getTime(),
+      )[0];
+      return {
+        registrationId: r.id,
+        fullName: r.attendee.fullName,
+        email: r.attendee.email,
+        phone: r.attendee.phone,
+        category: r.ticketProduct.category,
+        tier: r.ticketProduct.tier,
+        status: r.status,
+        amountMinor: r.order?.amountMinor ?? null,
+        paymentChannel: r.order?.paymentChannel ?? null,
+        couponCode: r.coupon?.code ?? null,
+        discountAppliedKobo: r.discountAppliedKobo,
+        ticketCode: r.ticket?.ticketCode ?? null,
+        ticketStatus: r.ticket?.status ?? null,
+        checkedInAt: firstCheckIn?.checkedInAt.toISOString() ?? null,
+        checkInStation: firstCheckIn?.stationId ?? null,
+        createdAt: r.createdAt.toISOString(),
+        paidAt: r.order?.paidAt?.toISOString() ?? null,
+        heardFrom: r.heardFrom,
+        state: r.state,
+        gender: r.gender,
+        ageRange: r.ageRange,
+        attendReason: r.attendReason,
+        industry: r.industry,
+        institution: formField(r.formDataJson, 'institution'),
+        organization: formField(r.formDataJson, 'organization'),
+        startupName: formField(r.formDataJson, 'startupName'),
+        role: formField(r.formDataJson, 'role'),
+        utmSource: r.utmSource,
+        utmMedium: r.utmMedium,
+        utmCampaign: r.utmCampaign,
+        referrer: r.referrer,
+      };
+    });
 
     const csv = toCsv(rows, columns);
     const key = `exports/registrations-${randomUUID()}.csv`;

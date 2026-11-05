@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Bricolage_Grotesque, IBM_Plex_Mono, Inter, Newsreader, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store-provider";
+import { AttributionCapture } from "./attribution-capture";
 import { WhatsAppButton } from "./whatsapp-button";
 
 const newsreader = Newsreader({
@@ -78,6 +79,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-ink text-paper">
         <StoreProvider>{children}</StoreProvider>
+        <AttributionCapture />
         <WhatsAppButton />
         <Script
           src="https://static.cloudflareinsights.com/beacon.min.js"

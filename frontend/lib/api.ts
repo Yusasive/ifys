@@ -98,6 +98,16 @@ export interface CreateRegistrationPayload {
   phone: string;
   formData: Record<string, unknown>;
   couponCode?: string;
+  // Analysis fields — see backend CreateRegistrationDto.
+  heardFrom?: string;
+  state?: string;
+  gender?: string;
+  ageRange?: string;
+  attendReason?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  referrer?: string;
 }
 
 export type CouponDiscountType = "percent" | "fixed";

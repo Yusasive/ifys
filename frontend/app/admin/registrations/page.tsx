@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import {
   fetchRegistrations,
   getExportStatus,
@@ -16,6 +16,7 @@ import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { ApiError } from "@/lib/api";
 import { formatDateTime, formatKobo, CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
 import { hasPermission } from "@/lib/permissions";
+import { HEARD_FROM_OPTIONS } from "@/lib/registration-options";
 import { useToast } from "@/lib/toast-context";
 import { PRESELECTED_STORAGE_KEY } from "../messages/preselected";
 import { PaginationFooter } from "../pagination-footer";
@@ -25,9 +26,15 @@ import { paymentChannelLabel } from "../payment-channel";
 import { StatusBadge } from "../status-badge";
 
 const PAGE_SIZE = 20;
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 10;
 
-type SortField = "createdAt" | "fullName" | "status";
+type SortField = "createdAt" | "fullName" | "status" | "amount";
+
+const CHANNEL_FILTERS = ["card", "bank_transfer", "bank", "ussd", "qr", "mobile_money", "free", "manual"];
+
+// A date picked in the admin means that day in Nigeria (UTC+1, no DST).
+const startOfDay = (date: string) => (date ? `${date}T00:00:00+01:00` : undefined);
+const endOfDay = (date: string) => (date ? `${date}T23:59:59.999+01:00` : undefined);
 
 function SortHeader({
   label,
@@ -57,15 +64,32 @@ function SortHeader({
 }
 
 export default function AdminRegistrationsPage() {
+  // useSearchParams needs a Suspense boundary to prerender.
+  return (
+    <Suspense fallback={null}>
+      <AdminRegistrations />
+    </Suspense>
+  );
+}
+
+function AdminRegistrations() {
   const { session, loading: authLoading } = useRequireAdminAuth();
   const toast = useToast();
   const router = useRouter();
   const [registrations, setRegistrations] = useState<RegistrationListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState("");
-  const [category, setCategory] = useState("");
-  const [search, setSearch] = useState("");
+  // Filters can arrive in the link (e.g. from a card on the overview).
+  const initial = useSearchParams();
+  const [status, setStatus] = useState(initial.get("status") ?? "");
+  const [category, setCategory] = useState(initial.get("category") ?? "");
+  const [tier, setTier] = useState(initial.get("tier") ?? "");
+  const [search, setSearch] = useState(initial.get("search") ?? "");
+  const [fromDate, setFromDate] = useState(initial.get("from") ?? "");
+  const [toDate, setToDate] = useState(initial.get("to") ?? "");
+  const [source, setSource] = useState(initial.get("source") ?? "");
+  const [coupon, setCoupon] = useState(initial.get("coupon") ?? "");
+  const [channel, setChannel] = useState(initial.get("channel") ?? "");
   const [sortBy, setSortBy] = useState<SortField>("createdAt");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [loading, setLoading] = useState(false);
@@ -95,7 +119,13 @@ export default function AdminRegistrationsPage() {
           pageSize: PAGE_SIZE,
           status: status || undefined,
           category: category || undefined,
+          tier: tier || undefined,
           search: search || undefined,
+          from: startOfDay(fromDate),
+          to: endOfDay(toDate),
+          source: source || undefined,
+          coupon: coupon.trim() || undefined,
+          channel: channel || undefined,
           sortBy,
           order,
         });
@@ -120,7 +150,24 @@ export default function AdminRegistrationsPage() {
     return () => {
       cancelled = true;
     };
-  }, [session, page, status, category, search, sortBy, order, refreshKey]);
+  }, [session, page, status, category, tier, search, fromDate, toDate, source, coupon, channel, sortBy, order, refreshKey]);
+
+  const filtersActive = !!(status || category || tier || search || fromDate || toDate || source || coupon || channel);
+
+  function clearFilters() {
+    setPage(1);
+    setStatus("");
+    setCategory("");
+    setTier("");
+    setSearch("");
+    setFromDate("");
+    setToDate("");
+    setSource("");
+    setCoupon("");
+    setChannel("");
+    // Drop any filters carried in the link too.
+    router.replace("/admin/registrations");
+  }
 
   function handleSort(field: SortField) {
     setPage(1);
@@ -285,6 +332,90 @@ export default function AdminRegistrationsPage() {
           </select>
         </label>
 
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-sage">Registered from</span>
+          <input
+            type="date"
+            value={fromDate}
+            max={toDate || undefined}
+            onChange={(e) => {
+              setPage(1);
+              setFromDate(e.target.value);
+            }}
+            className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-sage">to</span>
+          <input
+            type="date"
+            value={toDate}
+            min={fromDate || undefined}
+            onChange={(e) => {
+              setPage(1);
+              setToDate(e.target.value);
+            }}
+            className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-sage">How they heard</span>
+          <select
+            value={source}
+            onChange={(e) => {
+              setPage(1);
+              setSource(e.target.value);
+            }}
+            className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+          >
+            <option value="">All</option>
+            {HEARD_FROM_OPTIONS.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+            {source && !HEARD_FROM_OPTIONS.includes(source) && source !== "none" && (
+              <option value={source}>{source}</option>
+            )}
+            <option value="none">No answer</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-sage">Payment</span>
+          <select
+            value={channel}
+            onChange={(e) => {
+              setPage(1);
+              setChannel(e.target.value);
+            }}
+            className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-gold"
+          >
+            <option value="">All</option>
+            {CHANNEL_FILTERS.map((c) => (
+              <option key={c} value={c}>
+                {paymentChannelLabel(c)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-sage">Coupon</span>
+          <input
+            value={coupon}
+            onChange={(e) => {
+              setPage(1);
+              setCoupon(e.target.value);
+            }}
+            placeholder="Code, any or none"
+            className="border border-emerald/20 rounded-xl px-3 py-1.5 text-sm w-36 focus:outline-none focus:border-gold"
+          />
+        </label>
+        {filtersActive && (
+          <button onClick={clearFilters} className="text-sm text-sage underline pb-2">
+            Clear filters
+          </button>
+        )}
+
         <div className="ml-auto flex flex-col gap-1 items-end">
           <button
             onClick={() => void handleExport()}
@@ -356,7 +487,8 @@ export default function AdminRegistrationsPage() {
               <SortHeader label="Name" field="fullName" activeField={sortBy} order={order} onSort={handleSort} />
               <th className="px-4 py-2">Email</th>
               <th className="px-4 py-2">Category / Tier</th>
-              <th className="px-4 py-2">Price</th>
+              <SortHeader label="Amount" field="amount" activeField={sortBy} order={order} onSort={handleSort} />
+              <th className="px-4 py-2">Heard via</th>
               <th className="px-4 py-2">Payment</th>
               <SortHeader label="Status" field="status" activeField={sortBy} order={order} onSort={handleSort} />
               <SortHeader label="Registered" field="createdAt" activeField={sortBy} order={order} onSort={handleSort} />
@@ -386,7 +518,11 @@ export default function AdminRegistrationsPage() {
                   {CATEGORY_LABELS[r.ticketProduct.category]} · {TIER_LABELS[r.ticketProduct.tier]}
                 </td>
                 <td className="px-4 py-2 font-mono">
-                  {formatKobo(r.ticketProduct.priceKobo, r.ticketProduct.currency)}
+                  {formatKobo(r.order?.amountMinor ?? r.ticketProduct.priceKobo, r.ticketProduct.currency)}
+                </td>
+                <td className="px-4 py-2 text-sage">
+                  {r.heardFrom ?? "—"}
+                  {r.utmCampaign && <span className="block font-mono text-xs">{r.utmCampaign}</span>}
                 </td>
                 <td className="px-4 py-2 text-sage">
                   {paymentChannelLabel(r.order?.paymentChannel)}

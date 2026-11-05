@@ -57,6 +57,7 @@ import { ListSponsorsQueryDto } from '../sponsors/dto/list-sponsors.query';
 import { ListSponsorApplicationsQueryDto } from '../sponsors/dto/list-sponsor-applications.query';
 import { ListNewsletterQueryDto } from '../newsletter/dto/list-newsletter.query';
 import { ListVolunteerApplicationsQueryDto } from '../volunteers/dto/list-volunteer-applications.query';
+import { RemindPendingDto } from './dto/remind-pending.dto';
 import { ApproveVolunteerApplicationDto } from '../volunteers/dto/approve-volunteer-application.dto';
 import { RejectVolunteerApplicationDto } from '../volunteers/dto/reject-volunteer-application.dto';
 import { BulkApproveVolunteerApplicationsDto } from '../volunteers/dto/bulk-approve-volunteer-applications.dto';
@@ -93,6 +94,21 @@ export class AdminController {
   @Get('stats')
   getStats() {
     return this.admin.getStats();
+  }
+
+  @RequirePermissions('registrations.view')
+  @Get('analytics')
+  getAnalytics() {
+    return this.admin.getAnalytics();
+  }
+
+  @RequirePermissions('registrations.sendReminder')
+  @Post('registrations/remind-pending')
+  remindPending(
+    @Body() dto: RemindPendingDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.admin.remindPendingPayments(user.sub, dto.olderThanHours ?? 24);
   }
 
   @RequirePermissions('registrations.markPaid')

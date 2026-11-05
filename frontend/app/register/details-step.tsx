@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  AGE_RANGE_OPTIONS,
+  ATTEND_REASON_OPTIONS,
+  GENDER_OPTIONS,
+  HEARD_FROM_OPTIONS,
+  INDUSTRY_OPTIONS,
+  NIGERIAN_STATES,
+} from "@/lib/registration-options";
 import { FormEvent, useState } from "react";
 import type { ReactElement } from "react";
 import { requestStudentIdUploadUrl, uploadStudentIdFile } from "@/lib/api";
@@ -8,6 +16,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   setContactField,
   setFormField,
+  setInsight,
   setStep,
   setStudentIdFile,
 } from "@/lib/registration-slice";
@@ -103,6 +112,74 @@ function TicketIcon() {
   );
 }
 
+function PillSelect({
+  icon,
+  value,
+  onChange,
+  options,
+  placeholder,
+  required = true,
+  showError,
+}: {
+  icon: ReactElement;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder: string;
+  required?: boolean;
+  showError?: boolean;
+}) {
+  const invalid = showError && required && !value;
+  return (
+    <label className="flex flex-col gap-1">
+      <div
+        className={`flex items-center gap-2 sm:gap-3 rounded-full border bg-white px-4 sm:px-5 py-3 sm:py-4 text-rust focus-within:border-rust ${
+          invalid ? "border-red-500" : "border-rust/70"
+        }`}
+      >
+        {icon}
+        <select
+          required={required}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`flex-1 min-w-0 bg-transparent text-sm sm:text-lg focus:outline-none ${
+            value ? "text-emerald" : "text-emerald/70"
+          }`}
+        >
+          <option value="">{placeholder}</option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </div>
+      {invalid && <span className="text-sm text-red-600 pl-5">Required</span>}
+    </label>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4 3.5V16H5.5A1.5 1.5 0 0 1 4 14.5v-9Z"
+      />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </svg>
+  );
+}
+
 // Mirrors the backend check so a bad LinkedIn URL is caught before submit.
 const LINKEDIN_URL_PATTERN = /^https?:\/\/(www\.)?linkedin\.com\/.+/i;
 
@@ -153,7 +230,7 @@ function PillField({
 export function DetailsStep() {
   const dispatch = useAppDispatch();
   const registration = useAppSelector((s) => s.registration);
-  const { category, fullName, email, phone, formData, studentIdFileName } = registration;
+  const { category, fullName, email, phone, formData, insights, studentIdFileName } = registration;
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
@@ -180,6 +257,7 @@ export function DetailsStep() {
 
   const canContinue = !linkedinError &&
     fullName.trim() && email.trim() && phone.trim() &&
+    insights.heardFrom && insights.state &&
     (category === "student"
       ? formData.institution && registration.studentIdFileKey
       : formData.role && formData.industry);
@@ -288,12 +366,12 @@ export function DetailsStep() {
             error={fieldError("role")}
             placeholder="Job Title/Position"
           />
-          <PillField
+          <PillSelect
             icon={<IndustryIcon />}
             value={formData.industry ?? ""}
             onChange={(v) => dispatch(setFormField({ field: "industry", value: v }))}
             showError={attemptedSubmit}
-            error={fieldError("industry")}
+            options={INDUSTRY_OPTIONS}
             placeholder="Industry/Sector"
           />
           <PillField
@@ -307,6 +385,47 @@ export function DetailsStep() {
           />
         </>
       )}
+
+      <PillSelect
+        icon={<ChatIcon />}
+        value={insights.heardFrom}
+        onChange={(v) => dispatch(setInsight({ field: "heardFrom", value: v }))}
+        showError={attemptedSubmit}
+        options={HEARD_FROM_OPTIONS}
+        placeholder="How did you hear about us?"
+      />
+      <PillSelect
+        icon={<PinIcon />}
+        value={insights.state}
+        onChange={(v) => dispatch(setInsight({ field: "state", value: v }))}
+        showError={attemptedSubmit}
+        options={NIGERIAN_STATES}
+        placeholder="State you are joining from"
+      />
+      <PillSelect
+        icon={<PersonIcon />}
+        required={false}
+        value={insights.ageRange}
+        onChange={(v) => dispatch(setInsight({ field: "ageRange", value: v }))}
+        options={AGE_RANGE_OPTIONS}
+        placeholder="Age range (Optional)"
+      />
+      <PillSelect
+        icon={<PersonIcon />}
+        required={false}
+        value={insights.gender}
+        onChange={(v) => dispatch(setInsight({ field: "gender", value: v }))}
+        options={GENDER_OPTIONS}
+        placeholder="Gender (Optional)"
+      />
+      <PillSelect
+        icon={<ChatIcon />}
+        required={false}
+        value={insights.attendReason}
+        onChange={(v) => dispatch(setInsight({ field: "attendReason", value: v }))}
+        options={ATTEND_REASON_OPTIONS}
+        placeholder="Main reason for attending (Optional)"
+      />
 
       <button
         type="submit"

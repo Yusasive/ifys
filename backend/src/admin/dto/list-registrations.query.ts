@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 const STATUSES = [
   'draft',
@@ -12,7 +20,7 @@ const STATUSES = [
 ] as const;
 const CATEGORIES = ['student', 'regular', 'founder', 'professional'] as const;
 const TIERS = ['standard', 'premium'] as const;
-const SORT_FIELDS = ['createdAt', 'fullName', 'status'] as const;
+const SORT_FIELDS = ['createdAt', 'fullName', 'status', 'amount'] as const;
 const SORT_ORDERS = ['asc', 'desc'] as const;
 
 export class ListRegistrationsQueryDto {
@@ -44,6 +52,31 @@ export class ListRegistrationsQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  // Registered between these two moments (inclusive).
+  @IsOptional()
+  @IsDateString()
+  from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  to?: string;
+
+  // "How did you hear about us?" answer, or "none" for registrations that
+  // didn't give one.
+  @IsOptional()
+  @IsString()
+  source?: string;
+
+  // Coupon code used, or "any" / "none".
+  @IsOptional()
+  @IsString()
+  coupon?: string;
+
+  // Payment channel of the order (card, bank_transfer, manual, free, ...).
+  @IsOptional()
+  @IsString()
+  channel?: string;
 
   @IsOptional()
   @IsIn(SORT_FIELDS)

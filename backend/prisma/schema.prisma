@@ -409,6 +409,22 @@ model Registration {
   // idempotency (the 24h job is only ever enqueued once, at creation).
   pendingPaymentReminderSentAt DateTime? @map("pending_payment_reminder_sent_at")
 
+  // Analysis fields, collected at registration so reach and marketing can be
+  // reported with plain queries instead of digging through formDataJson.
+  // All optional: registrations made before they existed have none.
+  heardFrom    String? @map("heard_from")
+  state        String?
+  gender       String?
+  ageRange     String? @map("age_range")
+  attendReason String? @map("attend_reason")
+  // Copied from formDataJson.industry (everyone but students).
+  industry     String?
+  // First-touch campaign tracking, captured from the sign-up link.
+  utmSource    String? @map("utm_source")
+  utmMedium    String? @map("utm_medium")
+  utmCampaign  String? @map("utm_campaign")
+  referrer     String?
+
   event         Event         @relation(fields: [eventId], references: [id])
   attendee      Attendee      @relation(fields: [attendeeId], references: [id])
   ticketProduct TicketProduct @relation(fields: [ticketProductId], references: [id])
@@ -426,6 +442,7 @@ model Registration {
   @@index([createdAt])
   @@index([ticketProductId])
   @@index([couponId])
+  @@index([heardFrom])
   @@map("registrations")
 }
 

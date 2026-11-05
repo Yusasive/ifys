@@ -173,6 +173,16 @@ export class RegistrationsService {
         studentIdFileUrl,
         status: 'pending_payment',
         couponId,
+        heardFrom: cleanAnalyticsValue(dto.heardFrom),
+        state: cleanAnalyticsValue(dto.state),
+        gender: cleanAnalyticsValue(dto.gender),
+        ageRange: cleanAnalyticsValue(dto.ageRange),
+        attendReason: cleanAnalyticsValue(dto.attendReason),
+        industry: cleanAnalyticsValue(dto.formData.industry),
+        utmSource: cleanAnalyticsValue(dto.utmSource),
+        utmMedium: cleanAnalyticsValue(dto.utmMedium),
+        utmCampaign: cleanAnalyticsValue(dto.utmCampaign),
+        referrer: cleanAnalyticsValue(dto.referrer),
       },
       include: { ticketProduct: true, attendee: true },
     });
@@ -311,6 +321,12 @@ export class RegistrationsService {
 
     return ticketProduct;
   }
+}
+
+// Analysis values are optional free-ish text: trimmed, blank means "not
+// provided", and anything that isn't a string is ignored rather than stored.
+function cleanAnalyticsValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 export function matchesLookupToken(
