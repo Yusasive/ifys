@@ -18,10 +18,12 @@ import { CATEGORY_LABELS, formatDateTime, formatKobo, TIER_LABELS } from "@/lib/
 import { hasPermission } from "@/lib/permissions";
 import { useToast } from "@/lib/toast-context";
 import { BarItem, BarList, ColumnChart, LineChart } from "./charts";
+import { PaginationFooter } from "./pagination-footer";
 import { Skeleton, StatCardsSkeleton } from "./skeleton";
 import { StatusBadge } from "./status-badge";
 
 const RECENT_PAGE_SIZE = 5;
+const COUPON_PAGE_SIZE = 5;
 
 const STAT_ACCENTS = ["bg-emerald", "bg-coral", "bg-gold", "bg-forest"];
 
@@ -130,6 +132,7 @@ export default function AdminOverviewPage() {
   const [cumulative, setCumulative] = useState(false);
   const [breakdownKey, setBreakdownKey] = useState<BreakdownKey>("source");
   const [reminding, setReminding] = useState(false);
+  const [couponPage, setCouponPage] = useState(1);
 
   useEffect(() => {
     if (!session) return;
@@ -225,6 +228,13 @@ export default function AdminOverviewPage() {
 
   const canRemind = hasPermission(session.user.permissions, "registrations.sendReminder");
   const money = (minor: number) => formatKobo(minor, analytics?.revenue.currency ?? "NGN");
+  const couponTotalPages = Math.max(1, Math.ceil((analytics?.coupons.length ?? 0) / COUPON_PAGE_SIZE));
+  // A refresh can leave fewer coupons than before; never sit past the end.
+  const currentCouponPage = Math.min(couponPage, couponTotalPages);
+  const visibleCoupons = (analytics?.coupons ?? []).slice(
+    (currentCouponPage - 1) * COUPON_PAGE_SIZE,
+    currentCouponPage * COUPON_PAGE_SIZE,
+  );
   const breakdown: BreakdownItem[] = analytics?.breakdowns[breakdownKey] ?? [];
   const labelFor = (key: BreakdownKey, label: string) =>
     key === "category" ? (CATEGORY_LABELS[label] ?? label) : key === "tier" ? (TIER_LABELS[label] ?? label) : label;
@@ -449,7 +459,7 @@ export default function AdminOverviewPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-emerald/10">
-                    {analytics.coupons.map((c) => (
+                    {visibleCoupons.map((c) => (
                       <tr key={c.code}>
                         <td className="py-2 font-mono">
                           <Link href={`/admin/registrations?coupon=${encodeURIComponent(c.code)}`} className="underline">
@@ -464,6 +474,14 @@ export default function AdminOverviewPage() {
                 </table>
               ) : (
                 <p className="text-sm text-sage">No coupons have been used on a paid order yet.</p>
+              )}
+              {analytics.coupons.length > COUPON_PAGE_SIZE && (
+                <PaginationFooter
+                  page={currentCouponPage}
+                  totalPages={couponTotalPages}
+                  total={analytics.coupons.length}
+                  onPageChange={setCouponPage}
+                />
               )}
             </Panel>
 
