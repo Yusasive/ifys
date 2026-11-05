@@ -17,8 +17,7 @@ export interface AttendeeSummary {
   fullName: string;
   category: string;
   tier: string;
-  // The role/institution and organisation lines printed on their name tag.
-  // Missing in offline lists downloaded before these were added.
+  
   title?: string | null;
   organization?: string | null;
 }
@@ -47,8 +46,6 @@ export interface TicketSearchHit {
 async function checkinRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
-    // Sends the httpOnly session cookie — the door-staff device authorizes
-    // the same way an admin browser tab does, no bearer token in JS.
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
@@ -102,8 +99,7 @@ export interface OfflineIndexResponse {
   full: boolean;
 }
 
-// Without `updatedSince` the whole list comes back; with it, only tickets
-// changed since then.
+
 export function fetchOfflineIndex(updatedSince?: string) {
   const query = updatedSince ? `?updatedSince=${encodeURIComponent(updatedSince)}` : "";
   return checkinRequest<OfflineIndexResponse>(`/checkin/offline-index${query}`);
@@ -119,8 +115,7 @@ export interface QueuedScanPayload {
 
 export type SyncScanResult =
   | { clientScanId: string; result: "already_synced" }
-  // The server could not process this item and never will (e.g. a malformed
-  // payload), so it is dropped from the queue rather than retried forever.
+  
   | { clientScanId: string; result: "invalid"; reason: string }
   | { clientScanId: string; result: "not_found" }
   | { clientScanId: string; result: "void"; attendee: AttendeeSummary }

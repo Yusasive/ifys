@@ -1,7 +1,3 @@
-// First-touch campaign tracking: the first time someone arrives with
-// utm_* parameters (or from another site), remember it, so a registration
-// made later in the visit — or on a return visit — can be traced back to
-// the post or partner that brought them.
 
 const STORAGE_KEY = "ify.attribution";
 
@@ -37,7 +33,7 @@ export function captureAttribution() {
       utmCampaign: clean(params.get("utm_campaign")),
     };
 
-    // Only an outside site counts as a referrer, not our own navigation.
+
     if (document.referrer) {
       const referrer = new URL(document.referrer);
       if (referrer.hostname !== window.location.hostname) {

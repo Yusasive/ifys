@@ -14,10 +14,7 @@ import { PermissionKey } from "./permissions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
-// The CSRF token is handed to us once in the login/me response body and
-// kept here in memory rather than read back out of a cookie — the API and
-// the frontend can be served from different origins in production, and a
-// cookie set by one origin isn't visible to document.cookie on another.
+
 let csrfToken: string | null = null;
 
 export type AdminRole = "organizer" | "door_staff" | "super_admin";

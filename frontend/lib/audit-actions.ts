@@ -1,7 +1,4 @@
-// Mirrors backend/src/audit-log/audit-actions.ts. Frontend and backend
-// don't share a types/constants package here, so this list is duplicated
-// by hand — keep it in sync if a new call site starts recording a new
-// action.
+
 export const AUDIT_ACTIONS = [
   "mark_paid",
   "change_attendee_email",
