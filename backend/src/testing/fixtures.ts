@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export function extractSessionToken(res: {
   headers: Record<string, string | string[] | undefined>;
+  status?: number;
+  body?: unknown;
 }): string {
   const raw = res.headers['set-cookie'];
   const cookies = Array.isArray(raw) ? raw : raw ? [raw] : [];
@@ -10,7 +12,11 @@ export function extractSessionToken(res: {
     const match = /(?:^|;\s*)admin_session=([^;]+)/.exec(cookie);
     if (match) return decodeURIComponent(match[1]);
   }
-  throw new Error('No admin_session cookie found in login response');
+  // Include the response so a failed login (wrong password, rate limit, ...)
+  // is diagnosable from the test output alone.
+  throw new Error(
+    `No admin_session cookie found in login response (status ${res.status ?? 'unknown'}): ${JSON.stringify(res.body ?? null)}`,
+  );
 }
 
 export async function createPaidCheckoutFixture(
