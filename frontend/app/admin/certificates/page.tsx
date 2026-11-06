@@ -11,7 +11,7 @@ import {
 import { useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
-import { downloadCertificates } from "./certificate-image";
+import { CertificateKind, downloadCertificates } from "./certificate-image";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 
@@ -76,11 +76,11 @@ export default function AdminCertificatesPage() {
     });
   }
 
-  async function download(batch: { name: string }[]) {
+  async function download(batch: { name: string }[], kind: CertificateKind = "participation") {
     if (batch.length === 0 || downloading) return;
     setDownloading(true);
     try {
-      await downloadCertificates(batch.map((r) => r.name));
+      await downloadCertificates(batch.map((r) => r.name), kind);
     } catch (err) {
       toast.error(describeError(err, "Failed to create the certificate."));
     } finally {
@@ -102,8 +102,7 @@ export default function AdminCertificatesPage() {
     }
   }
 
-  // Names and positions as a CSV the Organising Team certificates can be
-  // made from once their template is ready.
+  // Names and positions as a CSV.
   async function exportTeam() {
     if (exportingTeam) return;
     setExportingTeam(true);
@@ -197,12 +196,12 @@ export default function AdminCertificatesPage() {
         <div className="min-w-0 flex-1">
           <p className="text-sm text-ink font-semibold">Organising Team</p>
           <p className="text-xs text-sage">
-            {team.length} member{team.length === 1 ? "" : "s"}. The same participation certificate, to print. They
-            have no email on file, so it is not emailed to them. Their own certificate will come later.
+            {team.length} member{team.length === 1 ? "" : "s"}. Certificate of Service, to print. They have no email
+            on file, so it is not emailed to them.
           </p>
         </div>
         <button
-          onClick={() => void download(team)}
+          onClick={() => void download(team, "organising-team")}
           disabled={team.length === 0 || downloading}
           className="bg-forest text-white font-semibold px-5 py-2 rounded-full text-sm hover:bg-emerald transition-colors disabled:opacity-40"
         >

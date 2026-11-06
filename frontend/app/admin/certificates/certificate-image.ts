@@ -1,37 +1,57 @@
 import JSZip from "jszip";
 
-// Where the name goes on public/certificate/template.png (1801 x 1286 px).
-// Mirrors backend/src/email/certificate-layout.ts, which draws the same name
-// on the emailed PDF — keep the two in step.
-const NAME_LEFT_PX = 366;
-const NAME_BASELINE_PX = 640;
-const NAME_MAX_WIDTH_PX = 1510 - NAME_LEFT_PX;
+export type CertificateKind = "participation" | "organising-team";
+
+// Where the name goes on each template (both 1801 x 1286 px). The
+// participation layout mirrors backend/src/email/certificate-layout.ts, which
+// draws the same name on the emailed PDF — keep the two in step. The
+// Organising Team certificate is download-only, so it exists only here.
+const TEMPLATES: Record<CertificateKind, { src: string; left: number; baseline: number; maxWidth: number }> = {
+  participation: {
+    src: "/certificate/template.png",
+    left: 366,
+    baseline: 640,
+    maxWidth: 1510 - 366,
+  },
+  // Sits on the black rule running from x=100 to x=1388 at y=595.
+  "organising-team": {
+    src: "/certificate/organising-team-template.png",
+    left: 106,
+    baseline: 575,
+    maxWidth: 1388 - 106,
+  },
+};
 const NAME_MAX_FONT_PX = 84;
 const NAME_MIN_FONT_PX = 26;
 const NAME_COLOR = "#1E5A47";
 const FONT_FAMILY = "CertificateName";
 const JPEG_QUALITY = 0.95;
 
-let assets: Promise<HTMLImageElement> | null = null;
+const assets = new Map<CertificateKind, Promise<HTMLImageElement>>();
 
-// The template and the name font, loaded once per page.
-function loadAssets(): Promise<HTMLImageElement> {
-  assets ??= (async () => {
-    const font = new FontFace(FONT_FAMILY, "url(/certificate/name-font.ttf)", { weight: "600" });
-    const image = new Image();
-    image.src = "/certificate/template.png";
-    const [loadedFont] = await Promise.all([font.load(), image.decode()]);
-    document.fonts.add(loadedFont);
-    return image;
-  })().catch((err) => {
-    assets = null;
-    throw err;
-  });
-  return assets;
+// A template and the name font, loaded once per page.
+function loadAssets(kind: CertificateKind): Promise<HTMLImageElement> {
+  let pending = assets.get(kind);
+  if (!pending) {
+    pending = (async () => {
+      const font = new FontFace(FONT_FAMILY, "url(/certificate/name-font.ttf)", { weight: "600" });
+      const image = new Image();
+      image.src = TEMPLATES[kind].src;
+      const [loadedFont] = await Promise.all([font.load(), image.decode()]);
+      document.fonts.add(loadedFont);
+      return image;
+    })().catch((err) => {
+      assets.delete(kind);
+      throw err;
+    });
+    assets.set(kind, pending);
+  }
+  return pending;
 }
 
-async function renderCertificate(name: string): Promise<Blob> {
-  const image = await loadAssets();
+async function renderCertificate(name: string, kind: CertificateKind): Promise<Blob> {
+  const { left, baseline, maxWidth } = TEMPLATES[kind];
+  const image = await loadAssets(kind);
   const canvas = document.createElement("canvas");
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -44,13 +64,13 @@ async function renderCertificate(name: string): Promise<Blob> {
   // Longest names shrink to fit the line instead of running off the page.
   const widthAtMax = ctx.measureText(displayName).width;
   const fontPx =
-    widthAtMax > NAME_MAX_WIDTH_PX
-      ? Math.max(NAME_MIN_FONT_PX, Math.floor((NAME_MAX_FONT_PX * NAME_MAX_WIDTH_PX) / widthAtMax))
+    widthAtMax > maxWidth
+      ? Math.max(NAME_MIN_FONT_PX, Math.floor((NAME_MAX_FONT_PX * maxWidth) / widthAtMax))
       : NAME_MAX_FONT_PX;
   ctx.font = `600 ${fontPx}px ${FONT_FAMILY}`;
   ctx.fillStyle = NAME_COLOR;
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(displayName, NAME_LEFT_PX, NAME_BASELINE_PX);
+  ctx.fillText(displayName, left, baseline);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -77,10 +97,10 @@ function saveBlob(blob: Blob, filename: string) {
 }
 
 // One person downloads as a JPEG; several download together as a zip.
-export async function downloadCertificates(names: string[]) {
+export async function downloadCertificates(names: string[], kind: CertificateKind = "participation") {
   if (names.length === 0) return;
   if (names.length === 1) {
-    saveBlob(await renderCertificate(names[0]), `certificate-${fileSafe(names[0])}.jpg`);
+    saveBlob(await renderCertificate(names[0], kind), `certificate-${fileSafe(names[0])}.jpg`);
     return;
   }
   const zip = new JSZip();
@@ -89,7 +109,7 @@ export async function downloadCertificates(names: string[]) {
     let base = `certificate-${fileSafe(name)}`;
     for (let n = 2; used.has(base); n++) base = `certificate-${fileSafe(name)}-${n}`;
     used.add(base);
-    zip.file(`${base}.jpg`, await renderCertificate(name));
+    zip.file(`${base}.jpg`, await renderCertificate(name, kind));
   }
-  saveBlob(await zip.generateAsync({ type: "blob" }), "certificates.zip");
+  saveBlob(await zip.generateAsync({ type: "blob" }), kind === "organising-team" ? "organising-team-certificates.zip" : "certificates.zip");
 }
