@@ -11,6 +11,7 @@ const MORE_LINKS = [
   { href: "/#faq", label: "FAQ" },
   { href: "/#sponsors", label: "Sponsors" },
   { href: "/volunteer", label: "Join Our Team" },
+  { href: "/feedback", label: "Share Feedback" },
 ];
 
 const SOCIALS = [

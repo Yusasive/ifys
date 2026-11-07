@@ -9,6 +9,7 @@ import {
   TicketProduct,
   VolunteerTeam,
 } from "./api";
+import type { FeedbackAnswers, FeedbackForm, FeedbackRole } from "./feedback-form";
 import { throwApiError } from "./http";
 import { PermissionKey } from "./permissions";
 
@@ -1212,4 +1213,20 @@ export function deleteVipGuest(id: string) {
   return adminRequest<{ deleted: true }>(`/admin/tags/vips/${id}`, {
     method: "DELETE",
   });
+}
+
+export interface FeedbackSubmissionRow {
+  id: string;
+  role: FeedbackRole;
+  name: string | null;
+  email: string | null;
+  answers: FeedbackAnswers;
+  testimonialConsent: boolean | null;
+  createdAt: string;
+}
+
+export function fetchFeedback(eventSlug: string) {
+  return adminRequest<{ form: FeedbackForm; submissions: FeedbackSubmissionRow[] }>(
+    `/admin/feedback?event=${encodeURIComponent(eventSlug)}`,
+  );
 }

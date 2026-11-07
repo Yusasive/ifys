@@ -10,7 +10,9 @@ const newsreader = Newsreader({
   variable: "--font-newsreader",
   subsets: ["latin"],
   style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
+  // Variable font (opsz/wght axes): naming weights makes Turbopack request
+  // several files per face and fail ("queries have exactly one entry").
+  // Omitted, one variable file per style covers every weight.
 });
 
 const inter = Inter({

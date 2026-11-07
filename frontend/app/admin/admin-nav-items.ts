@@ -54,6 +54,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     permission: "certificates.manage",
   },
   {
+    href: "/admin/feedback",
+    label: "Feedback",
+    organizerOnly: true,
+    permission: "feedback.view",
+  },
+  {
     href: "/admin/tickets",
     label: "Tickets",
     organizerOnly: true,

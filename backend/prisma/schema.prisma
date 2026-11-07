@@ -108,6 +108,12 @@ enum CouponDiscountType {
   fixed
 }
 
+enum FeedbackRole {
+  attendee
+  speaker
+  sponsor
+}
+
 enum VolunteerApplicationStatus {
   pending
   approved
@@ -138,6 +144,7 @@ model Event {
   sponsorApplications   SponsorApplication[]
   coupons               Coupon[]
   volunteerApplications VolunteerApplication[]
+  feedbackSubmissions   FeedbackSubmission[]
   emailBroadcasts       EmailBroadcast[]
   committeePositions    CommitteePosition[]
   committeeMembers      CommitteeMember[]
@@ -666,4 +673,23 @@ model EmailUnsubscribe {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("email_unsubscribes")
+}
+
+// A response to the Stakeholder Feedback Form (/feedback). Anonymous by
+// default: name and email are optional. The answers are validated against
+// src/feedback/feedback-form.ts and stored as { questionId: answer }.
+model FeedbackSubmission {
+  id                 String       @id @default(uuid())
+  eventId            String       @map("event_id")
+  role               FeedbackRole
+  name               String?
+  email              String?
+  answersJson        Json         @map("answers_json")
+  testimonialConsent Boolean?     @map("testimonial_consent")
+  createdAt          DateTime     @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@index([eventId, createdAt])
+  @@map("feedback_submissions")
 }

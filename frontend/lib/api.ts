@@ -1,3 +1,4 @@
+import type { FeedbackAnswers, FeedbackForm, FeedbackRole } from "./feedback-form";
 import { throwApiError } from "./http";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
@@ -268,6 +269,27 @@ export async function uploadSponsorApplicationLogo(uploadUrl: string, file: File
   if (!res.ok) {
     throw new Error("Failed to upload logo");
   }
+}
+
+export function fetchFeedbackForm() {
+  return request<FeedbackForm>("/feedback/form");
+}
+
+export interface CreateFeedbackPayload {
+  eventSlug: string;
+  role: FeedbackRole;
+  answers: FeedbackAnswers;
+  consent?: string;
+  name?: string;
+  email?: string;
+  website?: string; // honeypot
+}
+
+export function createFeedback(payload: CreateFeedbackPayload) {
+  return request<{ id: string }>("/feedback", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function subscribeToNewsletter(email: string) {

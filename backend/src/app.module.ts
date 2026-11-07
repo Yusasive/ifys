@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { FeedbackModule } from './feedback/feedback.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -54,6 +55,7 @@ import { configValidationSchema } from './config-validation';
     BroadcastsModule,
     TagsModule,
     CertificatesModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [
