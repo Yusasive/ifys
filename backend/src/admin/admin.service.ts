@@ -233,9 +233,6 @@ export class AdminService {
     return computeAnalytics(rows);
   }
 
-  // Emails a payment reminder to everyone who has been pending for a while
-  // and hasn't been reminded in the last 24 hours (the automatic reminder at
-  // 24h counts). Returns how many were queued.
   async remindPendingPayments(actorId: string, olderThanHours: number) {
     const now = Date.now();
     const pending = await this.prisma.registration.findMany({
@@ -383,10 +380,6 @@ export class AdminService {
     return updated;
   }
 
-  // For a buyer who typed an address that doesn't work. Every registration
-  // has its own attendee row, so this only changes this one registration;
-  // ticket, reminder and broadcast emails all read the address at send
-  // time, so a "Resend ticket" afterwards goes to the new one.
   async changeAttendeeEmail(
     registrationId: string,
     actorId: string,
@@ -445,10 +438,6 @@ export class AdminService {
     return { resent: true };
   }
 
-  // One-time bulk resend after the event date moved (Nov 7 -> Nov 5). Every
-  // non-void ticket gets its existing QR code and ticket code re-emailed with
-  // a short date-update note. Each send is recorded in the audit log, which
-  // is also how a second run knows to skip people who already got it.
   private async findEventBySlug(eventSlug: string) {
     if (!eventSlug) {
       throw new BadRequestException('Query parameter "event" is required.');
@@ -524,12 +513,6 @@ export class AdminService {
     return { queued: pending.length };
   }
 
-  // Delivery status of one kind of ticket email for every valid ticket of
-  // the event. "untracked" means it went out before tracking existed and
-  // Redis no longer knows the outcome; "not_sent" (new-date and WhatsApp
-  // emails) means it was never queued for that ticket; "broadcast"
-  // (WhatsApp only) means they got the link in an earlier hand-sent
-  // WhatsApp broadcast from the Messages page.
   async getTicketEmailDeliveries(eventSlug: string, kind: TicketEmailKind) {
     const event = await this.findEventBySlug(eventSlug);
     const tickets = await this.prisma.ticket.findMany({
@@ -600,11 +583,6 @@ export class AdminService {
     return { total: rows.length, summary, rows };
   }
 
-  // Tickets whose holder got the WhatsApp link in an earlier broadcast
-  // (one whose button or body links to chat.whatsapp.com). Broadcasts don't
-  // keep a per-recipient sent list, so their audience is re-resolved,
-  // limited to tickets issued before the broadcast went out, minus the
-  // recipients it still failed for.
   private async whatsAppBroadcastTicketIds(eventId: string) {
     const broadcasts = await this.prisma.emailBroadcast.findMany({
       where: {
@@ -696,9 +674,6 @@ export class AdminService {
     return { queued: targets.length };
   }
 
-  // Sends the WhatsApp invite to the given tickets, or to every valid
-  // ticket holder who hasn't got it yet (never sent, or failed) — the way
-  // to catch up people who registered before the link was set.
   private async sendWhatsAppInvites(
     eventSlug: string,
     actorId: string,

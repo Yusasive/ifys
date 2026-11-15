@@ -23,9 +23,6 @@ export function TicketsRemaining({
   // When set, shows only that category's count (e.g. on the student
   // registration form); otherwise the total across every category.
   category?: Category | null;
-  // "hero" is a larger, bolder treatment sized for the salmon countdown
-  // section background — see app/countdown-section.tsx. "badge" is a small
-  // inline pill for a single ticket card.
   variant?: "default" | "hero" | "badge";
 }) {
   const availability = useTicketAvailability(event);

@@ -63,12 +63,6 @@ function toErrorBody(exception: HttpException): ErrorBody {
   };
 }
 
-/**
- * Gives every error the same `{ statusCode, code, message, fieldErrors? }`
- * shape (message is always a string). Server errors are logged and reported
- * with a request id that is also returned to the client, so a user's report
- * can be matched to the log entry. Unexpected errors never leak internals.
- */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('Exceptions');

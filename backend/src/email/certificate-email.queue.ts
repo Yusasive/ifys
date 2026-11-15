@@ -25,10 +25,6 @@ const MAX_LATE_MS = 24 * 60 * 60 * 1000;
 type CertificateEmailJob =
   { kind: 'dispatch' } | { kind: 'send'; ticketId: string };
 
-// Certificates go to everyone successfully registered — a paid registration
-// with a live ticket, in any category — whether or not they were checked in.
-// Same rule as the registrant name tags: students still awaiting ID review
-// have no ticket yet, and voided tickets are left out.
 export function registeredTicketWhere(eventId: string) {
   return {
     status: { not: 'void' as const },
@@ -36,10 +32,6 @@ export function registeredTicketWhere(eventId: string) {
   };
 }
 
-// Emails each registered attendee their certificate PDF, automatically at
-// the configured time. Each outcome is recorded as the ticket's `certificate`
-// TicketEmailDelivery row, which also keeps a repeat dispatch from emailing
-// anyone twice.
 @Injectable()
 export class CertificateEmailQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CertificateEmailQueue.name);

@@ -59,9 +59,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     };
   }, [drawerOpen]);
 
-  // The login page is the one route in this tree a signed-in user can still
-  // land on (stale bookmark, back button) — it must never show the
-  // logged-in chrome around it, regardless of session state.
   if (pathname === "/admin/login" || loading || !session) {
     return <>{children}</>;
   }

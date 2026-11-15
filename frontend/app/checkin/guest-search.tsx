@@ -8,9 +8,6 @@ import { CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;
 
-// Fallback for guests without their ticket: find them by name or email and
-// check them in from the result. Needs a connection — the offline list only
-// holds hashes of the codes, not searchable details.
 export function GuestSearch({
   online,
   disabled,

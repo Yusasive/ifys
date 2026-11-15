@@ -158,10 +158,6 @@ export class SpeakersService {
       where: { id },
       data: {
         name: dto.name,
-        // Re-derive the slug whenever the name changes, so it never drifts
-        // out of sync with what's displayed; existing links to the old
-        // slug will 404, but this is an admin-managed lineup, not
-        // long-lived user content.
         slug:
           dto.name && dto.name !== existing.name
             ? await this.generateUniqueSlug(dto.name, id)

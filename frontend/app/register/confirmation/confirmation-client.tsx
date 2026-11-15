@@ -15,9 +15,6 @@ import { StatusCard } from "@/app/status-card";
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 30; // ~60s
 
-// Matches the event details hardcoded on the home page and /register —
-// there's no per-registration event fetch on this page, so these stay
-// in sync with backend/prisma/seed.ts's startsAt (2026-11-05T09:00 WAT).
 const EVENT_NAME = "Islamic Finance Youth Summit 2026";
 const EVENT_VENUE = "Ilorin Innovation Hub";
 const EVENT_DATE_LABEL = "5 Nov 2026";
@@ -70,11 +67,6 @@ export function ConfirmationClient() {
 
     let cancelled = false;
 
-    // Best-effort nudge: ask the backend to check with Paystack directly
-    // right away, instead of just sitting on the poll below waiting for a
-    // webhook that may be slow, misconfigured, or never arrive. If this
-    // fails or the webhook already settled it, the poll loop below is
-    // still the source of truth either way.
     void verifyRegistrationPayment(registrationId, lookupToken).catch(() => {});
 
     async function poll() {
@@ -108,9 +100,6 @@ export function ConfirmationClient() {
     return () => {
       cancelled = true;
     };
-    // Poll survives a page refresh because it's driven entirely by reads
-    // (GET /registrations/:id) — nothing here mutates state or reissues
-    // a ticket, so refreshing this page can never duplicate anything.
   }, [registrationId, lookupToken]);
 
   if (state === "error" || !registrationId || !lookupToken) {
@@ -218,4 +207,3 @@ export function ConfirmationClient() {
     </StatusCard>
   );
 }
-

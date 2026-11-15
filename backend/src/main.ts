@@ -39,10 +39,6 @@ async function bootstrap() {
   );
   await app.listen(process.env.PORT ?? 3000);
 
-  // The ALB keeps idle connections to the API open for 60s, but Node closes
-  // them after 5s by default. When the ALB reuses one Node just closed, the
-  // request fails with a 502 (and no CORS headers), so Node must hold idle
-  // connections longer than the ALB does.
   const server = app.getHttpServer();
   server.keepAliveTimeout = 65_000;
   server.headersTimeout = 66_000;

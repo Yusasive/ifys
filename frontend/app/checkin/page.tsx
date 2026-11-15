@@ -2,7 +2,12 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchCheckInStatus, scan, undoCheckIn, CheckInStatus } from "@/lib/checkin-api";
+import {
+  fetchCheckInStatus,
+  scan,
+  undoCheckIn,
+  CheckInStatus,
+} from "@/lib/checkin-api";
 import { useAdminAuth, useRequireAdminAuth } from "@/lib/admin-auth-context";
 import { getStationId, getStationName, setStationName } from "@/lib/station-id";
 import { CATEGORY_LABELS, TIER_LABELS } from "@/lib/format";
@@ -34,9 +39,6 @@ const SYNC_INTERVAL_MS = 10_000;
 const INDEX_REFRESH_INTERVAL_MS = 60_000;
 // An offline list older than this is flagged so staff know how much to trust it.
 const STALE_INDEX_MS = 10 * 60_000;
-// The camera re-reads the same QR on every frame; after a scan the same code
-// is ignored for this long so a lingering ticket can't trigger a second
-// request (which would come back "already used" and replace a valid result).
 const CAMERA_DEDUPE_MS = 6000;
 // Matches the server's undo window; after this an organizer has to review it.
 const UNDO_WINDOW_MS = 2 * 60_000;
@@ -67,12 +69,16 @@ function shouldFallBackOffline(err: unknown): boolean {
 }
 
 function isStale(lastSyncAt: string | null): boolean {
-  return !lastSyncAt || Date.now() - new Date(lastSyncAt).getTime() > STALE_INDEX_MS;
+  return (
+    !lastSyncAt || Date.now() - new Date(lastSyncAt).getTime() > STALE_INDEX_MS
+  );
 }
 
 function formatAgo(lastSyncAt: string | null): string {
   if (!lastSyncAt) return "never";
-  const minutes = Math.round((Date.now() - new Date(lastSyncAt).getTime()) / 60_000);
+  const minutes = Math.round(
+    (Date.now() - new Date(lastSyncAt).getTime()) / 60_000,
+  );
   return minutes < 1 ? "just now" : `${minutes} min ago`;
 }
 
@@ -90,7 +96,10 @@ export default function CheckInPage() {
   const [pendingCount, setPendingCount] = useState(0);
   const [problems, setProblems] = useState<SyncProblem[]>([]);
   const [showProblems, setShowProblems] = useState(false);
-  const [indexInfo, setIndexInfo] = useState<{ size: number; lastSyncAt: string | null } | null>(null);
+  const [indexInfo, setIndexInfo] = useState<{
+    size: number;
+    lastSyncAt: string | null;
+  } | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   // Set synchronously: React state would only flip after a re-render, and
   // several camera frames can fire before that.
@@ -147,9 +156,6 @@ export default function CheckInPage() {
     applyLocalState(await loadLocalState());
   }
 
-  // Upload queued offline scans, then refresh the local ticket list — in that
-  // order, so a refresh can never overwrite check-ins this station hasn't
-  // synced yet. This is the "sync on reconnect" half of TRD §8.
   useEffect(() => {
     if (!session || !online) return;
     let cancelled = false;
@@ -167,7 +173,8 @@ export default function CheckInPage() {
       } catch (err) {
         // Scans stay queued and retry on the next tick, but tell the
         // operator so a stuck queue isn't invisible.
-        if (!cancelled) setSyncError(describeError(err, "Sync failed. Retrying…"));
+        if (!cancelled)
+          setSyncError(describeError(err, "Sync failed. Retrying…"));
       } finally {
         running = false;
         if (!cancelled) await reloadLocalState();
@@ -189,7 +196,11 @@ export default function CheckInPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
 
-  async function runScan(params: { qrToken?: string; shortCode?: string; ticketId?: string }) {
+  async function runScan(params: {
+    qrToken?: string;
+    shortCode?: string;
+    ticketId?: string;
+  }) {
     if (!session || busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
@@ -218,7 +229,10 @@ export default function CheckInPage() {
         finish(
           res,
           res.result === "valid_first_use"
-            ? { name: res.attendee.fullName, online: { ticketId: res.ticketId } }
+            ? {
+                name: res.attendee.fullName,
+                online: { ticketId: res.ticketId },
+              }
             : undefined,
         );
         return;
@@ -233,12 +247,11 @@ export default function CheckInPage() {
       }
     }
 
-    // Offline path: resolve locally against the last-downloaded snapshot.
-    // Name-search results are identified by ticket id, which the offline
-    // queue cannot sync — those need a connection.
     if (params.ticketId) {
       release();
-      setError("Can't check in by name while offline. Scan the QR code or enter the short code.");
+      setError(
+        "Can't check in by name while offline. Scan the QR code or enter the short code.",
+      );
       return;
     }
     const entry = await lookupLocal(params);
@@ -301,7 +314,10 @@ export default function CheckInPage() {
     try {
       if (undoTarget.online) await undoCheckIn(undoTarget.online.ticketId);
       else if (undoTarget.offline) {
-        await undoOfflineScan(undoTarget.offline.clientScanId, undoTarget.offline.codeHash);
+        await undoOfflineScan(
+          undoTarget.offline.clientScanId,
+          undoTarget.offline.codeHash,
+        );
       }
       setUndoTarget(null);
       setError(null);
@@ -320,7 +336,10 @@ export default function CheckInPage() {
   function handleCameraDetect(text: string) {
     const last = lastCameraScan.current;
     const now = Date.now();
-    if (busyRef.current || (last && last.code === text && now - last.at < CAMERA_DEDUPE_MS)) {
+    if (
+      busyRef.current ||
+      (last && last.code === text && now - last.at < CAMERA_DEDUPE_MS)
+    ) {
       return;
     }
     lastCameraScan.current = { code: text, at: now };
@@ -341,11 +360,16 @@ export default function CheckInPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 border-b border-rust/20 pb-4">
         <div className="flex flex-wrap items-center gap-2 font-plex text-sm text-emerald/70">
           <span className="font-medium text-emerald">
-            {status ? `${status.checkedIn} / ${status.totalTickets} checked in` : "…"}
+            {status
+              ? `${status.checkedIn} / ${status.totalTickets} checked in`
+              : "…"}
           </span>
 
           {editingStation ? (
-            <form onSubmit={handleStationSave} className="inline-flex items-center gap-1">
+            <form
+              onSubmit={handleStationSave}
+              className="inline-flex items-center gap-1"
+            >
               <input
                 autoFocus
                 value={stationName}
@@ -354,7 +378,10 @@ export default function CheckInPage() {
                 aria-label="Station name"
                 className="w-32 rounded-full border border-rust/50 px-3 py-1 text-xs text-emerald focus:outline-none"
               />
-              <button type="submit" className="text-xs font-semibold text-rust underline">
+              <button
+                type="submit"
+                className="text-xs font-semibold text-rust underline"
+              >
                 Save
               </button>
             </form>
@@ -411,20 +438,30 @@ export default function CheckInPage() {
         <details className="mb-4 max-w-md mx-auto w-full text-sm text-emerald/80">
           <summary className="cursor-pointer text-center font-medium">
             {Object.entries(
-              status.groups.reduce<Record<string, [number, number]>>((acc, g) => {
-                const [done, total] = acc[g.category] ?? [0, 0];
-                acc[g.category] = [done + g.checkedIn, total + g.total];
-                return acc;
-              }, {}),
+              status.groups.reduce<Record<string, [number, number]>>(
+                (acc, g) => {
+                  const [done, total] = acc[g.category] ?? [0, 0];
+                  acc[g.category] = [done + g.checkedIn, total + g.total];
+                  return acc;
+                },
+                {},
+              ),
             )
-              .map(([cat, [done, total]]) => `${CATEGORY_LABELS[cat] ?? cat} ${done}/${total}`)
+              .map(
+                ([cat, [done, total]]) =>
+                  `${CATEGORY_LABELS[cat] ?? cat} ${done}/${total}`,
+              )
               .join(" · ")}
           </summary>
           <ul className="mt-2 flex flex-col gap-1">
             {status.groups.map((g) => (
-              <li key={`${g.category}:${g.tier}`} className="flex justify-between">
+              <li
+                key={`${g.category}:${g.tier}`}
+                className="flex justify-between"
+              >
                 <span>
-                  {CATEGORY_LABELS[g.category] ?? g.category} · {TIER_LABELS[g.tier] ?? g.tier}
+                  {CATEGORY_LABELS[g.category] ?? g.category} ·{" "}
+                  {TIER_LABELS[g.tier] ?? g.tier}
                 </span>
                 <span className="font-medium">
                   {g.checkedIn} / {g.total}
@@ -458,16 +495,28 @@ export default function CheckInPage() {
       )}
 
       {indexInfo && indexInfo.size === 0 && (
-        <p role="alert" className="mb-4 text-center text-sm text-rust max-w-md mx-auto">
-          No offline ticket list on this device yet. {online ? "Downloading…" : "Reconnect to download it — offline scans can't be verified until then."}
+        <p
+          role="alert"
+          className="mb-4 text-center text-sm text-rust max-w-md mx-auto"
+        >
+          No offline ticket list on this device yet.{" "}
+          {online
+            ? "Downloading…"
+            : "Reconnect to download it — offline scans can't be verified until then."}
         </p>
       )}
-      {indexInfo && indexInfo.size > 0 && !online && isStale(indexInfo.lastSyncAt) && (
-        <p role="alert" className="mb-4 text-center text-sm text-rust max-w-md mx-auto">
-          Offline list last updated {formatAgo(indexInfo.lastSyncAt)} — recent changes
-          (voided or reissued tickets) may be missing.
-        </p>
-      )}
+      {indexInfo &&
+        indexInfo.size > 0 &&
+        !online &&
+        isStale(indexInfo.lastSyncAt) && (
+          <p
+            role="alert"
+            className="mb-4 text-center text-sm text-rust max-w-md mx-auto"
+          >
+            Offline list last updated {formatAgo(indexInfo.lastSyncAt)} — recent
+            changes (voided or reissued tickets) may be missing.
+          </p>
+        )}
 
       {scanning ? (
         <div className="max-w-md mx-auto w-full">
@@ -497,7 +546,10 @@ export default function CheckInPage() {
         onCheckIn={(ticketId) => void runScan({ ticketId })}
       />
 
-      <form onSubmit={handleManualSubmit} className="mt-6 flex flex-col sm:flex-row gap-3 max-w-md mx-auto w-full">
+      <form
+        onSubmit={handleManualSubmit}
+        className="mt-6 flex flex-col sm:flex-row gap-3 max-w-md mx-auto w-full"
+      >
         <label htmlFor="manual-check-in-code" className="sr-only">
           Manual check-in code
         </label>
@@ -518,13 +570,19 @@ export default function CheckInPage() {
       </form>
 
       {syncError && (
-        <p role="alert" className="mt-4 text-center text-sm text-rust max-w-md mx-auto">
+        <p
+          role="alert"
+          className="mt-4 text-center text-sm text-rust max-w-md mx-auto"
+        >
           Offline scans could not sync: {syncError}
         </p>
       )}
 
       {error && (
-        <p role="alert" className="mt-4 text-center text-sm text-red-600 max-w-md mx-auto">
+        <p
+          role="alert"
+          className="mt-4 text-center text-sm text-red-600 max-w-md mx-auto"
+        >
           {error}
         </p>
       )}

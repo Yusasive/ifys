@@ -113,9 +113,6 @@ describe('WhatsApp invite emails (integration)', () => {
     });
     productId = product.id;
 
-    // "reached" and "bounced" had tickets when a hand-sent WhatsApp
-    // broadcast went out; it still failed for "bounced". "later" registered
-    // after it.
     const issuedAt = new Date(Date.now() - 60 * 60 * 1000);
     for (const key of ['reached', 'bounced', 'later']) {
       const registration = await createRegistration(key, 'paid');

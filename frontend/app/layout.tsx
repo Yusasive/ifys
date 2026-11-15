@@ -10,9 +10,6 @@ const newsreader = Newsreader({
   variable: "--font-newsreader",
   subsets: ["latin"],
   style: ["normal", "italic"],
-  // Variable font (opsz/wght axes): naming weights makes Turbopack request
-  // several files per face and fail ("queries have exactly one entry").
-  // Omitted, one variable file per style covers every weight.
 });
 
 const inter = Inter({
@@ -29,9 +26,6 @@ const spaceMono = Space_Mono({
 const bricolageGrotesque = Bricolage_Grotesque({
   variable: "--font-bricolage-grotesque",
   subsets: ["latin"],
-  // Variable font (opsz/wdth/wght axes): naming weights makes Turbopack's
-  // production build request several files per face and fail. Omitted, one
-  // variable file covers every weight.
 });
 
 const ibmPlexMono = IBM_Plex_Mono({

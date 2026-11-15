@@ -18,11 +18,6 @@ function formatEventDate(iso: string) {
   });
 }
 
-// Super-admin only. One-time action after the summit moved from Nov 7 to
-// Nov 5: re-emails every valid ticket holder their existing ticket (same QR
-// code, same ticket code) with the corrected date and a short note. People
-// who already got it are skipped, so it's safe to press again later for
-// tickets bought in between.
 export function DateUpdateResendPanel({ eventSlug }: { eventSlug: string }) {
   const toast = useToast();
   const [status, setStatus] = useState<DateUpdateResendStatus | null>(null);

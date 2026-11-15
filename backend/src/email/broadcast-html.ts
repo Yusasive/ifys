@@ -1,9 +1,6 @@
 import sanitizeHtml from 'sanitize-html';
 import { escapeHtml, INK, ORANGE } from './email-shell';
 
-// The admin Messages page sends rich-text HTML from its editor. Everything
-// outside this allowlist is dropped server-side before the body is stored
-// or sent — the editor's own output is never trusted as-is.
 const ALLOWED_TAGS = [
   'p',
   'br',
@@ -80,9 +77,6 @@ export interface BroadcastBodyData {
   ctaUrl?: string | null;
 }
 
-// Renders the inner (white card) content of a broadcast for one recipient.
-// bodyHtml must already be sanitized; {{name}} is replaced with the
-// recipient's escaped first name.
 export function renderBroadcastBodyHtml(data: BroadcastBodyData): string {
   const firstName = data.recipientName.trim().split(/\s+/)[0] || 'there';
   const personalized = data.bodyHtml.replace(

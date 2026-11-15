@@ -148,9 +148,6 @@ export interface Registration {
   ticket: { ticketCode: string; status: string; qrDataUrl: string } | null;
 }
 
-// Only present in the response right after creation — proves ownership
-// of this registration on subsequent lookups/checkout, since the id
-// alone isn't treated as a sufficient secret.
 export interface CreatedRegistration extends Registration {
   lookupToken: string;
 }
@@ -181,11 +178,6 @@ export function createCheckout(registrationId: string, token: string) {
   );
 }
 
-// Actively asks the backend to re-check this registration's payment with
-// Paystack directly, instead of only ever waiting for the webhook to have
-// already settled it — the confirmation page calls this once on load as a
-// fast-path/fallback for when the webhook is slow, misconfigured, or never
-// arrives.
 export function verifyRegistrationPayment(registrationId: string, token: string) {
   return request<{ status: string }>(
     `/registrations/${registrationId}/verify-payment?token=${encodeURIComponent(token)}`,

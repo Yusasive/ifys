@@ -16,10 +16,6 @@ export class StorageService {
 
   constructor(private readonly config: ConfigService) {
     this.bucket = this.config.getOrThrow<string>('S3_BUCKET');
-    // Local dev (MinIO) needs explicit static credentials. On ECS, no
-    // S3_ACCESS_KEY_ID is set and the SDK's default credential chain picks
-    // up the task role's temporary credentials instead — no long-lived
-    // secret to store or rotate in production.
     const accessKeyId = this.config.get<string>('S3_ACCESS_KEY_ID');
     const secretAccessKey = this.config.get<string>('S3_SECRET_ACCESS_KEY');
     this.client = new S3Client({

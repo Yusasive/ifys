@@ -74,10 +74,6 @@ export default async function SpeakerPage({ params }: SpeakerPageParams) {
 
           <div className="mt-10 bg-white rounded-2xl border border-line/60 p-6 sm:p-10">
             {speaker.bio ? (
-              // whitespace-pre-wrap keeps the bio exactly as the admin typed
-              // it (line breaks and spacing included) instead of collapsing
-              // it, so the admin-side textarea is a true WYSIWYG preview of
-              // this page.
               <p className="whitespace-pre-wrap font-sans text-base sm:text-lg leading-relaxed text-ink">
                 {speaker.bio}
               </p>

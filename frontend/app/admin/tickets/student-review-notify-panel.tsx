@@ -5,10 +5,6 @@ import { AdminUserListItem, listAdminUsers, updateAdminUser } from "@/lib/admin-
 import { describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 
-// Notification recipients are organizer/door_staff accounts only —
-// super_admin accounts can't be edited through PATCH /admin/users/:id
-// (see AdminService.updateAdminUser), so they're left out of this list
-// rather than shown as a toggle that would always fail to save.
 export function StudentReviewNotifyPanel() {
   const toast = useToast();
   const [users, setUsers] = useState<AdminUserListItem[]>([]);

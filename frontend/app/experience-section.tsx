@@ -27,9 +27,6 @@ const DESKTOP_PILLS: Pill[] = [
   { label: "Networking", tone: "sage", rotate: -70, top: "66%", left: "76%", width: "14%" },
 ];
 
-// Desktop diagram viewBox height (100 * 594/1646) keeps the SVG's aspect
-// ratio identical to its container, so curves and arrowheads don't get
-// stretched non-uniformly and skew out of shape/direction.
 const DESKTOP_VIEWBOX_H = 36.09;
 const DESKTOP_ARROWS = [
   "M50,4.7 C44,1.4 33,0.7 24,2.9",

@@ -70,9 +70,6 @@ let dbPromise: Promise<IDBPDatabase<CheckInDB>> | null = null;
 function getDb() {
   dbPromise ??= openDB<CheckInDB>("ify-checkin", 3, {
     upgrade(db, oldVersion) {
-      // Older indexes lack ticketId (v1) or the name-tag lines (v2); drop
-      // them so the next sync downloads a complete list in the current
-      // shape. The queue and saved sync problems are kept.
       if (oldVersion >= 1) {
         // The v1 store name is valid at runtime but not in the v2 schema type.
         (db as unknown as IDBPDatabase).deleteObjectStore("index");
@@ -92,11 +89,6 @@ function getDb() {
   return dbPromise;
 }
 
-/**
- * Applies a download from the server. A full list replaces the local copy; a
- * delta is merged in. Either way, entries marked used locally but not yet
- * synced keep their status, and a reissued ticket's old hashes are removed.
- */
 export async function applyIndexUpdate(
   entries: LocalIndexEntry[],
   update: { full: boolean; syncedAt: string },
@@ -161,10 +153,6 @@ export async function lookupLocal(params: {
   return db.get("index", hash);
 }
 
-// Marks a ticket used in the LOCAL snapshot only — prevents the same
-// offline station from accepting a second scan of a code it already
-// admitted, before the real cross-station conflict check can happen at
-// sync time.
 export async function markLocalUsed(codeHash: string) {
   const db = await getDb();
   const entry = await db.get("index", codeHash);

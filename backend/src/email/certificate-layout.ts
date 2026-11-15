@@ -1,6 +1,3 @@
-// Where the recipient's name goes on assets/certificate-template.png (1801 x
-// 1286 px). Mirrored by frontend/app/admin/certificates/certificate-image.ts,
-// which draws the same name for the JPEG downloads — keep the two in step.
 export const CERTIFICATE_WIDTH_PX = 1801;
 export const CERTIFICATE_HEIGHT_PX = 1286;
 

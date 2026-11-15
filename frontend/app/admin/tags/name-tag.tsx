@@ -24,9 +24,6 @@ export const SECTION_COLORS: Record<TagSection, string> = {
   vips: "#a95641", // rust
 };
 
-// One label from a label-printer roll, stuck onto the pre-printed badge
-// card. Laid out in millimetres so the printed size is exact regardless of
-// screen DPI.
 const STICKER_WIDTH_MM = 90;
 const STICKER_HEIGHT_MM = 40;
 
@@ -166,9 +163,6 @@ export const PRINT_LAYOUTS: { key: PrintLayout; label: string }[] = [
   { key: "a3", label: `A3 sheets (${SHEETS.a3.columns * SHEETS.a3.rows} per page)` },
 ];
 
-// Full-size stickers. Rendered straight under <body> so the print stylesheet
-// can hide everything else (the admin shell included). Only rendered after a
-// Print click, so `document` is always available.
 export function NameTagPrintSheet({
   tags,
   qrSrc,
@@ -346,9 +340,6 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: "image/png" | "image/jpeg
   });
 }
 
-// Label layout: one image per tag. A4/A3: one image per full page.
-// A single file downloads directly; several come as a zip, except PDF,
-// which is always one multi-page document.
 export async function downloadNameTags(
   tags: NameTag[],
   qrSrc: string | null,

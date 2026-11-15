@@ -97,10 +97,6 @@ export class TicketEmailQueue implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // Before delivery tracking existed, this queue never cleared finished
-  // jobs, so Redis still knows which ticket emails went out and which
-  // failed. Fill in tickets that have no delivery row yet from the latest
-  // such job; rows written since tracking began always win.
   private async backfillDeliveries() {
     try {
       const jobs = (await this.queue.getJobs(['completed', 'failed']))

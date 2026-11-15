@@ -71,9 +71,6 @@ export class PaymentsService {
           registration.ticketProduct.category,
         )
         .catch(() => null);
-      // The code stopped being redeemable since registration (expired,
-      // deactivated, limit hit) — drop it so settlement doesn't count a
-      // redemption for a discount that was never applied.
       if (!coupon) {
         await this.prisma.registration.update({
           where: { id: registration.id },
@@ -132,10 +129,6 @@ export class PaymentsService {
     return { authorizationUrl, reference };
   }
 
-  // Nothing to charge (e.g. a 100% coupon), so Paystack is skipped
-  // entirely — it rejects zero-amount transactions. The order is settled
-  // right here and the client is sent straight to the confirmation page,
-  // which then sees the registration as paid/pending_review as usual.
   private async completeFreeCheckout(
     registrationId: string,
     currency: string,

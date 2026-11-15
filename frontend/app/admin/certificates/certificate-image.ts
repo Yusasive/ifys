@@ -2,10 +2,6 @@ import JSZip from "jszip";
 
 export type CertificateKind = "participation" | "organising-team";
 
-// Where the name goes on each template (both 1801 x 1286 px). The
-// participation layout mirrors backend/src/email/certificate-layout.ts, which
-// draws the same name on the emailed PDF — keep the two in step. The
-// Organising Team certificate is download-only, so it exists only here.
 const TEMPLATES: Record<CertificateKind, { src: string; left: number; baseline: number; maxWidth: number }> = {
   participation: {
     src: "/certificate/template.png",

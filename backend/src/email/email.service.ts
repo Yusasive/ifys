@@ -71,11 +71,6 @@ export class EmailService implements OnApplicationShutdown {
 
       secure: port === 465,
       auth: user && password ? { user, pass: password } : undefined,
-      // One shared, rate-limited connection pool for every queue. Without
-      // it each email opened (and authenticated) its own SMTP connection,
-      // so a broadcast plus ticket emails at the same moment hit the SMTP
-      // server as an unthrottled burst of logins and sends, and the provider
-      // rejected some.
       pool: true,
       maxConnections: 2,
       rateDelta: 1000,
@@ -92,11 +87,6 @@ export class EmailService implements OnApplicationShutdown {
     }
   }
 
-  // The pooled connections stay open while idle, which kept the process
-  // alive after shutdown — Jest never exited, so `git push` hung. Closed at
-  // application shutdown, which runs after every queue worker's
-  // onModuleDestroy has finished its last job — closing any earlier let a
-  // worker's final send reopen a connection.
   onApplicationShutdown() {
     this.transporter.close();
   }
@@ -354,9 +344,6 @@ export class EmailService implements OnApplicationShutdown {
         unsubscribeUrl: data.unsubscribe?.pageUrl,
       }),
       attachments: this.brandLogoAttachment(),
-      // Lets Gmail/Yahoo show their own "Unsubscribe" button, which POSTs
-      // straight to the URL (RFC 8058) — people use that instead of
-      // "Report spam", which is what hurts deliverability.
       headers: data.unsubscribe && {
         'List-Unsubscribe': `<${data.unsubscribe.oneClickUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

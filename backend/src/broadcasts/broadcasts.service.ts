@@ -71,10 +71,6 @@ export class BroadcastsService {
     return { subject: dto.subject.trim(), bodyHtml, ctaLabel, ctaUrl };
   }
 
-  // Resolves an audience to unique recipients. Attendee emails aren't
-  // unique (one person can register more than once), so recipients are
-  // de-duplicated case-insensitively — nobody gets the same email twice —
-  // and anyone who unsubscribed from broadcasts is left out.
   private async resolveRecipients(
     eventId: string,
     audience: BroadcastAudienceDto,
@@ -115,9 +111,6 @@ export class BroadcastsService {
     };
   }
 
-  // Full email HTML for the admin's in-page preview. The inline cid: logo
-  // only resolves inside a real email, so it's swapped for the copy the
-  // frontend serves.
   async renderPreview(eventSlug: string, dto: BroadcastContentDto) {
     const event = await this.findEvent(eventSlug);
     const content = this.normalizeContent(dto);
@@ -228,10 +221,6 @@ export class BroadcastsService {
     });
   }
 
-  // Re-queues the same message to everyone it failed for. Their failure
-  // rows are removed and failedCount drops back, so they show as "sending"
-  // again and are re-recorded if they fail a second time. Queuing happens
-  // inside the transaction: if it throws, the failures are kept.
   async resendFailed(broadcastId: string, actorId: string) {
     const recipients = await this.prisma.$transaction(async (tx) => {
       const failures = await tx.emailBroadcastFailure.findMany({
@@ -283,9 +272,6 @@ export class BroadcastsService {
     };
   }
 
-  // Setting the link turns the automatic invite on for tickets issued from
-  // now on; people who already have a ticket are caught up from the
-  // Tickets page's delivery panel. null turns it off.
   async updateWhatsAppInvite(
     eventSlug: string,
     whatsappGroupUrl: string | null,

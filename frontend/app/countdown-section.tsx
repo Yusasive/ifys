@@ -26,9 +26,6 @@ function computeTimeLeft(): TimeLeft {
   };
 }
 
-// useSyncExternalStore requires getSnapshot to return a stable reference
-// when the underlying value hasn't changed, so the tick (real) value is
-// cached and only replaced once its components actually change.
 let cachedKey = "";
 let cachedSnapshot: TimeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
 

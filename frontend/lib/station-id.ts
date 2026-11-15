@@ -20,10 +20,6 @@ export function setStationName(name: string) {
   else window.localStorage.removeItem(STATION_NAME_KEY);
 }
 
-// Per-device identity for the door station — not the door staff user (that's
-// the JWT), the physical kiosk/phone doing the scanning. It is what the
-// "first scanned at…" dispute info shows, so a name staff chose ("Main gate")
-// wins over the generated id, which stays as the fallback.
 export function getStationId(): string {
   return getStationName() || generatedId();
 }

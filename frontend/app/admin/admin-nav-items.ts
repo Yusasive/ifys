@@ -5,9 +5,6 @@ export type NavItem = {
   label: string;
   organizerOnly?: boolean;
   superAdminOnly?: boolean;
-  // Checked in addition to (not instead of) the role gates above — lets a
-  // super_admin hide a section for a specific organizer/door_staff even
-  // though their role would normally see it.
   permission?: PermissionKey;
 };
 
@@ -24,10 +21,6 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     organizerOnly: true,
     permission: "messaging.send",
   },
-  // Not gated by a permission key — admin-user management (viewable by
-  // organizer, but only super_admin can create/edit/delete) is deliberately
-  // not itself delegable via the permission system, to prevent an organizer
-  // from ever granting themselves more access.
   { href: "/admin/users", label: "Staff accounts", organizerOnly: true },
   {
     href: "/admin/speakers",

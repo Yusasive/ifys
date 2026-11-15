@@ -17,15 +17,8 @@ import { SiteFooter } from "./site-footer";
 
 const EVENT_SLUG = process.env.NEXT_PUBLIC_EVENT_SLUG ?? "ify-summit-2026";
 
-// Speakers are admin-managed live backend state (and photo URLs are
-// short-lived signed S3 links), so this page must be rendered per-request
-// rather than statically — same reasoning as app/register/page.tsx.
 export const dynamic = "force-dynamic";
 
-// Each loader degrades to an empty section on failure rather than taking
-// the whole homepage down — but that degradation must not be silent, since
-// the Tickets section disappearing (e.g. the backend is down) is a
-// business-critical failure that needs to show up in server logs.
 async function loadSpeakers(): Promise<Speaker[]> {
   try {
     const { speakers } = await listSpeakers(EVENT_SLUG);

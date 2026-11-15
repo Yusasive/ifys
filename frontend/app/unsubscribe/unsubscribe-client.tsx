@@ -7,9 +7,6 @@ import { StatusCard } from "@/app/status-card";
 
 type State = "confirm" | "submitting" | "done" | "error";
 
-// Asks before unsubscribing rather than doing it on page load: link
-// scanners in some mail systems open every link in an email, and would
-// otherwise unsubscribe people who never clicked.
 export function UnsubscribeClient() {
   const searchParams = useSearchParams();
   const email = searchParams.get("e");

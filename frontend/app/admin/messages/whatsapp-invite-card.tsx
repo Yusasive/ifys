@@ -5,9 +5,6 @@ import { getWhatsAppInvite, updateWhatsAppInvite, WhatsAppInviteSettings } from 
 import { ApiError, describeError } from "@/lib/api";
 import { useToast } from "@/lib/toast-context";
 
-// Turns the automatic "join the WhatsApp group" email on (by saving the
-// group link) or off. Who has and hasn't received it is tracked on the
-// Tickets page, which also catches up people who registered earlier.
 export function WhatsAppInviteCard({
   eventSlug,
   onLoaded,

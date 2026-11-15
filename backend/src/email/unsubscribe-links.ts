@@ -1,11 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-// Broadcast unsubscribe links carry the recipient's email plus an HMAC of
-// it, so anyone holding the link can opt that one address out without
-// logging in — and nobody can forge a link for someone else's address.
-// JWT_SECRET is reused as the key, with a prefix so these signatures can
-// never be confused with anything else signed by it.
-
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }

@@ -1,8 +1,5 @@
 import type { AdminRole } from "./admin-api";
 
-// Mirrors backend/src/auth/permissions.ts — keep in sync (same duplication
-// pattern already used for label maps between backend/src/email/labels.ts
-// and this codebase's frontend format helpers).
 export const PERMISSION_KEYS = [
   "registrations.view",
   "registrations.markPaid",

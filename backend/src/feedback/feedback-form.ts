@@ -1,8 +1,3 @@
-// The Stakeholder Feedback Form, as data. This is the single source of truth:
-// GET /feedback/form serves it to the public page (which renders it), and
-// submissions are validated against it, so the two can never drift.
-// Source: "IFY Summit 2026 - Stakeholder Feedback Form.docx".
-
 export const FEEDBACK_ROLES = ['attendee', 'speaker', 'sponsor'] as const;
 export type FeedbackRole = (typeof FEEDBACK_ROLES)[number];
 

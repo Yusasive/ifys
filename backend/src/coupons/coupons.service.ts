@@ -205,10 +205,6 @@ export class CouponsService {
     return Math.max(0, Math.min(raw, priceKobo));
   }
 
-  // Single source of truth for what a registration costs — used both by
-  // the public coupon preview and by checkout, so the total shown on the
-  // review step is exactly what gets charged. The coupon applies on top of
-  // any active early-bird price.
   quote(
     ticketProduct: Pick<
       TicketProduct,

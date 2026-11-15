@@ -1,9 +1,6 @@
 import { Prisma } from '../generated/prisma/client';
 import { BroadcastAudienceDto } from './dto/broadcast-audience.dto';
 
-// The registrations a broadcast audience selects. Shared by sending and by
-// the WhatsApp-invite tracking, which works out who earlier WhatsApp
-// broadcasts went to from their stored audienceJson.
 export function broadcastAudienceWhere(
   eventId: string,
   audience: BroadcastAudienceDto,

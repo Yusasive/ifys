@@ -97,9 +97,6 @@ export interface OfflineIndexResponse {
   full: boolean;
 }
 
-// Tickets are re-sent if they changed within this window before
-// `updatedSince`, so a write that committed just after the previous
-// response was built is never missed. Merging is idempotent.
 const DELTA_OVERLAP_MS = 5000;
 
 function findTicketByLookup(
@@ -180,10 +177,6 @@ export class CheckInsService {
     });
   }
 
-  // Marks the ticket used and records the check-in as one unit: if the
-  // check-in insert fails the claim rolls back, so a ticket can never end
-  // up "used" with no station or time. Returns false when another scan
-  // already claimed it.
   private claimAndRecord(
     ticketId: string,
     checkIn: Prisma.CheckInUncheckedCreateWithoutTicketInput,

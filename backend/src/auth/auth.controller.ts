@@ -50,16 +50,9 @@ export class AuthController {
     const result = await this.auth.login(dto);
     this.setSessionCookie(res, result);
 
-    // Returned in the body, not a cookie: the frontend may be served from a
-    // different origin than the API, and a cookie set by the API's origin
-    // isn't readable via document.cookie from another one. The frontend
-    // keeps this in memory and echoes it as the X-CSRF-Token header.
     return { user: result.user, csrfToken: result.csrfToken };
   }
 
-  // Self-service — currentPassword re-auth means no extra role check is
-  // needed (any signed-in admin can only ever change their own password,
-  // via req.user.sub, never someone else's).
   @UseGuards(JwtAuthGuard, CsrfGuard)
   @Post('change-password')
   async changePassword(

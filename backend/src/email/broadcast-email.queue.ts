@@ -85,9 +85,6 @@ export class BroadcastEmailQueue implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // Jobs that failed before failures were stored in the database are still
-  // in Redis. Copy them over once so those recipients can be resent to too.
-  // They were already counted in failedCount, so only the rows are added.
   private async backfillFailures() {
     try {
       const failed = (await this.queue.getFailed()).filter(

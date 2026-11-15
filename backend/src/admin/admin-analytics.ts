@@ -1,7 +1,3 @@
-// Turns registration rows into the numbers on the admin overview. Pure, so
-// it can be tested without a database — AdminService.getAnalytics only
-// fetches the rows.
-
 const TIME_ZONE = 'Africa/Lagos';
 const NOT_PROVIDED = 'Not provided';
 const BREAKDOWN_LIMIT = 12;

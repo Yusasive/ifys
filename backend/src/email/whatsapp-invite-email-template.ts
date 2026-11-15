@@ -1,7 +1,3 @@
-// The "join the WhatsApp group" email sent to each participant once their
-// ticket is issued. Same wording as the WhatsApp template on the admin
-// Messages page; {{name}} becomes the recipient's first name and the
-// button links to the event's whatsappGroupUrl.
 export const WHATSAPP_INVITE_EMAIL = {
   subject: 'Join the IFY Summit WhatsApp group',
   bodyHtml:

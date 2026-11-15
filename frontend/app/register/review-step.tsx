@@ -117,11 +117,6 @@ export function ReviewStep({
         ...readAttribution(),
       }));
       createdRef.current = created;
-      // Server owns payment initialization end-to-end: it derives the
-      // amount from the ticket product and builds the callback URL, so
-      // the client only ever redirects — it never assembles anything
-      // payment-related itself. A zero total (e.g. a 100% coupon) skips
-      // Paystack and comes back pointing at the confirmation page.
       const { authorizationUrl } = await createCheckout(
         created.id,
         created.lookupToken,

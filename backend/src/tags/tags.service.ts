@@ -15,9 +15,6 @@ import { CreateVipGuestDto } from './dto/create-vip-guest.dto';
 import { UpdateVipGuestDto } from './dto/update-vip-guest.dto';
 import { registrantTagLines } from './tag-details';
 
-// One printed name sticker. `label` is the role group used for filtering
-// on the admin page ("Speaker", "Media Team", ...); `title`/`organization`
-// are the smaller lines printed under the name.
 export interface NameTag {
   id: string;
   name: string;
@@ -64,9 +61,6 @@ export class TagsService {
     return event;
   }
 
-  // Built from live data on every request rather than stored, so a new
-  // ticket, an approved student, a speaker added on the Speakers page or a
-  // corrected name shows up on the next load with nothing to sync.
   async listTags(eventSlug: string) {
     const event = await this.findEvent(eventSlug);
 
@@ -85,9 +79,6 @@ export class TagsService {
           where: { eventId: event.id },
           orderBy: [{ displayOrder: 'asc' }, { fullName: 'asc' }],
         }),
-        // "Confirmed" = paid with a live ticket. Students still awaiting ID
-        // review (pending_review) have no ticket yet and are left out until
-        // approved; voided tickets are left out too.
         this.prisma.registration.findMany({
           where: {
             eventId: event.id,

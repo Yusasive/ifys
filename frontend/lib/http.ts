@@ -31,11 +31,6 @@ export async function throwApiError(res: Response): Promise<never> {
   throw new ApiError(res.status, body?.message ? body : { message: res.statusText || "Request failed" });
 }
 
-/**
- * Turns any thrown value into text a user can act on: the server's message
- * plus each field-level problem when it sent them. Network failures (fetch
- * throws a TypeError) get their own wording.
- */
 export function describeError(
   err: unknown,
   fallback = "Something went wrong. Please try again.",

@@ -74,9 +74,6 @@ export class CertificatesService {
     }));
   }
 
-  // One sample certificate to an address of the admin's choosing, so the
-  // PDF and email can be checked before the real send. Touches no delivery
-  // records.
   async sendTest(eventSlug: string, email: string, name?: string) {
     const event = await this.findEvent(eventSlug);
     await this.emailService.sendCertificateEmail(email, {

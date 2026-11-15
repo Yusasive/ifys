@@ -18,9 +18,6 @@ const PRICING_KOBO = {
   professional: { standard: 1000000, premium: 1000000 }, // NGN 10,000
 } as const;
 
-// Sample speaker lineup for local development — no photoKey since that
-// requires a real object in the configured storage bucket; the public UI
-// falls back to a placeholder avatar when photoUrl is null.
 const SAMPLE_SPEAKERS = [
   {
     name: 'Dr. Amina Yusuf',
@@ -73,10 +70,6 @@ async function main() {
 
   const event = await prisma.event.upsert({
     where: { slug: 'ify-summit-2026' },
-    // Re-applied on every seed run so edits to these fields here (e.g. the
-    // Nov 7 -> Nov 5 date correction) actually reach an event row that
-    // already exists, instead of silently only taking effect on first
-    // creation.
     update: {
       name: 'Islamic Finance Youth Summit 2026',
       venue: 'Ilorin Innovation Hub, Multipurpose Hall',

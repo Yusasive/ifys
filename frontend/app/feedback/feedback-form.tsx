@@ -279,9 +279,6 @@ function QuestionField({
 export function FeedbackFormPage() {
   const [form, setForm] = useState<FeedbackForm | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  // An unfinished form is restored from this device. The questions only render
-  // after the client-side fetch, so reading storage here can't cause a
-  // hydration mismatch.
   const [draft] = useState(() => (typeof window === "undefined" ? null : readDraft()));
   const [role, setRole] = useState<FeedbackRole | null>(draft?.role ?? null);
   // Kept per role, so switching role by mistake doesn't lose anything.

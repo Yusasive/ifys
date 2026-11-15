@@ -9,9 +9,6 @@ export interface CategoryAvailability {
   soldOut: boolean;
 }
 
-// Paid Orders (not Tickets) are what count as "sold" — a student
-// registration holds its seat from the moment payment clears, even while
-// its ID is still awaiting review and no Ticket has been issued yet.
 export function countTicketsSold(
   prisma: PrismaService,
   eventId: string,

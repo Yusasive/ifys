@@ -18,9 +18,6 @@ const STATUSES = [
   'cancelled',
 ] as const;
 
-// Who a broadcast goes to. A non-empty registrationIds is an explicit
-// hand-picked list and the filters are ignored; otherwise the filters
-// apply, where an omitted/empty filter means "any".
 export class BroadcastAudienceDto {
   @IsOptional()
   @IsArray()

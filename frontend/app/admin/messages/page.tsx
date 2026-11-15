@@ -84,9 +84,6 @@ export default function AdminMessagesPage() {
   });
   const [picked, setPicked] = useState<Map<string, PickedPerson>>(preselected);
 
-  // Server-resolved recipient count, tagged with the audience it was
-  // resolved for — it's stale (still loading) while that key differs from
-  // the current audience's.
   const [resolvedAudience, setResolvedAudience] = useState<{
     key: string;
     count: number | null;

@@ -96,12 +96,6 @@ export default function AdminUsersPage() {
       email: user.email,
       password: "",
       role: user.role,
-      // An empty permissions array means "inherit the role's defaults"
-      // (see backend/src/auth/permissions.ts) — resolve it here so the
-      // checkboxes show what this person can actually do, not a
-      // misleadingly blank grid. Otherwise saving from this form would
-      // silently overwrite their real (role-default) permissions with
-      // just whatever happened to be checked.
       permissions:
         user.permissions.length > 0
           ? user.permissions
@@ -113,11 +107,6 @@ export default function AdminUsersPage() {
   }
 
   function handleRoleChange(role: AdminRole) {
-    // Resetting to the new role's defaults on every role change, rather
-    // than leaving the previous role's permissions in place, is what
-    // prevents a demoted/promoted account from silently keeping a stale,
-    // too-broad permission set — a super_admin can still hand-tune from
-    // here before saving.
     setForm((f) => ({ ...f, role, permissions: ROLE_DEFAULT_PERMISSIONS[role] }));
     if (role !== "super_admin") {
       setPromotionReason("");

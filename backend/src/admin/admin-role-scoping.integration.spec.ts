@@ -197,10 +197,6 @@ describe('Admin role scoping (integration)', () => {
     }
   }, 45000);
 
-  // Covers the reissue/restore/withdraw ticket lifecycle actions' guard
-  // paths (withdraw only after a reissue, restore only when void, etc.) —
-  // the code-generation behavior itself is covered by
-  // tickets.service.integration.spec.ts.
   it('reissues a ticket with a new code, then blocks withdraw on a non-reissued ticket', async () => {
     const fixture = await createPaidCheckoutFixture(prisma, {
       orderStatus: 'pending',

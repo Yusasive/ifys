@@ -21,8 +21,13 @@ export async function refreshIndex(): Promise<void> {
     !info.lastFullAt ||
     Date.now() - new Date(info.lastFullAt).getTime() > FULL_RESYNC_MS;
 
-  const res = await fetchOfflineIndex(needFull ? undefined : (info.lastSyncAt ?? undefined));
-  await applyIndexUpdate(res.entries, { full: res.full, syncedAt: res.syncedAt });
+  const res = await fetchOfflineIndex(
+    needFull ? undefined : (info.lastSyncAt ?? undefined),
+  );
+  await applyIndexUpdate(res.entries, {
+    full: res.full,
+    syncedAt: res.syncedAt,
+  });
 }
 
 export interface FlushSummary {
@@ -30,11 +35,6 @@ export interface FlushSummary {
   problems: number;
 }
 
-// Sends every queued offline scan to the server and clears each one from
-// the local queue once the server has a final answer for it. Anything but a
-// clean result (a conflict, a ticket voided in the meantime, a rejected
-// item) is saved as a SyncProblem for staff to review — it is resolved, not
-// re-queued for another attempt (TRD §8).
 export async function flushQueue(): Promise<FlushSummary> {
   const queue = await getQueue();
   if (queue.length === 0) {
@@ -68,8 +68,7 @@ export async function flushQueue(): Promise<FlushSummary> {
         stationId: item.stationId,
         scannedAt: item.scannedAt,
         recordedAt: new Date().toISOString(),
-        attendee:
-          "attendee" in result ? result.attendee : item.attendee,
+        attendee: "attendee" in result ? result.attendee : item.attendee,
         ...(result.result === "sync_conflict"
           ? {
               firstUsedAt: result.firstUsedAt,
@@ -87,13 +86,9 @@ export async function flushQueue(): Promise<FlushSummary> {
   return { synced, problems };
 }
 
-/**
- * One sync cycle: upload queued scans first, then download the list. The
- * order matters — refreshing before the queue is empty could revert this
- * station's own unsynced check-ins. If the upload fails, the download is
- * skipped and the error is rethrown so the UI can show it.
- */
-export async function runSyncCycle(options: { refresh: boolean }): Promise<FlushSummary> {
+export async function runSyncCycle(options: {
+  refresh: boolean;
+}): Promise<FlushSummary> {
   const summary = await flushQueue();
   if (options.refresh) {
     await refreshIndex();

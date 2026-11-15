@@ -18,9 +18,6 @@ interface WhatsAppInviteEmailJobData {
   ticketId: string;
 }
 
-// Sends the "join the WhatsApp group" email per ticket and records each
-// outcome as the ticket's whatsapp_invite TicketEmailDelivery row, so the
-// admin Tickets page shows who got the link and who still needs it.
 @Injectable()
 export class WhatsAppInviteEmailQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WhatsAppInviteEmailQueue.name);
@@ -106,10 +103,6 @@ export class WhatsAppInviteEmailQueue implements OnModuleInit, OnModuleDestroy {
     await this.queue.add('send', { ticketId });
   }
 
-  // Called whenever a ticket is issued. Sends only when the event has a
-  // WhatsApp link set and this ticket hasn't already been sent (or isn't
-  // already being sent) the invite. Never throws: the invite is a nicety
-  // and must not fail the payment or admin action that issued the ticket.
   async enqueueForNewTicket(ticketId: string) {
     try {
       const ticket = await this.prisma.ticket.findUnique({
@@ -144,9 +137,6 @@ export class WhatsAppInviteEmailQueue implements OnModuleInit, OnModuleDestroy {
       return;
     }
     const { attendee, event } = ticket.registration;
-    // The link is read at send time, so a link changed while invites are
-    // queued goes out as the new one. Cleared in the meantime → fail, so it
-    // shows up as failed and can be resent once a link is set again.
     if (!event.whatsappGroupUrl) {
       throw new Error('No WhatsApp group link is set for this event.');
     }

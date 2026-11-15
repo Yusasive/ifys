@@ -18,12 +18,6 @@ export interface FormModalProps {
   size?: keyof typeof WIDTH_CLASSES;
 }
 
-// Generic overlay for a create/edit form — the standard replacement for the
-// "form pinned above the table, toggling between create/edit via an
-// editingId" pattern. Unlike DetailsModal (its read-only sibling), this
-// has no built-in footer: the <form> passed as children carries its own
-// submit/cancel buttons, since those vary per entity (e.g. an upload step
-// disabling submit).
 export function FormModal({
   open,
   title,

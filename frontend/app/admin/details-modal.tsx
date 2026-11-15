@@ -10,11 +10,6 @@ export interface DetailsModalProps {
   children: React.ReactNode;
 }
 
-// Generic overlay modal for viewing the full details of a single record
-// (an audit log entry, a volunteer application, etc.) — the standard
-// replacement for ad hoc "click to expand a row/toggle a <pre>" patterns,
-// so every "view details" action across the admin dashboard looks and
-// behaves the same way.
 export function DetailsModal({ open, title, description, onClose, children }: DetailsModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -72,9 +67,6 @@ export function DetailsModal({ open, title, description, onClose, children }: De
   );
 }
 
-// Reusable key/value grid for a details modal's body — used both for
-// structured fields (label -> plain value) and can be combined with raw
-// JSON for anything not worth a dedicated field.
 export function DetailsGrid({
   items,
 }: {

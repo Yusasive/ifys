@@ -33,9 +33,6 @@ const EMPTY_FORM = {
   categories: [] as Category[],
 };
 
-// <input type="datetime-local"> works in the browser's local time, so an
-// ISO (UTC) timestamp has to be shifted before it's shown, or every edit
-// would silently move the expiry by the timezone offset.
 function toLocalInputValue(iso: string): string {
   const date = new Date(iso);
   const offsetMs = date.getTimezoneOffset() * 60_000;

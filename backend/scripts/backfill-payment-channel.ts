@@ -1,6 +1,3 @@
-// One-off: fills orders.payment_channel for Paystack orders paid before the
-// column existed, by re-verifying each reference with Paystack.
-// Run: npx ts-node scripts/backfill-payment-channel.ts
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';

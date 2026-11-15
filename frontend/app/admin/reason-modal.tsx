@@ -16,12 +16,6 @@ export interface ReasonModalProps {
   onCancel: () => void;
 }
 
-// Generic overlay confirmation modal for any admin action that needs a
-// free-text reason and/or a re-entered password before proceeding (e.g.
-// cancelling a registration, or — a separate feature reusing this same
-// component — approving/rejecting a volunteer application). Its own
-// reason/password state resets whenever `open` flips false -> true, so a
-// stale value from a previous open never leaks into the next confirm.
 export function ReasonModal({
   open,
   title,
@@ -37,10 +31,6 @@ export function ReasonModal({
 }: ReasonModalProps) {
   const [reason, setReason] = useState("");
   const [password, setPassword] = useState("");
-  // Reset the form whenever the modal transitions closed -> open, so a
-  // stale value from a previous open never leaks into the next confirm.
-  // Setting state during render (not in an effect) here is the documented
-  // React pattern for resetting state in response to a prop change.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);

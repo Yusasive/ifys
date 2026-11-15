@@ -43,8 +43,6 @@ function toCsv(
   return `${header}\n${body}\n`;
 }
 
-// TRD §9: CSV export is a background job, not a synchronous request — it
-// runs through the same Redis-backed queue as ticket emails.
 @Injectable()
 export class ExportQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ExportQueue.name);

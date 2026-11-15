@@ -6,11 +6,6 @@ import { setStep, WizardStep } from "@/lib/registration-slice";
 
 const STEP_ORDER: WizardStep[] = ["category", "details", "review"];
 
-// The registration form is one page with three client-rendered steps, not
-// three routes — so the corner back arrow must step back through the
-// wizard (category <- details <- review) rather than always doing a
-// browser-history back, which would leave the form entirely (e.g. to the
-// homepage) even when the user just meant "previous screen."
 export function RegisterBackButton({ className = "" }: { className?: string }) {
   const router = useRouter();
   const dispatch = useAppDispatch();

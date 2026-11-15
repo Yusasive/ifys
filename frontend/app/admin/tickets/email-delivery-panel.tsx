@@ -76,11 +76,6 @@ function errorMessage(err: unknown, fallback: string) {
   return describeError(err, fallback);
 }
 
-// Who got their ticket email (or WhatsApp invite) and who didn't, per kind
-// of email, with resend for the failures (all at once or one person at a
-// time). "Sent"
-// means the mail server accepted it — a later bounce from a mistyped
-// address doesn't show up here.
 export function EmailDeliveryPanel({
   eventSlug,
   canResend,
