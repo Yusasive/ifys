@@ -236,6 +236,14 @@ export class AdminController {
     return this.admin.getExportStatus(jobId);
   }
 
+  // Every address held anywhere on the platform, de-duplicated. Bulk
+  // personal data, so super admins only.
+  @Roles('super_admin')
+  @Get('emails')
+  getEmailDirectory() {
+    return this.admin.getEmailDirectory();
+  }
+
   @Get('users')
   listAdminUsers(@Query() query: ListAdminUsersQueryDto) {
     return this.admin.listAdminUsers(query);

@@ -247,6 +247,21 @@ export interface AdminStats {
   checkedIn: number;
 }
 
+export interface EmailDirectoryRow {
+  email: string;
+  name: string;
+  phone: string;
+  sources: string[];
+  unsubscribed: boolean;
+  firstSeenAt: string | null;
+}
+
+export function fetchEmailDirectory() {
+  return adminRequest<{ generatedAt: string; total: number; rows: EmailDirectoryRow[] }>(
+    "/admin/emails",
+  );
+}
+
 export function fetchStats() {
   return adminRequest<AdminStats>("/admin/stats");
 }

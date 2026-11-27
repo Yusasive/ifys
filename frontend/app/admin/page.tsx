@@ -7,6 +7,7 @@ import {
   AdminStats,
   BreakdownItem,
   fetchAnalytics,
+  fetchEmailDirectory,
   fetchRegistrations,
   fetchStats,
   RegistrationListItem,
@@ -133,6 +134,7 @@ export default function AdminOverviewPage() {
   const [breakdownKey, setBreakdownKey] = useState<BreakdownKey>("source");
   const [reminding, setReminding] = useState(false);
   const [couponPage, setCouponPage] = useState(1);
+  const [exportingEmails, setExportingEmails] = useState(false);
 
   useEffect(() => {
     if (!session) return;
@@ -224,7 +226,47 @@ export default function AdminOverviewPage() {
     }
   }
 
+  async function exportEmails() {
+    if (exportingEmails) return;
+    setExportingEmails(true);
+    try {
+      const { rows } = await fetchEmailDirectory();
+      if (rows.length === 0) {
+        toast.error("There are no email addresses on the platform yet.");
+        return;
+      }
+      const cell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+      const table = [
+        ["Email", "Name", "Phone", "Found in", "Unsubscribed from broadcasts", "First seen"],
+        ...rows.map((r) => [
+          r.email,
+          r.name,
+          r.phone,
+          r.sources.join("; "),
+          r.unsubscribed ? "Yes" : "No",
+          r.firstSeenAt ? formatDateTime(r.firstSeenAt) : "",
+        ]),
+      ];
+      const csv = `\uFEFF${table.map((row) => row.map(cell).join(",")).join("\r\n")}\r\n`;
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `all-emails-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Exported ${rows.length} email address${rows.length === 1 ? "" : "es"}.`);
+    } catch (err) {
+      toast.error(describeError(err, "Failed to export email addresses."));
+    } finally {
+      setExportingEmails(false);
+    }
+  }
+
   if (authLoading || !session) return null;
+
+  const isSuperAdmin = session.user.role === "super_admin";
 
   const canRemind = hasPermission(session.user.permissions, "registrations.sendReminder");
   const money = (minor: number) => formatKobo(minor, analytics?.revenue.currency ?? "NGN");
@@ -245,6 +287,15 @@ export default function AdminOverviewPage() {
         <h1 className="font-bricolage font-bold text-2xl sm:text-3xl text-forest">Overview</h1>
         <div className="flex items-center gap-3 text-xs text-sage">
           {analytics && <span>As of {formatDateTime(analytics.asOf)}</span>}
+          {isSuperAdmin && (
+            <button
+              onClick={exportEmails}
+              disabled={exportingEmails}
+              className="border border-emerald/20 rounded-full px-4 py-1.5 text-sm text-ink hover:bg-emerald/5 transition-colors disabled:opacity-50"
+            >
+              {exportingEmails ? "Preparing…" : "Export all emails (CSV)"}
+            </button>
+          )}
           <button
             onClick={refresh}
             disabled={refreshing}

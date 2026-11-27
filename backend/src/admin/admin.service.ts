@@ -30,6 +30,7 @@ import { getCategoryAvailability } from '../registrations/category-availability'
 import { broadcastAudienceWhere } from '../broadcasts/broadcast-audience-where';
 import { BroadcastAudienceDto } from '../broadcasts/dto/broadcast-audience.dto';
 import { computeAnalytics } from './admin-analytics';
+import { buildEmailDirectory, EmailContact } from './email-directory';
 import { ExportQueue } from './export.queue';
 
 type TicketEmailDeliveryStatus =
@@ -156,6 +157,100 @@ export class AdminService {
       : null;
 
     return { ...registration, studentIdSignedUrl };
+  }
+
+  async getEmailDirectory() {
+    const [
+      attendees,
+      newsletter,
+      volunteers,
+      sponsors,
+      feedback,
+      staff,
+      unsubs,
+    ] = await Promise.all([
+      this.prisma.attendee.findMany({
+        select: {
+          email: true,
+          fullName: true,
+          phone: true,
+          registrations: {
+            select: { createdAt: true },
+            orderBy: { createdAt: 'asc' },
+            take: 1,
+          },
+        },
+      }),
+      this.prisma.newsletterSubscriber.findMany({
+        select: { email: true, createdAt: true },
+      }),
+      this.prisma.volunteerApplication.findMany({
+        select: { email: true, fullName: true, phone: true, createdAt: true },
+      }),
+      this.prisma.sponsorApplication.findMany({
+        select: {
+          email: true,
+          contactName: true,
+          phone: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.feedbackSubmission.findMany({
+        where: { email: { not: null } },
+        select: { email: true, name: true, createdAt: true },
+      }),
+      this.prisma.adminUser.findMany({
+        select: { email: true, name: true, createdAt: true },
+      }),
+      this.prisma.emailUnsubscribe.findMany({ select: { email: true } }),
+    ]);
+
+    const contacts: EmailContact[] = [
+      ...attendees.map((a) => ({
+        email: a.email,
+        name: a.fullName,
+        phone: a.phone,
+        source: 'Attendee' as const,
+        seenAt: a.registrations[0]?.createdAt ?? null,
+      })),
+      ...newsletter.map((n) => ({
+        email: n.email,
+        source: 'Newsletter' as const,
+        seenAt: n.createdAt,
+      })),
+      ...volunteers.map((v) => ({
+        email: v.email,
+        name: v.fullName,
+        phone: v.phone,
+        source: 'Volunteer' as const,
+        seenAt: v.createdAt,
+      })),
+      ...sponsors.map((s) => ({
+        email: s.email,
+        name: s.contactName,
+        phone: s.phone,
+        source: 'Sponsor applicant' as const,
+        seenAt: s.createdAt,
+      })),
+      ...feedback.map((f) => ({
+        email: f.email ?? '',
+        name: f.name,
+        source: 'Feedback' as const,
+        seenAt: f.createdAt,
+      })),
+      ...staff.map((u) => ({
+        email: u.email,
+        name: u.name,
+        source: 'Staff' as const,
+        seenAt: u.createdAt,
+      })),
+    ];
+
+    const rows = buildEmailDirectory(
+      contacts,
+      unsubs.map((u) => u.email),
+    );
+    return { generatedAt: new Date().toISOString(), total: rows.length, rows };
   }
 
   async getStats() {
