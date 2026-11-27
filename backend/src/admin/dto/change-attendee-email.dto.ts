@@ -5,7 +5,6 @@ export class ChangeAttendeeEmailDto {
   @MaxLength(254)
   email!: string;
 
-  // e.g. "original address bounces — buyer confirmed new one on WhatsApp".
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)

@@ -62,8 +62,6 @@ export class ListRegistrationsQueryDto {
   @IsDateString()
   to?: string;
 
-  // "How did you hear about us?" answer, or "none" for registrations that
-  // didn't give one.
   @IsOptional()
   @IsString()
   source?: string;
