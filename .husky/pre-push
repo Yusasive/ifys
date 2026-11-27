@@ -1,3 +1,12 @@
 npm run lint
 npm run typecheck
+
+# The backend tests need the local Postgres and Redis containers; without
+# them Jest retries the connection forever instead of failing.
+if ! nc -z localhost 5435 >/dev/null 2>&1 || ! nc -z localhost 6381 >/dev/null 2>&1; then
+  echo "pre-push: Postgres (5435) or Redis (6381) is not reachable."
+  echo "Start them with 'docker compose up -d' and push again."
+  exit 1
+fi
+
 npm run test
